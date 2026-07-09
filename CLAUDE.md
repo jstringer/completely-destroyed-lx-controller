@@ -84,3 +84,18 @@ Instead, `objects.json` declares exactly **one** always-on, wildcard-filtered `M
 **Known simplifications, worth revisiting:**
 - "Delete" on a Preset/EffectLayer/MidiMapping only removes it from `lxcontrolService`'s tracked lists (and stops it, for effects) — the underlying resource isn't actually freed from the `ResourceManager`, since `addObject`/`removeObject` are private API only used internally by the JSON-load/diff path. Harmless (it just sits unreferenced in memory until restart), but not a true delete.
 - Preset recall is an instant value jump per fixture, not a timed crossfade. The earlier `ParameterBlendComponent`-based approach did support blending but couldn't support a growing, live-created preset list; nothing currently replaces that blend behavior.
+
+## NAP skills & agents
+
+`.claude/skills/` holds NAP Framework skills (foundation: `nap-skill-authoring`, `nap-resource-graph`, `nap-adding-a-module-class`, `nap-build-run-verify`, `nap-validate-data-json`; domains: `nap-rendering`, `nap-sequence`, `nap-parameters`, `nap-artnet-dmx`, `nap-midi`). They keep NAP work grounded in verified sources instead of hallucinated API; the `nap-skill-authoring/scripts/` helpers (`nap_doc`, `nap_usage`, `nap_validate`, `nap_new_component`, `nap_doctor`) do the lookups/scaffolding/linting.
+
+`.claude/agents/` holds NAP agents: **nap-explore** (read-only tracing), **nap-architect** (read-only design), **nap-implement** (writes code/JSON, lints/builds).
+
+**Passing skills to an agent:** each NAP agent loads a default set, and additionally loads any skill named in a `Skills:` line in its task prompt. When dispatching one, add that line so it pulls the domain knowledge the task needs — e.g.:
+
+```
+Skills: nap-resource-graph, nap-artnet-dmx
+Add a strobe fixture entity to data/objects.json wired to Universe0 …
+```
+
+The agent invokes each named skill (or reads `.claude/skills/<name>/SKILL.md`) before starting.
