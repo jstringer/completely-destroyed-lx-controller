@@ -8,8 +8,6 @@
 
 // Local Includes
 #include "preset.h"
-#include "effectlayer.h"
-#include "miditriggercomponent.h"
 
 namespace nap
 {
@@ -19,8 +17,7 @@ namespace nap
 	enum class EMidiMappingTargetKind : int
 	{
 		Parameter		= 0,	///< Drive a Parameter's value from the message's normalized value byte
-		Preset			= 1,	///< Activate a Preset
-		EffectTrigger	= 2		///< Play/Stop/Toggle an EffectLayer
+		Preset			= 1		///< Activate a Preset
 	};
 
 	/**
@@ -63,8 +60,5 @@ namespace nap
 		float						mInputMaximum = 127.0f;	///< Property: 'InputMaximum' used when TargetKind == Parameter
 
 		ResourcePtr<Preset>			mPreset;				///< Property: 'Preset' used when TargetKind == Preset
-
-		ResourcePtr<EffectLayer>	mEffectLayer;			///< Property: 'EffectLayer' used when TargetKind == EffectTrigger
-		EMidiTriggerAction			mAction = EMidiTriggerAction::Toggle;	///< Property: 'Action' used when TargetKind == EffectTrigger
 	};
 }

@@ -93,6 +93,21 @@ namespace nap
 	}
 
 
+	static void fireTriggerAction(EffectLayer* layer, EMidiTriggerAction action)
+	{
+		if (layer == nullptr || layer->mPlayer == nullptr)
+			return;
+
+		SequencePlayer& player = *layer->mPlayer;
+		switch (action)
+		{
+		case EMidiTriggerAction::Play:		player.setIsPlaying(true);					break;
+		case EMidiTriggerAction::Stop:		player.setIsPlaying(false);					break;
+		case EMidiTriggerAction::Toggle:	player.setIsPlaying(!player.getIsPlaying());	break;
+		}
+	}
+
+
 	bool lxcontrolService::setup(const std::vector<ResourcePtr<ParameterGroup>>& fixtureParams, ResourcePtr<RenderWindow> renderWindow,
 		const std::vector<ResourcePtr<Fixture>>& fixtures, MidiInputComponentInstance& midiSource,
 		ResourcePtr<MidiInputPort> midiPort, utility::ErrorState& errorState)
@@ -187,7 +202,11 @@ namespace nap
 	{
 		rtti::ObjectList root_objects;
 		for (auto& preset : mPresets)
+		{
 			root_objects.emplace_back(preset.get());
+			for (auto& trigger : preset->mNoteMappings)
+				root_objects.emplace_back(trigger.get());
+		}
 
 		for (auto& entry : mEffectEntries)
 		{
@@ -255,10 +274,87 @@ namespace nap
 	}
 
 
+	void lxcontrolService::setPresetOnEnter(Preset* preset, EffectLayer* effect, EMidiTriggerAction action)
+	{
+		if (preset == nullptr)
+			return;
+
+		preset->mOnEnterEffect = effect;
+		preset->mOnEnterAction = action;
+		save();
+	}
+
+
+	void lxcontrolService::setPresetOnExit(Preset* preset, EffectLayer* effect, EMidiTriggerAction action)
+	{
+		if (preset == nullptr)
+			return;
+
+		preset->mOnExitEffect = effect;
+		preset->mOnExitAction = action;
+		save();
+	}
+
+
+	PresetMidiTrigger* lxcontrolService::addPresetNoteMapping(Preset* preset, MidiValue number, EffectLayer* effect,
+		EMidiTriggerAction action, utility::ErrorState& errorState)
+	{
+		if (!errorState.check(preset != nullptr, "addPresetNoteMapping: preset is null"))
+			return nullptr;
+		if (!errorState.check(effect != nullptr, "addPresetNoteMapping: effect is null"))
+			return nullptr;
+
+		auto trigger = mResourceManager->createObject<PresetMidiTrigger>();
+		trigger->mID = makeUniqueID(preset->mID + "_Note_" + std::to_string(preset->mNoteMappings.size() + 1));
+		trigger->mNumber = number;
+		trigger->mEffectLayer = effect;
+		trigger->mAction = action;
+
+		if (!trigger->init(errorState))
+			return nullptr;
+
+		preset->mNoteMappings.emplace_back(trigger);
+		save();
+		return trigger.get();
+	}
+
+
+	void lxcontrolService::updatePresetNoteMapping(PresetMidiTrigger* trigger, MidiValue number, EffectLayer* effect, EMidiTriggerAction action)
+	{
+		if (trigger == nullptr)
+			return;
+
+		trigger->mNumber = number;
+		trigger->mEffectLayer = effect;
+		trigger->mAction = action;
+		save();
+	}
+
+
+	void lxcontrolService::removePresetNoteMapping(Preset* preset, PresetMidiTrigger* trigger)
+	{
+		if (preset == nullptr)
+			return;
+
+		auto& list = preset->mNoteMappings;
+		list.erase(std::remove_if(list.begin(), list.end(), [trigger](const ResourcePtr<PresetMidiTrigger>& t)
+		{
+			return t.get() == trigger;
+		}), list.end());
+		save();
+	}
+
+
 	void lxcontrolService::applyPreset(Preset* preset, utility::ErrorState& errorState)
 	{
 		if (preset == nullptr)
 			return;
+
+		Preset* previous = mActivePreset;
+
+		// Fire the outgoing preset's OnExit trigger, if this is actually a preset change and one is configured.
+		if (previous != nullptr && previous != preset && previous->mOnExitEffect != nullptr)
+			fireTriggerAction(previous->mOnExitEffect.get(), previous->mOnExitAction);
 
 		auto* param_service = getCore().getService<ParameterService>();
 		for (size_t i = 0; i < mFixtures.size(); ++i)
@@ -270,6 +366,15 @@ namespace nap
 				continue;
 			entry.mPlayer->setIsPlaying(preset->playsLayer(*entry.mLayer));
 		}
+
+		// Fire the incoming preset's OnEnter trigger, if configured. Fired after the whitelist loop
+		// above, so it can act on top of (e.g. override/toggle) whatever state playsLayer() just set.
+		// Note: if the same EffectLayer is both in mLayersToPlay and mOnEnterEffect, a Toggle action
+		// here can immediately undo the whitelist's setIsPlaying(true) - an accepted narrow edge case.
+		if (preset->mOnEnterEffect != nullptr)
+			fireTriggerAction(preset->mOnEnterEffect.get(), preset->mOnEnterAction);
+
+		mActivePreset = preset;
 	}
 
 
@@ -416,8 +521,7 @@ namespace nap
 
 	MidiMapping* lxcontrolService::createMidiMapping(const MidiEvent& learnedEvent, EMidiMappingTargetKind kind,
 		ParameterFloat* parameter, float inputMinimum, float inputMaximum,
-		Preset* preset, EffectLayer* effectLayer, EMidiTriggerAction action,
-		utility::ErrorState& errorState)
+		Preset* preset, utility::ErrorState& errorState)
 	{
 		auto mapping = mResourceManager->createObject<MidiMapping>();
 		mapping->mID = makeUniqueID("MidiMapping_" + std::to_string(mMidiMappings.size() + 1));
@@ -439,8 +543,6 @@ namespace nap
 		mapping->mInputMinimum = inputMinimum;
 		mapping->mInputMaximum = inputMaximum;
 		mapping->mPreset = preset;
-		mapping->mEffectLayer = effectLayer;
-		mapping->mAction = action;
 
 		if (!mapping->init(errorState))
 			return nullptr;
@@ -499,18 +601,16 @@ namespace nap
 				if (mapping->mPreset != nullptr)
 					applyPreset(mapping->mPreset.get(), error);
 				break;
-			case EMidiMappingTargetKind::EffectTrigger:
-				if (mapping->mEffectLayer != nullptr && mapping->mEffectLayer->mPlayer != nullptr)
-				{
-					SequencePlayer& player = *mapping->mEffectLayer->mPlayer;
-					switch (mapping->mAction)
-					{
-					case EMidiTriggerAction::Play:		player.setIsPlaying(true);					break;
-					case EMidiTriggerAction::Stop:		player.setIsPlaying(false);					break;
-					case EMidiTriggerAction::Toggle:	player.setIsPlaying(!player.getIsPlaying());	break;
-					}
-				}
-				break;
+			}
+		}
+
+		// Preset-scoped note->effect triggers: only the currently active preset's own list is consulted.
+		if (mActivePreset != nullptr && event.getType() == MidiEvent::Type::noteOn)
+		{
+			for (auto& trigger : mActivePreset->mNoteMappings)
+			{
+				if (trigger->mNumber == event.getNumber())
+					fireTriggerAction(trigger->mEffectLayer.get(), trigger->mAction);
 			}
 		}
 	}

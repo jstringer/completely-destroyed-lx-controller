@@ -21,6 +21,7 @@
 #include "effectlayeroverride.h"
 #include "midimapping.h"
 #include "midihotplugmonitor.h"
+#include "presetmiditrigger.h"
 
 namespace nap
 {
@@ -68,6 +69,23 @@ namespace nap
 		void resnapshotPreset(Preset* preset, utility::ErrorState& errorState);
 		const std::vector<rtti::ObjectPtr<Preset>>& getPresets() const { return mPresets; }
 
+		/**
+		 * @return the preset lxcontrolService considers currently active (last one passed to
+		 * applyPreset()), or nullptr if none has been activated yet (including right after a
+		 * fresh load - this is deliberately not persisted to user_content.json).
+		 */
+		Preset* getActivePreset() const { return mActivePreset; }
+
+		// --- Preset enter/exit effect triggers ---
+		void setPresetOnEnter(Preset* preset, EffectLayer* effect, EMidiTriggerAction action);
+		void setPresetOnExit(Preset* preset, EffectLayer* effect, EMidiTriggerAction action);
+
+		// --- Preset-scoped note->effect triggers ---
+		PresetMidiTrigger* addPresetNoteMapping(Preset* preset, MidiValue number, EffectLayer* effect,
+			EMidiTriggerAction action, utility::ErrorState& errorState);
+		void updatePresetNoteMapping(PresetMidiTrigger* trigger, MidiValue number, EffectLayer* effect, EMidiTriggerAction action);
+		void removePresetNoteMapping(Preset* preset, PresetMidiTrigger* trigger);
+
 		// --- Effects ---
 		struct EffectTarget
 		{
@@ -83,8 +101,7 @@ namespace nap
 		// --- MIDI ---
 		MidiMapping* createMidiMapping(const MidiEvent& learnedEvent, EMidiMappingTargetKind kind,
 			ParameterFloat* parameter, float inputMinimum, float inputMaximum,
-			Preset* preset, EffectLayer* effectLayer, EMidiTriggerAction action,
-			utility::ErrorState& errorState);
+			Preset* preset, utility::ErrorState& errorState);
 		void removeMidiMapping(MidiMapping* mapping);
 		const std::vector<rtti::ObjectPtr<MidiMapping>>& getMidiMappings() const { return mMidiMappings; }
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
@@ -137,6 +154,10 @@ namespace nap
 		std::vector<EffectLayerEntry>				mEffectEntries;
 		std::vector<rtti::ObjectPtr<EffectLayer>>	mEffectLayers;		// mirrors mEffectEntries, kept for getEffectLayers()
 		std::vector<rtti::ObjectPtr<MidiMapping>>	mMidiMappings;
+
+		// Currently-active preset. Deliberately NOT persisted/reconstructed - after a fresh
+		// load or restart, nothing is "active" until applyPreset() is explicitly called again.
+		Preset*										mActivePreset = nullptr;
 
 		std::deque<std::string>			mMidiLog;
 		static constexpr size_t			sMaxMidiLogSize = 50;

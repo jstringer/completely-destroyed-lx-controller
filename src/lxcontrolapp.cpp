@@ -225,6 +225,28 @@ namespace nap
 	}
 
 
+	int lxcontrolApp::drawEffectLayerCombo(const char* label, const std::vector<rtti::ObjectPtr<EffectLayer>>& layers, EffectLayer* current)
+	{
+		std::vector<const char*> c_labels;
+		c_labels.emplace_back("None");
+		for (auto& layer : layers)
+			c_labels.emplace_back(layer->mName.c_str());
+
+		int index = 0;
+		for (size_t i = 0; i < layers.size(); ++i)
+		{
+			if (layers[i].get() == current)
+			{
+				index = static_cast<int>(i) + 1;
+				break;
+			}
+		}
+
+		ImGui::Combo(label, &index, c_labels.data(), static_cast<int>(c_labels.size()));
+		return index - 1;
+	}
+
+
 	void lxcontrolApp::drawPresetsTab()
 	{
 		ImGui::InputText("Name", mNewPresetName, sizeof(mNewPresetName));
@@ -238,6 +260,9 @@ namespace nap
 		}
 
 		ImGui::Separator();
+		const auto& layers = mLxControlService->getEffectLayers();
+		const char* action_labels[] = { "Play", "Stop", "Toggle" };
+
 		for (auto& preset : mLxControlService->getPresets())
 		{
 			ImGui::PushID(preset.get());
@@ -260,7 +285,7 @@ namespace nap
 
 			if (ImGui::TreeNode("Effects to play"))
 			{
-				for (auto& layer : mLxControlService->getEffectLayers())
+				for (auto& layer : layers)
 				{
 					bool plays = preset->playsLayer(*layer);
 					if (ImGui::Checkbox(layer->mName.c_str(), &plays))
@@ -281,6 +306,81 @@ namespace nap
 				}
 				ImGui::TreePop();
 			}
+
+			if (ImGui::TreeNode("On Enter / On Exit"))
+			{
+				int enter_action = static_cast<int>(preset->mOnEnterAction);
+				int enter_idx = drawEffectLayerCombo("On Enter Effect", layers, preset->mOnEnterEffect.get());
+				bool enter_action_changed = ImGui::Combo("On Enter Action", &enter_action, action_labels, 3);
+				EffectLayer* enter_effect = (enter_idx >= 0 && enter_idx < static_cast<int>(layers.size())) ? layers[enter_idx].get() : nullptr;
+				if (enter_effect != preset->mOnEnterEffect.get() || enter_action_changed)
+					mLxControlService->setPresetOnEnter(preset.get(), enter_effect, static_cast<EMidiTriggerAction>(enter_action));
+
+				int exit_action = static_cast<int>(preset->mOnExitAction);
+				int exit_idx = drawEffectLayerCombo("On Exit Effect", layers, preset->mOnExitEffect.get());
+				bool exit_action_changed = ImGui::Combo("On Exit Action", &exit_action, action_labels, 3);
+				EffectLayer* exit_effect = (exit_idx >= 0 && exit_idx < static_cast<int>(layers.size())) ? layers[exit_idx].get() : nullptr;
+				if (exit_effect != preset->mOnExitEffect.get() || exit_action_changed)
+					mLxControlService->setPresetOnExit(preset.get(), exit_effect, static_cast<EMidiTriggerAction>(exit_action));
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Note Triggers"))
+			{
+				for (auto& trigger : preset->mNoteMappings)
+				{
+					ImGui::PushID(trigger.get());
+
+					int number = static_cast<int>(trigger->mNumber);
+					bool number_changed = ImGui::InputInt("Note", &number);
+
+					int effect_idx = drawEffectLayerCombo("Effect", layers, trigger->mEffectLayer.get());
+					EffectLayer* effect = (effect_idx >= 0 && effect_idx < static_cast<int>(layers.size())) ? layers[effect_idx].get() : nullptr;
+
+					int action = static_cast<int>(trigger->mAction);
+					bool action_changed = ImGui::Combo("Action", &action, action_labels, 3);
+
+					if (number_changed || effect != trigger->mEffectLayer.get() || action_changed)
+					{
+						mLxControlService->updatePresetNoteMapping(trigger.get(),
+							static_cast<MidiValue>(math::clamp(number, 0, 127)), effect, static_cast<EMidiTriggerAction>(action));
+					}
+
+					ImGui::SameLine();
+					if (ImGui::Button("Remove"))
+						mLxControlService->removePresetNoteMapping(preset.get(), trigger.get());
+
+					ImGui::Separator();
+					ImGui::PopID();
+				}
+
+				auto& form = mNoteMappingForms[preset.get()];
+				ImGui::InputInt("New Note", &form.mNumber);
+				if (!layers.empty())
+				{
+					form.mEffectIndex = math::clamp(form.mEffectIndex, 0, static_cast<int>(layers.size()) - 1);
+					std::vector<const char*> c_labels;
+					for (auto& layer : layers)
+						c_labels.emplace_back(layer->mName.c_str());
+					ImGui::Combo("New Effect", &form.mEffectIndex, c_labels.data(), static_cast<int>(c_labels.size()));
+				}
+				ImGui::Combo("New Action", &form.mAction, action_labels, 3);
+				if (ImGui::Button("+ Add Note Mapping") && !layers.empty())
+				{
+					utility::ErrorState error;
+					if (mLxControlService->addPresetNoteMapping(preset.get(),
+						static_cast<MidiValue>(math::clamp(form.mNumber, 0, 127)),
+						layers[form.mEffectIndex].get(),
+						static_cast<EMidiTriggerAction>(form.mAction), error) == nullptr)
+					{
+						nap::Logger::error("Failed to add note mapping: %s", error.toString().c_str());
+					}
+				}
+
+				ImGui::TreePop();
+			}
+
 			ImGui::PopID();
 			ImGui::Separator();
 		}
@@ -394,9 +494,9 @@ namespace nap
 		ImGui::Separator();
 		ImGui::Text("Learn a new mapping:");
 
-		const char* kind_labels[] = { "Parameter", "Preset", "Effect Trigger" };
+		const char* kind_labels[] = { "Parameter", "Preset" };
 		int kind_index = static_cast<int>(mLearnKind);
-		if (ImGui::Combo("Target Kind", &kind_index, kind_labels, 3))
+		if (ImGui::Combo("Target Kind", &kind_index, kind_labels, 2))
 			mLearnKind = static_cast<EMidiMappingTargetKind>(kind_index);
 
 		if (mLearnKind == EMidiMappingTargetKind::Parameter)
@@ -435,22 +535,6 @@ namespace nap
 				mLearnPresetIndex = math::clamp(mLearnPresetIndex, 0, static_cast<int>(c_labels.size()) - 1);
 				ImGui::Combo("Preset", &mLearnPresetIndex, c_labels.data(), static_cast<int>(c_labels.size()));
 			}
-		}
-		else
-		{
-			const auto& layers = mLxControlService->getEffectLayers();
-			std::vector<const char*> c_labels;
-			for (auto& l : layers)
-				c_labels.emplace_back(l->mName.c_str());
-			if (!c_labels.empty())
-			{
-				mLearnEffectIndex = math::clamp(mLearnEffectIndex, 0, static_cast<int>(c_labels.size()) - 1);
-				ImGui::Combo("Effect", &mLearnEffectIndex, c_labels.data(), static_cast<int>(c_labels.size()));
-			}
-			const char* action_labels[] = { "Play", "Stop", "Toggle" };
-			int action_index = static_cast<int>(mLearnAction);
-			if (ImGui::Combo("Action", &action_index, action_labels, 3))
-				mLearnAction = static_cast<EMidiTriggerAction>(action_index);
 		}
 
 		if (!mLearning)
@@ -496,16 +580,8 @@ namespace nap
 						preset = presets[mLearnPresetIndex].get();
 				}
 
-				EffectLayer* effect = nullptr;
-				if (mLearnKind == EMidiMappingTargetKind::EffectTrigger)
-				{
-					const auto& layers = mLxControlService->getEffectLayers();
-					if (mLearnEffectIndex >= 0 && mLearnEffectIndex < static_cast<int>(layers.size()))
-						effect = layers[mLearnEffectIndex].get();
-				}
-
 				if (mLxControlService->createMidiMapping(learned, mLearnKind, parameter, mLearnInputMinimum, mLearnInputMaximum,
-					preset, effect, mLearnAction, error) == nullptr)
+					preset, error) == nullptr)
 				{
 					nap::Logger::error("Failed to create MIDI mapping: %s", error.toString().c_str());
 				}

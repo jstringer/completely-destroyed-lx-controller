@@ -4,8 +4,7 @@
 
 RTTI_BEGIN_ENUM(nap::EMidiMappingTargetKind)
 	RTTI_ENUM_VALUE(nap::EMidiMappingTargetKind::Parameter,		"Parameter"),
-	RTTI_ENUM_VALUE(nap::EMidiMappingTargetKind::Preset,			"Preset"),
-	RTTI_ENUM_VALUE(nap::EMidiMappingTargetKind::EffectTrigger,	"EffectTrigger")
+	RTTI_ENUM_VALUE(nap::EMidiMappingTargetKind::Preset,			"Preset")
 RTTI_END_ENUM
 
 RTTI_BEGIN_CLASS(nap::MidiMapping)
@@ -24,8 +23,6 @@ RTTI_BEGIN_CLASS(nap::MidiMapping)
 	RTTI_PROPERTY("InputMinimum",		&nap::MidiMapping::mInputMinimum,		nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("InputMaximum",		&nap::MidiMapping::mInputMaximum,		nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Preset",				&nap::MidiMapping::mPreset,				nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("EffectLayer",		&nap::MidiMapping::mEffectLayer,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Action",				&nap::MidiMapping::mAction,				nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace nap
@@ -40,10 +37,6 @@ namespace nap
 			break;
 		case EMidiMappingTargetKind::Preset:
 			if (!errorState.check(mPreset != nullptr, "%s: TargetKind is Preset but Preset is not set", mID.c_str()))
-				return false;
-			break;
-		case EMidiMappingTargetKind::EffectTrigger:
-			if (!errorState.check(mEffectLayer != nullptr, "%s: TargetKind is EffectTrigger but EffectLayer is not set", mID.c_str()))
 				return false;
 			break;
 		}

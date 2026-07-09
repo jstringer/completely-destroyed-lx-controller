@@ -18,6 +18,7 @@
 #include <lxcontrolservice.h>
 #include <midiport/midiinputport.h>
 #include <set>
+#include <map>
 
 namespace nap
 {
@@ -79,6 +80,12 @@ namespace nap
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
 
+		/**
+		 * Draws a labeled combo box over the given effect layers, returning the newly-selected
+		 * index (or -1 for "None"). 'current' is used to determine the initially-selected entry.
+		 */
+		static int drawEffectLayerCombo(const char* label, const std::vector<rtti::ObjectPtr<EffectLayer>>& layers, EffectLayer* current);
+
 		ResourceManager*			mResourceManager = nullptr;		///< Manages all the loaded data
 		RenderService*				mRenderService = nullptr;		///< Render Service that handles render calls
 		SceneService*				mSceneService = nullptr;		///< Manages all the objects in the scene
@@ -108,10 +115,17 @@ namespace nap
 		EMidiMappingTargetKind		mLearnKind = EMidiMappingTargetKind::Parameter;
 		int							mLearnParameterIndex = 0;		///< index into a flattened (fixture, channel) list
 		int							mLearnPresetIndex = 0;
-		int							mLearnEffectIndex = 0;
-		EMidiTriggerAction			mLearnAction = EMidiTriggerAction::Toggle;
 		float						mLearnInputMinimum = 0.0f;
 		float						mLearnInputMaximum = 127.0f;
+
+		// Per-preset "add a new note mapping" form state
+		struct NoteMappingForm
+		{
+			int mNumber = 60;
+			int mEffectIndex = 0;
+			int mAction = static_cast<int>(EMidiTriggerAction::Toggle);
+		};
+		std::map<Preset*, NoteMappingForm>	mNoteMappingForms;
 
 		// MIDI device list: the ports our statically-declared MidiInputPort has opened. lxcontrolService
 		// polls for newly connected/removed devices and restarts this port to pick them up - see
