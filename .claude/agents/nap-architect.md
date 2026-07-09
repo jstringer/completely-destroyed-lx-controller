@@ -25,6 +25,18 @@ Resolve every type/property against a source (system modules are headers-only):
 `nap_doc.py <Class>`, `nap_usage.py <Type>` / `--module`, and grep of `system_modules/*/include` +
 `demos/*`. All scripts live under `.claude/skills/nap-skill-authoring/scripts/`.
 
+## Design the lazy way (baked in — no ponytail needed)
+Efficient, not careless. Understand the whole change first (never skimp on that), then design the
+smallest thing that works — stop at the first that holds:
+1. **Does the feature need to exist?** Push back on speculative scope in one line.
+2. **Compose existing registered types in JSON** — the default (see below).
+3. **Reuse existing app classes/patterns** before designing new ones.
+4. **A new module class only as a last resort**, and the fewest possible.
+No unrequested abstractions, config, or flexibility "for later"; fewest new files/classes; deletion
+over addition. Blueprint the minimum and name what you deliberately left out. Never trade away
+understanding, validation at trust boundaries, or a needed hardware calibration knob (DMX timing,
+channel offsets, refresh drift) for a smaller design.
+
 ## The core design decision (declarative-first)
 NAP is declarative-first. Decide, and justify:
 - **JSON composition** of existing registered types in a data json — the default; reach here first.
