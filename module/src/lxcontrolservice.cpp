@@ -32,6 +32,21 @@ namespace nap
 
 	void lxcontrolService::update(double deltaTime)
 	{
+		if (mMidiPort == nullptr || mMidiHotplugMonitor == nullptr)
+			return;
+
+		std::vector<std::string> new_ports;
+		if (!mMidiHotplugMonitor->update(deltaTime, new_ports))
+			return;
+
+		mMidiPort->stop();
+		utility::ErrorState error;
+		if (mMidiPort->start(error))
+			mMidiLog.push_front("MIDI devices changed - reconnected: " + mMidiPort->getPortNames());
+		else
+			mMidiLog.push_front("MIDI devices changed - reconnect failed: " + error.toString());
+		while (mMidiLog.size() > sMaxMidiLogSize)
+			mMidiLog.pop_back();
 	}
 
 
@@ -80,12 +95,15 @@ namespace nap
 
 	bool lxcontrolService::setup(const std::vector<ResourcePtr<ParameterGroup>>& fixtureParams, ResourcePtr<RenderWindow> renderWindow,
 		const std::vector<ResourcePtr<Fixture>>& fixtures, MidiInputComponentInstance& midiSource,
-		utility::ErrorState& errorState)
+		ResourcePtr<MidiInputPort> midiPort, utility::ErrorState& errorState)
 	{
 		mFixtureParams = fixtureParams;
 		mRenderWindow = renderWindow;
 		for (auto& fixture : fixtures)
 			mFixtures.emplace_back(fixture.get());
+
+		mMidiPort = midiPort;
+		mMidiHotplugMonitor = std::make_unique<MidiHotplugMonitor>();
 
 		midiSource.messageReceived.connect(mMidiSlot);
 

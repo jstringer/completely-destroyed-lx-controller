@@ -92,11 +92,11 @@ namespace nap
 		if (!error.check(midi_input != nullptr, "MidiMonitorEntity is missing its MidiInputComponent"))
 			return false;
 
-		if (!mLxControlService->setup(fixture_params, mRenderWindow, fixtures, *midi_input, error))
-			return false;
-
 		mMidiPort = mResourceManager->findObject<MidiInputPort>("MidiPort");
 		if (!error.check(mMidiPort != nullptr, "unable to find object with name: %s", "MidiPort"))
+			return false;
+
+		if (!mLxControlService->setup(fixture_params, mRenderWindow, fixtures, *midi_input, mMidiPort, error))
 			return false;
 
 		// All done!

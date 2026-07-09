@@ -111,8 +111,10 @@ namespace nap
 		float						mLearnInputMinimum = 0.0f;
 		float						mLearnInputMaximum = 127.0f;
 
-		// MIDI device list: the ports our statically-declared MidiInputPort opened at startup.
-		// napmidi has no live/hot-plug enumeration API, so this reflects startup state only.
+		// MIDI device list: the ports our statically-declared MidiInputPort has opened. lxcontrolService
+		// polls for newly connected/removed devices and restarts this port to pick them up - see
+		// lxcontrolService::update()/MidiHotplugMonitor - so this reflects live state, refreshed every
+		// couple of seconds, not just what was present at app startup.
 		ObjectPtr<MidiInputPort>	mMidiPort;
 
 		// Effect timelines the user has toggled open; kept open across tab switches

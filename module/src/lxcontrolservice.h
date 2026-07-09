@@ -8,6 +8,7 @@
 #include <renderwindow.h>
 #include <midievent.h>
 #include <midiinputcomponent.h>
+#include <midiport/midiinputport.h>
 #include <sequenceplayer.h>
 #include <sequenceeditor.h>
 #include <sequenceeditorgui.h>
@@ -19,6 +20,7 @@
 #include "effectlayer.h"
 #include "effectlayeroverride.h"
 #include "midimapping.h"
+#include "midihotplugmonitor.h"
 
 namespace nap
 {
@@ -54,7 +56,7 @@ namespace nap
 		 */
 		bool setup(const std::vector<ResourcePtr<ParameterGroup>>& fixtureParams, ResourcePtr<RenderWindow> renderWindow,
 			const std::vector<ResourcePtr<Fixture>>& fixtures, MidiInputComponentInstance& midiSource,
-			utility::ErrorState& errorState);
+			ResourcePtr<MidiInputPort> midiPort, utility::ErrorState& errorState);
 
 		// --- Fixtures (read-only, declared in objects.json) ---
 		const std::vector<Fixture*>& getFixtures() const { return mFixtures; }
@@ -127,6 +129,9 @@ namespace nap
 		std::vector<ResourcePtr<ParameterGroup>>	mFixtureParams;		// one per fixture, same order as mFixtures
 		ResourcePtr<RenderWindow>			mRenderWindow;
 		std::vector<Fixture*>				mFixtures;
+
+		ResourcePtr<MidiInputPort>			mMidiPort;
+		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;
 
 		std::vector<rtti::ObjectPtr<Preset>>		mPresets;
 		std::vector<EffectLayerEntry>				mEffectEntries;
