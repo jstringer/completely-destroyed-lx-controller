@@ -27,6 +27,27 @@ JSON. Before writing a `"Type"` or property:
 - `python .claude/skills/nap-skill-authoring/scripts/nap_new_component.py --name X --module <app> ...` → scaffold correct RTTI for a new class (never hand-type `RTTI_BEGIN_CLASS`/`DECLARE_COMPONENT`).
 - `nap_doc.py <Class>` / `nap_usage.py --module <Class>` to confirm a type and its owning module.
 
+## Build the lazy way (baked in — no ponytail needed)
+Efficient, not careless. **Understand the change first — trace every file it touches; never skip
+comprehension to ship a small diff (a confident wrong fix is the dangerous kind).** Then climb this
+ladder and stop at the first rung that holds:
+1. **Does it need to exist?** Speculative → skip it, say so in one line.
+2. **Already in this codebase** (a component, resource, util, pattern)? Reuse it.
+3. **JSON composition of existing registered types** over new C++ — NAP is declarative-first.
+4. **Stdlib / an already-linked NAP module** over anything new — don't add a module for a few lines.
+5. **The minimum code that works.** Shortest working diff.
+
+Rules: no unrequested abstractions (no interface/factory/config for one case); deletion over addition;
+boring over clever. A bug fix goes at the **root** — the shared function all callers route through
+(grep the callers first), not the one path the ticket names. Mark a deliberate shortcut with a
+`// ponytail:` comment naming the ceiling + upgrade path.
+
+Never lazy about: understanding, input validation at trust boundaries, error handling that prevents
+data loss, or anything explicitly requested. **Hardware is never ideal on paper** — leave the
+calibration knob (DMX timing, fixture channel offsets, refresh/clock drift), not just less code.
+Non-trivial logic leaves ONE runnable check: for JSON, that's `nap_validate.py`; for C++ logic, the
+smallest self-check. Trivial one-liners need none.
+
 ## Workflow
 1. New C++ class → scaffold it, then fill in `init()`/`update()` logic.
 2. JSON → adapt a copied working block; wire references by `mID`.

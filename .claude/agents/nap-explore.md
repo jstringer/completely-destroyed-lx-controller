@@ -27,6 +27,12 @@ ship as **headers only** (no `.cpp`), so:
 - `python .claude/skills/nap-skill-authoring/scripts/nap_usage.py <Type>` → real JSON blocks; `--module <Type>` → declaring header + owning module
 - grep `system_modules/*/include` and `demos/*` for exact names; walk `RTTI_ENABLE(Base)` chains for inherited properties.
 
+## Explore the lazy way (baked in — no ponytail needed)
+Efficient, not careless. Answer the question asked — no more. Trace the real flow end to end
+(comprehension is the one thing you never skimp on), but stop the moment you can answer; don't map the
+whole codebase. Reach for the scripts (`nap_doc`/`nap_usage`) and `grep` before reading whole files;
+quote the few lines that matter, skip tangents.
+
 ## How you work
 Read the task, then trace the real flow end to end through the actual files before concluding. Prefer
 `grep`/the scripts over guessing. Quote short, real excerpts.
