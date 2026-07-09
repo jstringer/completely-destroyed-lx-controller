@@ -1,0 +1,4085 @@
+{
+ "base": "https://docs.nap-framework.tech",
+ "classes": [
+  {
+   "name": "Action",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d6/d35/classnap_1_1sequenceguiactions_1_1_action"
+  },
+  {
+   "name": "APIArgument",
+   "ns": "nap",
+   "path": "/de/d66/classnap_1_1_a_p_i_argument"
+  },
+  {
+   "name": "APIBaseValue",
+   "ns": "nap",
+   "path": "/de/d18/classnap_1_1_a_p_i_base_value"
+  },
+  {
+   "name": "APICallBack",
+   "ns": "nap",
+   "path": "/df/d2e/classnap_1_1_a_p_i_call_back"
+  },
+  {
+   "name": "APIComponent",
+   "ns": "nap",
+   "path": "/da/d42/classnap_1_1_a_p_i_component"
+  },
+  {
+   "name": "APIComponentInstance",
+   "ns": "nap",
+   "path": "/dc/de6/classnap_1_1_a_p_i_component_instance"
+  },
+  {
+   "name": "APIEvent",
+   "ns": "nap",
+   "path": "/db/dbc/classnap_1_1_a_p_i_event"
+  },
+  {
+   "name": "APIMessage",
+   "ns": "nap",
+   "path": "/de/dae/classnap_1_1_a_p_i_message"
+  },
+  {
+   "name": "APIService",
+   "ns": "nap",
+   "path": "/de/d73/classnap_1_1_a_p_i_service"
+  },
+  {
+   "name": "APISignature",
+   "ns": "nap",
+   "path": "/d3/d6c/classnap_1_1_a_p_i_signature"
+  },
+  {
+   "name": "APIValue",
+   "ns": "nap",
+   "path": "/da/d8d/classnap_1_1_a_p_i_value"
+  },
+  {
+   "name": "APIWebSocketClient",
+   "ns": "nap",
+   "path": "/d9/d37/classnap_1_1_a_p_i_web_socket_client"
+  },
+  {
+   "name": "APIWebSocketEvent",
+   "ns": "nap",
+   "path": "/d4/dc1/classnap_1_1_a_p_i_web_socket_event"
+  },
+  {
+   "name": "APIWebSocketServer",
+   "ns": "nap",
+   "path": "/d0/d37/classnap_1_1_a_p_i_web_socket_server"
+  },
+  {
+   "name": "APIWebSocketService",
+   "ns": "nap",
+   "path": "/d3/da5/classnap_1_1_a_p_i_web_socket_service"
+  },
+  {
+   "name": "App",
+   "ns": "nap",
+   "path": "/da/dc5/classnap_1_1_app"
+  },
+  {
+   "name": "AppEventHandler",
+   "ns": "nap",
+   "path": "/d3/de2/classnap_1_1_app_event_handler"
+  },
+  {
+   "name": "AppRunner",
+   "ns": "nap",
+   "path": "/d6/d0d/classnap_1_1_app_runner"
+  },
+  {
+   "name": "ArtNetController",
+   "ns": "nap",
+   "path": "/d2/db1/classnap_1_1_art_net_controller"
+  },
+  {
+   "name": "ArtNetEvent",
+   "ns": "nap",
+   "path": "/df/dcf/classnap_1_1_art_net_event"
+  },
+  {
+   "name": "ArtNetInputComponent",
+   "ns": "nap",
+   "path": "/d4/dc5/classnap_1_1_art_net_input_component"
+  },
+  {
+   "name": "ArtNetInputComponentInstance",
+   "ns": "nap",
+   "path": "/d5/dd2/classnap_1_1_art_net_input_component_instance"
+  },
+  {
+   "name": "ArtNetListener",
+   "ns": "nap",
+   "path": "/d8/d41/classnap_1_1_art_net_listener"
+  },
+  {
+   "name": "ArtNetReceiver",
+   "ns": "nap",
+   "path": "/da/d11/classnap_1_1_art_net_receiver"
+  },
+  {
+   "name": "ArtNetService",
+   "ns": "nap",
+   "path": "/d0/d4d/classnap_1_1_art_net_service"
+  },
+  {
+   "name": "AssignOutputIDToTrack",
+   "ns": "nap::sequenceguiactions",
+   "path": "/de/dea/classnap_1_1sequenceguiactions_1_1_assign_output_i_d_to_track"
+  },
+  {
+   "name": "AsyncObserver",
+   "ns": "nap::audio",
+   "path": "/de/d4d/classnap_1_1audio_1_1_async_observer"
+  },
+  {
+   "name": "AudioBufferResource",
+   "ns": "nap::audio",
+   "path": "/df/dac/classnap_1_1audio_1_1_audio_buffer_resource"
+  },
+  {
+   "name": "AudioComponentBase",
+   "ns": "nap::audio",
+   "path": "/d5/dcb/classnap_1_1audio_1_1_audio_component_base"
+  },
+  {
+   "name": "AudioComponentBaseInstance",
+   "ns": "nap::audio",
+   "path": "/da/dde/classnap_1_1audio_1_1_audio_component_base_instance"
+  },
+  {
+   "name": "AudioFileResource",
+   "ns": "nap::audio",
+   "path": "/d1/d65/classnap_1_1audio_1_1_audio_file_resource"
+  },
+  {
+   "name": "AudioFormat",
+   "ns": "nap",
+   "path": "/d9/d35/classnap_1_1_audio_format"
+  },
+  {
+   "name": "AudioInputComponent",
+   "ns": "nap::audio",
+   "path": "/db/d0a/classnap_1_1audio_1_1_audio_input_component"
+  },
+  {
+   "name": "AudioInputComponentInstance",
+   "ns": "nap::audio",
+   "path": "/dc/d8b/classnap_1_1audio_1_1_audio_input_component_instance"
+  },
+  {
+   "name": "AudioSegmentClipboard",
+   "ns": "nap::sequenceguiclipboard",
+   "path": "/d7/db2/classnap_1_1sequenceguiclipboard_1_1_audio_segment_clipboard"
+  },
+  {
+   "name": "AudioService",
+   "ns": "nap::audio",
+   "path": "/df/d42/classnap_1_1audio_1_1_audio_service"
+  },
+  {
+   "name": "AutoResetEvent",
+   "ns": "nap::utility",
+   "path": "/d8/dad/classnap_1_1utility_1_1_auto_reset_event"
+  },
+  {
+   "name": "AVState",
+   "ns": "nap",
+   "path": "/dc/dc1/classnap_1_1_a_v_state"
+  },
+  {
+   "name": "BaseApp",
+   "ns": "nap",
+   "path": "/d4/dda/classnap_1_1_base_app"
+  },
+  {
+   "name": "BaseColor",
+   "ns": "nap",
+   "path": "/d8/d6a/classnap_1_1_base_color"
+  },
+  {
+   "name": "StructFillPolicy::BaseEntry",
+   "ns": "nap",
+   "path": "/d2/d21/classnap_1_1_struct_fill_policy_1_1_base_entry"
+  },
+  {
+   "name": "BaseFillPolicy",
+   "ns": "nap",
+   "path": "/de/d80/classnap_1_1_base_fill_policy"
+  },
+  {
+   "name": "BaseMaterial",
+   "ns": "nap",
+   "path": "/da/d69/classnap_1_1_base_material"
+  },
+  {
+   "name": "BaseMaterialInstance",
+   "ns": "nap",
+   "path": "/d4/d2c/classnap_1_1_base_material_instance"
+  },
+  {
+   "name": "BaseMaterialInstanceResource",
+   "ns": "nap",
+   "path": "/df/d7a/classnap_1_1_base_material_instance_resource"
+  },
+  {
+   "name": "BaseParameterBlender",
+   "ns": "nap",
+   "path": "/d8/d76/classnap_1_1_base_parameter_blender"
+  },
+  {
+   "name": "BaseSequenceTrackCurve",
+   "ns": "nap",
+   "path": "/d6/de8/classnap_1_1_base_sequence_track_curve"
+  },
+  {
+   "name": "BaseShader",
+   "ns": "nap",
+   "path": "/d4/dd0/classnap_1_1_base_shader"
+  },
+  {
+   "name": "BaseSmoothOperator",
+   "ns": "nap::math",
+   "path": "/d6/d07/classnap_1_1math_1_1_base_smooth_operator"
+  },
+  {
+   "name": "BaseVertexAttribute",
+   "ns": "nap",
+   "path": "/d7/db2/classnap_1_1_base_vertex_attribute"
+  },
+  {
+   "name": "BinaryWriter",
+   "ns": "nap::rtti",
+   "path": "/dc/dae/classnap_1_1rtti_1_1_binary_writer"
+  },
+  {
+   "name": "Bitmap",
+   "ns": "nap",
+   "path": "/df/dfc/classnap_1_1_bitmap"
+  },
+  {
+   "name": "BitmapFileBuffer",
+   "ns": "nap",
+   "path": "/dd/d04/classnap_1_1_bitmap_file_buffer"
+  },
+  {
+   "name": "BitmapFromFile",
+   "ns": "nap",
+   "path": "/d2/d19/classnap_1_1_bitmap_from_file"
+  },
+  {
+   "name": "BlinnPhongColorShader",
+   "ns": "nap",
+   "path": "/dd/d9d/classnap_1_1_blinn_phong_color_shader"
+  },
+  {
+   "name": "BlinnPhongTextureShader",
+   "ns": "nap",
+   "path": "/d9/d66/classnap_1_1_blinn_phong_texture_shader"
+  },
+  {
+   "name": "BlurShader",
+   "ns": "nap",
+   "path": "/d4/d23/classnap_1_1_blur_shader"
+  },
+  {
+   "name": "Box",
+   "ns": "nap::math",
+   "path": "/d4/dcf/classnap_1_1math_1_1_box"
+  },
+  {
+   "name": "BoxFrameMesh",
+   "ns": "nap",
+   "path": "/d2/da3/classnap_1_1_box_frame_mesh"
+  },
+  {
+   "name": "BoxMesh",
+   "ns": "nap",
+   "path": "/df/de6/classnap_1_1_box_mesh"
+  },
+  {
+   "name": "BufferBinding",
+   "ns": "nap",
+   "path": "/d0/d99/classnap_1_1_buffer_binding"
+  },
+  {
+   "name": "BufferBindingInstance",
+   "ns": "nap",
+   "path": "/da/d5c/classnap_1_1_buffer_binding_instance"
+  },
+  {
+   "name": "BufferBindingNumeric",
+   "ns": "nap",
+   "path": "/df/db8/classnap_1_1_buffer_binding_numeric"
+  },
+  {
+   "name": "BufferBindingNumericInstance",
+   "ns": "nap",
+   "path": "/de/dc7/classnap_1_1_buffer_binding_numeric_instance"
+  },
+  {
+   "name": "BufferBindingStruct",
+   "ns": "nap",
+   "path": "/db/d8f/classnap_1_1_buffer_binding_struct"
+  },
+  {
+   "name": "BufferBindingStructInstance",
+   "ns": "nap",
+   "path": "/d0/da7/classnap_1_1_buffer_binding_struct_instance"
+  },
+  {
+   "name": "BufferData",
+   "ns": "nap",
+   "path": "/d0/dfd/structnap_1_1_buffer_data"
+  },
+  {
+   "name": "BufferObjectDeclaration",
+   "ns": "nap",
+   "path": "/dd/d6b/classnap_1_1_buffer_object_declaration"
+  },
+  {
+   "name": "BufferPlayerNode",
+   "ns": "nap::audio",
+   "path": "/d0/dc1/classnap_1_1audio_1_1_buffer_player_node"
+  },
+  {
+   "name": "Calendar",
+   "ns": "nap",
+   "path": "/d9/da7/classnap_1_1_calendar"
+  },
+  {
+   "name": "CalendarComponent",
+   "ns": "nap",
+   "path": "/df/d2e/classnap_1_1_calendar_component"
+  },
+  {
+   "name": "CalendarComponentInstance",
+   "ns": "nap",
+   "path": "/d7/df3/classnap_1_1_calendar_component_instance"
+  },
+  {
+   "name": "CalendarEvent",
+   "ns": "nap",
+   "path": "/da/d0d/classnap_1_1_calendar_event"
+  },
+  {
+   "name": "CalendarInstance",
+   "ns": "nap",
+   "path": "/df/d03/classnap_1_1_calendar_instance"
+  },
+  {
+   "name": "CalendarItem",
+   "ns": "nap",
+   "path": "/df/d37/classnap_1_1_calendar_item"
+  },
+  {
+   "name": "CameraComponent",
+   "ns": "nap",
+   "path": "/d8/d69/classnap_1_1_camera_component"
+  },
+  {
+   "name": "CameraComponentInstance",
+   "ns": "nap",
+   "path": "/d6/df5/classnap_1_1_camera_component_instance"
+  },
+  {
+   "name": "CameraController",
+   "ns": "nap",
+   "path": "/d4/dac/classnap_1_1_camera_controller"
+  },
+  {
+   "name": "CameraControllerInstance",
+   "ns": "nap",
+   "path": "/d7/d74/classnap_1_1_camera_controller_instance"
+  },
+  {
+   "name": "ChangeHorizontalResolution",
+   "ns": "nap::sequenceguiactions",
+   "path": "/de/d04/classnap_1_1sequenceguiactions_1_1_change_horizontal_resolution"
+  },
+  {
+   "name": "ChangeMinMaxCurve",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d1/d16/classnap_1_1sequenceguiactions_1_1_change_min_max_curve"
+  },
+  {
+   "name": "ChangeTrackName",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d6/db2/classnap_1_1sequenceguiactions_1_1_change_track_name"
+  },
+  {
+   "name": "Circle",
+   "ns": "nap",
+   "path": "/da/dc5/classnap_1_1_circle"
+  },
+  {
+   "name": "Clipboard",
+   "ns": "nap::sequenceguiclipboard",
+   "path": "/df/d57/classnap_1_1sequenceguiclipboard_1_1_clipboard"
+  },
+  {
+   "name": "ClonedComponentResource",
+   "ns": "nap",
+   "path": "/d8/d42/classnap_1_1_cloned_component_resource"
+  },
+  {
+   "name": "Color",
+   "ns": "nap",
+   "path": "/d6/d3d/classnap_1_1_color"
+  },
+  {
+   "name": "ColorAdjustmentShader",
+   "ns": "nap",
+   "path": "/dd/d51/classnap_1_1_color_adjustment_shader"
+  },
+  {
+   "name": "ColorDepthRenderTarget",
+   "ns": "nap",
+   "path": "/d8/d1f/classnap_1_1_color_depth_render_target"
+  },
+  {
+   "name": "ColorPalette",
+   "ns": "nap::gui",
+   "path": "/d2/d21/structnap_1_1gui_1_1_color_palette"
+  },
+  {
+   "name": "SequenceAudioGUIService::Colors",
+   "ns": "nap",
+   "path": "/d3/da1/structnap_1_1_sequence_audio_g_u_i_service_1_1_colors"
+  },
+  {
+   "name": "SequenceGUIService::Colors",
+   "ns": "nap",
+   "path": "/db/d88/structnap_1_1_sequence_g_u_i_service_1_1_colors"
+  },
+  {
+   "name": "Component",
+   "ns": "nap",
+   "path": "/db/d6b/classnap_1_1_component"
+  },
+  {
+   "name": "ComponentInstance",
+   "ns": "nap",
+   "path": "/d9/df2/classnap_1_1_component_instance"
+  },
+  {
+   "name": "ComponentInstanceProperties",
+   "ns": "nap",
+   "path": "/d1/dd5/classnap_1_1_component_instance_properties"
+  },
+  {
+   "name": "ComponentInstancePtr",
+   "ns": "nap",
+   "path": "/dc/d06/classnap_1_1_component_instance_ptr"
+  },
+  {
+   "name": "ComponentInstancePtrInitProxy",
+   "ns": "nap",
+   "path": "/d1/d40/structnap_1_1_component_instance_ptr_init_proxy"
+  },
+  {
+   "name": "ComponentPtr",
+   "ns": "nap",
+   "path": "/d1/dcd/classnap_1_1_component_ptr"
+  },
+  {
+   "name": "ComponentPtrBase",
+   "ns": "nap",
+   "path": "/da/d10/classnap_1_1_component_ptr_base"
+  },
+  {
+   "name": "ComponentPtrInstancePropertyValue",
+   "ns": "nap",
+   "path": "/d4/d7f/classnap_1_1_component_ptr_instance_property_value"
+  },
+  {
+   "name": "ComponentResourcePath",
+   "ns": "nap",
+   "path": "/df/d17/classnap_1_1_component_resource_path"
+  },
+  {
+   "name": "ComputeComponent",
+   "ns": "nap",
+   "path": "/dd/d8e/classnap_1_1_compute_component"
+  },
+  {
+   "name": "ComputeComponentInstance",
+   "ns": "nap",
+   "path": "/dc/df3/classnap_1_1_compute_component_instance"
+  },
+  {
+   "name": "ComputeMaterial",
+   "ns": "nap",
+   "path": "/de/d68/classnap_1_1_compute_material"
+  },
+  {
+   "name": "ComputeMaterialInstance",
+   "ns": "nap",
+   "path": "/db/db6/classnap_1_1_compute_material_instance"
+  },
+  {
+   "name": "ComputeMaterialInstanceResource",
+   "ns": "nap",
+   "path": "/d9/d09/classnap_1_1_compute_material_instance_resource"
+  },
+  {
+   "name": "ComputePipelineKey",
+   "ns": "nap",
+   "path": "/d7/dec/structnap_1_1_compute_pipeline_key"
+  },
+  {
+   "name": "ComputeShader",
+   "ns": "nap",
+   "path": "/d5/d73/classnap_1_1_compute_shader"
+  },
+  {
+   "name": "ComputeShaderFromFile",
+   "ns": "nap",
+   "path": "/d7/de3/classnap_1_1_compute_shader_from_file"
+  },
+  {
+   "name": "ConsoleLogHandler",
+   "ns": "nap",
+   "path": "/d5/d57/classnap_1_1_console_log_handler"
+  },
+  {
+   "name": "ConstantFillPolicy",
+   "ns": "nap",
+   "path": "/d1/d6f/classnap_1_1_constant_fill_policy"
+  },
+  {
+   "name": "ConstantShader",
+   "ns": "nap",
+   "path": "/d7/de0/classnap_1_1_constant_shader"
+  },
+  {
+   "name": "ControllerAxisEvent",
+   "ns": "nap",
+   "path": "/da/dbd/classnap_1_1_controller_axis_event"
+  },
+  {
+   "name": "ControllerButtonEvent",
+   "ns": "nap",
+   "path": "/d6/d31/classnap_1_1_controller_button_event"
+  },
+  {
+   "name": "ControllerButtonPressEvent",
+   "ns": "nap",
+   "path": "/d9/d4a/classnap_1_1_controller_button_press_event"
+  },
+  {
+   "name": "ControllerButtonReleaseEvent",
+   "ns": "nap",
+   "path": "/de/da1/classnap_1_1_controller_button_release_event"
+  },
+  {
+   "name": "ControllerConnectionEvent",
+   "ns": "nap",
+   "path": "/d4/d9f/classnap_1_1_controller_connection_event"
+  },
+  {
+   "name": "ControllerEvent",
+   "ns": "nap",
+   "path": "/d6/ded/classnap_1_1_controller_event"
+  },
+  {
+   "name": "ControllerInputComponent",
+   "ns": "nap",
+   "path": "/d1/d39/classnap_1_1_controller_input_component"
+  },
+  {
+   "name": "ControllerInputComponentInstance",
+   "ns": "nap",
+   "path": "/d1/dd4/classnap_1_1_controller_input_component_instance"
+  },
+  {
+   "name": "ControlNode",
+   "ns": "nap::audio",
+   "path": "/d4/d37/classnap_1_1audio_1_1_control_node"
+  },
+  {
+   "name": "Core",
+   "ns": "nap",
+   "path": "/d0/dfd/classnap_1_1_core"
+  },
+  {
+   "name": "CoreExtension",
+   "ns": "nap",
+   "path": "/d3/d15/classnap_1_1_core_extension"
+  },
+  {
+   "name": "CoreFactory",
+   "ns": "nap",
+   "path": "/d8/d00/classnap_1_1_core_factory"
+  },
+  {
+   "name": "CubeDepthRenderTarget",
+   "ns": "nap",
+   "path": "/d5/dc4/classnap_1_1_cube_depth_render_target"
+  },
+  {
+   "name": "CubeMapFromFile",
+   "ns": "nap",
+   "path": "/d8/d18/classnap_1_1_cube_map_from_file"
+  },
+  {
+   "name": "CubeMapShader",
+   "ns": "nap",
+   "path": "/d6/d83/classnap_1_1_cube_map_shader"
+  },
+  {
+   "name": "CubeRenderTarget",
+   "ns": "nap",
+   "path": "/d1/d50/classnap_1_1_cube_render_target"
+  },
+  {
+   "name": "CurvePointActionPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/de/d18/classnap_1_1sequenceguiactions_1_1_curve_point_action_popup"
+  },
+  {
+   "name": "CurveSegmentClipboard",
+   "ns": "nap::sequenceguiclipboard",
+   "path": "/d2/dce/classnap_1_1sequenceguiclipboard_1_1_curve_segment_clipboard"
+  },
+  {
+   "name": "CurveTypePopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/d56/classnap_1_1sequenceguiactions_1_1_curve_type_popup"
+  },
+  {
+   "name": "DailyCalendarItem",
+   "ns": "nap",
+   "path": "/dd/d1e/classnap_1_1_daily_calendar_item"
+  },
+  {
+   "name": "SafeOwnerBase::Data",
+   "ns": "nap::audio",
+   "path": "/d2/dc2/classnap_1_1audio_1_1_safe_owner_base_1_1_data"
+  },
+  {
+   "name": "Date",
+   "ns": "nap",
+   "path": "/d7/d59/classnap_1_1_date"
+  },
+  {
+   "name": "DateTime",
+   "ns": "nap",
+   "path": "/da/dc9/classnap_1_1_date_time"
+  },
+  {
+   "name": "DefaultInputRouter",
+   "ns": "nap",
+   "path": "/df/d35/classnap_1_1_default_input_router"
+  },
+  {
+   "name": "DefaultInputRouterComponent",
+   "ns": "nap",
+   "path": "/dd/d73/classnap_1_1_default_input_router_component"
+  },
+  {
+   "name": "DefaultInputRouterComponentInstance",
+   "ns": "nap",
+   "path": "/d8/d98/classnap_1_1_default_input_router_component_instance"
+  },
+  {
+   "name": "DefaultLinkResolver",
+   "ns": "nap::rtti",
+   "path": "/d7/d4a/classnap_1_1rtti_1_1_default_link_resolver"
+  },
+  {
+   "name": "Delay",
+   "ns": "nap::audio",
+   "path": "/d2/de9/classnap_1_1audio_1_1_delay"
+  },
+  {
+   "name": "DeletionQueue",
+   "ns": "nap::audio",
+   "path": "/db/d02/classnap_1_1audio_1_1_deletion_queue"
+  },
+  {
+   "name": "DepthComparer",
+   "ns": "nap",
+   "path": "/d9/dc7/classnap_1_1_depth_comparer"
+  },
+  {
+   "name": "DepthRenderTarget",
+   "ns": "nap",
+   "path": "/dd/d9e/classnap_1_1_depth_render_target"
+  },
+  {
+   "name": "DepthRenderTexture2D",
+   "ns": "nap",
+   "path": "/d6/d9f/classnap_1_1_depth_render_texture2_d"
+  },
+  {
+   "name": "DepthRenderTextureCube",
+   "ns": "nap",
+   "path": "/d4/dda/classnap_1_1_depth_render_texture_cube"
+  },
+  {
+   "name": "DescriptorSet",
+   "ns": "nap",
+   "path": "/d1/d0c/structnap_1_1_descriptor_set"
+  },
+  {
+   "name": "DescriptorSetAllocator",
+   "ns": "nap",
+   "path": "/d0/d51/classnap_1_1_descriptor_set_allocator"
+  },
+  {
+   "name": "DescriptorSetCache",
+   "ns": "nap",
+   "path": "/d2/d1c/classnap_1_1_descriptor_set_cache"
+  },
+  {
+   "name": "DeserializeResult",
+   "ns": "nap::rtti",
+   "path": "/d5/ddd/structnap_1_1rtti_1_1_deserialize_result"
+  },
+  {
+   "name": "Device",
+   "ns": "nap",
+   "path": "/d3/dc5/classnap_1_1_device"
+  },
+  {
+   "name": "PortAudioServiceConfiguration::DeviceSettings",
+   "ns": "nap::audio",
+   "path": "/d4/df6/structnap_1_1audio_1_1_port_audio_service_configuration_1_1_device_settings"
+  },
+  {
+   "name": "DirectionalLightComponent",
+   "ns": "nap",
+   "path": "/d1/dff/classnap_1_1_directional_light_component"
+  },
+  {
+   "name": "DirectionalLightComponentInstance",
+   "ns": "nap",
+   "path": "/df/dca/classnap_1_1_directional_light_component_instance"
+  },
+  {
+   "name": "DirectoryWatcher",
+   "ns": "nap",
+   "path": "/de/d74/classnap_1_1_directory_watcher"
+  },
+  {
+   "name": "DirtyFlag",
+   "ns": "nap::audio",
+   "path": "/d6/d76/classnap_1_1audio_1_1_dirty_flag"
+  },
+  {
+   "name": "Display",
+   "ns": "nap",
+   "path": "/d3/d7c/classnap_1_1_display"
+  },
+  {
+   "name": "DraggingControlPoint",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d1/dbc/classnap_1_1sequenceguiactions_1_1_dragging_control_point"
+  },
+  {
+   "name": "DraggingLeftAudioSegmentHandler",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d0/d5e/classnap_1_1sequenceguiactions_1_1_dragging_left_audio_segment_handler"
+  },
+  {
+   "name": "DraggingPlayerTime",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d5/d0f/classnap_1_1sequenceguiactions_1_1_dragging_player_time"
+  },
+  {
+   "name": "DraggingRightAudioSegmentHandler",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d8/d17/classnap_1_1sequenceguiactions_1_1_dragging_right_audio_segment_handler"
+  },
+  {
+   "name": "DraggingSegment",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/d74/classnap_1_1sequenceguiactions_1_1_dragging_segment"
+  },
+  {
+   "name": "DraggingSegmentValue",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/d10/classnap_1_1sequenceguiactions_1_1_dragging_segment_value"
+  },
+  {
+   "name": "DraggingSequenceDuration",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/d38/classnap_1_1sequenceguiactions_1_1_dragging_sequence_duration"
+  },
+  {
+   "name": "DraggingTanPoint",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d5/dfb/classnap_1_1sequenceguiactions_1_1_dragging_tan_point"
+  },
+  {
+   "name": "DraggingTrackExtensionHandler",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d8/d63/classnap_1_1sequenceguiactions_1_1_dragging_track_extension_handler"
+  },
+  {
+   "name": "DragSequenceMarker",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d3/d06/classnap_1_1sequenceguiactions_1_1_drag_sequence_marker"
+  },
+  {
+   "name": "ObjectGraph::Edge",
+   "ns": "nap",
+   "path": "/df/d80/structnap_1_1_object_graph_1_1_edge"
+  },
+  {
+   "name": "EditAudioSegmentPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/d19/classnap_1_1sequenceguiactions_1_1_edit_audio_segment_popup"
+  },
+  {
+   "name": "EditingCurveSegment",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/d2b/classnap_1_1sequenceguiactions_1_1_editing_curve_segment"
+  },
+  {
+   "name": "EditingEventSegment",
+   "ns": "nap::sequenceguiactions",
+   "path": "/df/dec/classnap_1_1sequenceguiactions_1_1_editing_event_segment"
+  },
+  {
+   "name": "EditingSegmentCurveValue",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d9/d29/classnap_1_1sequenceguiactions_1_1_editing_segment_curve_value"
+  },
+  {
+   "name": "EditingTanPointPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/dd7/classnap_1_1sequenceguiactions_1_1_editing_tan_point_popup"
+  },
+  {
+   "name": "EditSegmentPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d5/da1/classnap_1_1sequenceguiactions_1_1_edit_segment_popup"
+  },
+  {
+   "name": "EditSequenceDurationPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d4/d5c/classnap_1_1sequenceguiactions_1_1_edit_sequence_duration_popup"
+  },
+  {
+   "name": "EditSequenceMarkerPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/de/d40/classnap_1_1sequenceguiactions_1_1_edit_sequence_marker_popup"
+  },
+  {
+   "name": "Empty",
+   "ns": "nap::sequenceguiclipboard",
+   "path": "/d3/da1/classnap_1_1sequenceguiclipboard_1_1_empty"
+  },
+  {
+   "name": "EmptyMesh",
+   "ns": "nap",
+   "path": "/d0/d22/classnap_1_1_empty_mesh"
+  },
+  {
+   "name": "Entity",
+   "ns": "nap",
+   "path": "/dc/db6/classnap_1_1_entity"
+  },
+  {
+   "name": "EntityCreationParameters",
+   "ns": "nap",
+   "path": "/d4/d8d/structnap_1_1_entity_creation_parameters"
+  },
+  {
+   "name": "EntityInstance",
+   "ns": "nap",
+   "path": "/d2/da9/classnap_1_1_entity_instance"
+  },
+  {
+   "name": "EntityInstancePtr",
+   "ns": "nap",
+   "path": "/de/d7b/classnap_1_1_entity_instance_ptr"
+  },
+  {
+   "name": "EntityInstancePtrInitProxy",
+   "ns": "nap",
+   "path": "/da/d34/structnap_1_1_entity_instance_ptr_init_proxy"
+  },
+  {
+   "name": "EntityObjectGraphItem",
+   "ns": "nap",
+   "path": "/d1/d08/classnap_1_1_entity_object_graph_item"
+  },
+  {
+   "name": "EntityPtr",
+   "ns": "nap",
+   "path": "/df/dec/classnap_1_1_entity_ptr"
+  },
+  {
+   "name": "StructFillPolicy::Entry",
+   "ns": "nap",
+   "path": "/dd/d6c/classnap_1_1_struct_fill_policy_1_1_entry"
+  },
+  {
+   "name": "EqualPowerTranslator",
+   "ns": "nap::audio",
+   "path": "/d0/d7d/classnap_1_1audio_1_1_equal_power_translator"
+  },
+  {
+   "name": "EquiRectangularCubeMap",
+   "ns": "nap",
+   "path": "/dd/d45/classnap_1_1_equi_rectangular_cube_map"
+  },
+  {
+   "name": "SerialPort::Error",
+   "ns": "nap",
+   "path": "/dd/d25/structnap_1_1_serial_port_1_1_error"
+  },
+  {
+   "name": "ErrorState",
+   "ns": "nap::utility",
+   "path": "/dd/d53/classnap_1_1utility_1_1_error_state"
+  },
+  {
+   "name": "Event",
+   "ns": "nap",
+   "path": "/d2/da2/classnap_1_1_event"
+  },
+  {
+   "name": "EventSegmentClipboard",
+   "ns": "nap::sequenceguiclipboard",
+   "path": "/df/d3e/classnap_1_1sequenceguiclipboard_1_1_event_segment_clipboard"
+  },
+  {
+   "name": "Factory",
+   "ns": "nap::rtti",
+   "path": "/d3/dcd/classnap_1_1rtti_1_1_factory"
+  },
+  {
+   "name": "FadeShader",
+   "ns": "nap",
+   "path": "/d8/d17/classnap_1_1_fade_shader"
+  },
+  {
+   "name": "FComplex",
+   "ns": "nap::math",
+   "path": "/dc/d77/structnap_1_1math_1_1_f_complex"
+  },
+  {
+   "name": "FCurve",
+   "ns": "nap::math",
+   "path": "/d3/d76/classnap_1_1math_1_1_f_curve"
+  },
+  {
+   "name": "FCurvePoint",
+   "ns": "nap::math",
+   "path": "/d0/d92/structnap_1_1math_1_1_f_curve_point"
+  },
+  {
+   "name": "FFTAudioNodeComponent",
+   "ns": "nap",
+   "path": "/df/db3/classnap_1_1_f_f_t_audio_node_component"
+  },
+  {
+   "name": "FFTAudioNodeComponentInstance",
+   "ns": "nap",
+   "path": "/d5/d5e/classnap_1_1_f_f_t_audio_node_component_instance"
+  },
+  {
+   "name": "FFTBuffer",
+   "ns": "nap",
+   "path": "/d4/d66/classnap_1_1_f_f_t_buffer"
+  },
+  {
+   "name": "FFTNode",
+   "ns": "nap",
+   "path": "/da/d94/classnap_1_1_f_f_t_node"
+  },
+  {
+   "name": "FileLink",
+   "ns": "nap::rtti",
+   "path": "/d8/d52/structnap_1_1rtti_1_1_file_link"
+  },
+  {
+   "name": "FileLogHandler",
+   "ns": "nap",
+   "path": "/df/d96/classnap_1_1_file_log_handler"
+  },
+  {
+   "name": "FillPolicy",
+   "ns": "nap",
+   "path": "/d0/d25/classnap_1_1_fill_policy"
+  },
+  {
+   "name": "FilterNode",
+   "ns": "nap::audio",
+   "path": "/db/d66/classnap_1_1audio_1_1_filter_node"
+  },
+  {
+   "name": "FirstPersonController",
+   "ns": "nap",
+   "path": "/da/d47/classnap_1_1_first_person_controller"
+  },
+  {
+   "name": "FirstPersonControllerInstance",
+   "ns": "nap",
+   "path": "/d7/daf/classnap_1_1_first_person_controller_instance"
+  },
+  {
+   "name": "FluxMeasurementComponent",
+   "ns": "nap",
+   "path": "/d7/d1b/classnap_1_1_flux_measurement_component"
+  },
+  {
+   "name": "FluxMeasurementComponentInstance",
+   "ns": "nap",
+   "path": "/d1/d07/classnap_1_1_flux_measurement_component_instance"
+  },
+  {
+   "name": "Font",
+   "ns": "nap",
+   "path": "/da/dad/classnap_1_1_font"
+  },
+  {
+   "name": "FontInstance",
+   "ns": "nap",
+   "path": "/d0/dec/classnap_1_1_font_instance"
+  },
+  {
+   "name": "FontProperties",
+   "ns": "nap",
+   "path": "/d2/dad/structnap_1_1_font_properties"
+  },
+  {
+   "name": "FontService",
+   "ns": "nap",
+   "path": "/d7/df5/classnap_1_1_font_service"
+  },
+  {
+   "name": "FontShader",
+   "ns": "nap",
+   "path": "/d4/d6c/classnap_1_1_font_shader"
+  },
+  {
+   "name": "Frame",
+   "ns": "nap",
+   "path": "/d1/d4b/structnap_1_1_frame"
+  },
+  {
+   "name": "GainNode",
+   "ns": "nap::audio",
+   "path": "/d4/d5f/classnap_1_1audio_1_1_gain_node"
+  },
+  {
+   "name": "GeometryFromFile",
+   "ns": "nap",
+   "path": "/d3/de8/classnap_1_1_geometry_from_file"
+  },
+  {
+   "name": "Glyph",
+   "ns": "nap",
+   "path": "/d9/dc0/classnap_1_1_glyph"
+  },
+  {
+   "name": "GlyphCache",
+   "ns": "nap",
+   "path": "/db/d30/classnap_1_1_glyph_cache"
+  },
+  {
+   "name": "GnomonMesh",
+   "ns": "nap",
+   "path": "/d2/de2/classnap_1_1_gnomon_mesh"
+  },
+  {
+   "name": "GnomonShader",
+   "ns": "nap",
+   "path": "/dd/dee/classnap_1_1_gnomon_shader"
+  },
+  {
+   "name": "GPUBuffer",
+   "ns": "nap",
+   "path": "/dd/df4/classnap_1_1_g_p_u_buffer"
+  },
+  {
+   "name": "GPUBufferNumeric",
+   "ns": "nap",
+   "path": "/dd/d69/classnap_1_1_g_p_u_buffer_numeric"
+  },
+  {
+   "name": "GPUMesh",
+   "ns": "nap",
+   "path": "/d4/d8f/classnap_1_1_g_p_u_mesh"
+  },
+  {
+   "name": "Group",
+   "ns": "nap",
+   "path": "/de/d3d/classnap_1_1_group"
+  },
+  {
+   "name": "GUIAppEventHandler",
+   "ns": "nap",
+   "path": "/dc/d0e/classnap_1_1_g_u_i_app_event_handler"
+  },
+  {
+   "name": "ModuleCache::Handle",
+   "ns": "nap",
+   "path": "/d3/dad/classnap_1_1_module_cache_1_1_handle"
+  },
+  {
+   "name": "HelpPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/dfe/classnap_1_1sequenceguiactions_1_1_help_popup"
+  },
+  {
+   "name": "Hexagon",
+   "ns": "nap",
+   "path": "/d7/d4f/classnap_1_1_hexagon"
+  },
+  {
+   "name": "HoveringControlPoint",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d9/d40/classnap_1_1sequenceguiactions_1_1_hovering_control_point"
+  },
+  {
+   "name": "HoveringCurve",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/db3/classnap_1_1sequenceguiactions_1_1_hovering_curve"
+  },
+  {
+   "name": "HoveringLeftAudioSegmentHandler",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/d56/classnap_1_1sequenceguiactions_1_1_hovering_left_audio_segment_handler"
+  },
+  {
+   "name": "HoveringPlayerTime",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d3/d26/classnap_1_1sequenceguiactions_1_1_hovering_player_time"
+  },
+  {
+   "name": "HoveringRightAudioSegmentHandler",
+   "ns": "nap::sequenceguiactions",
+   "path": "/df/d05/classnap_1_1sequenceguiactions_1_1_hovering_right_audio_segment_handler"
+  },
+  {
+   "name": "HoveringSegment",
+   "ns": "nap::sequenceguiactions",
+   "path": "/da/d1c/classnap_1_1sequenceguiactions_1_1_hovering_segment"
+  },
+  {
+   "name": "HoveringSegmentValue",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d9/d7f/classnap_1_1sequenceguiactions_1_1_hovering_segment_value"
+  },
+  {
+   "name": "HoveringSequenceDuration",
+   "ns": "nap::sequenceguiactions",
+   "path": "/da/d4e/classnap_1_1sequenceguiactions_1_1_hovering_sequence_duration"
+  },
+  {
+   "name": "HoveringTanPoint",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d0/da6/classnap_1_1sequenceguiactions_1_1_hovering_tan_point"
+  },
+  {
+   "name": "HoveringTrackExtensionHandler",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d9/d8f/classnap_1_1sequenceguiactions_1_1_hovering_track_extension_handler"
+  },
+  {
+   "name": "HumanoidMesh",
+   "ns": "nap",
+   "path": "/d3/d7e/classnap_1_1_humanoid_mesh"
+  },
+  {
+   "name": "ICalendar",
+   "ns": "nap",
+   "path": "/d3/dd1/classnap_1_1_i_calendar"
+  },
+  {
+   "name": "Icon",
+   "ns": "nap",
+   "path": "/db/d8c/classnap_1_1_icon"
+  },
+  {
+   "name": "IGlyphRepresentation",
+   "ns": "nap",
+   "path": "/d8/dd9/classnap_1_1_i_glyph_representation"
+  },
+  {
+   "name": "IGroup",
+   "ns": "nap",
+   "path": "/d8/d01/classnap_1_1_i_group"
+  },
+  {
+   "name": "Image",
+   "ns": "nap",
+   "path": "/dd/d82/classnap_1_1_image"
+  },
+  {
+   "name": "ImageData",
+   "ns": "nap",
+   "path": "/d2/dff/structnap_1_1_image_data"
+  },
+  {
+   "name": "ImageFromFile",
+   "ns": "nap",
+   "path": "/d3/d21/classnap_1_1_image_from_file"
+  },
+  {
+   "name": "IMesh",
+   "ns": "nap",
+   "path": "/dd/dac/classnap_1_1_i_mesh"
+  },
+  {
+   "name": "IMGuiService",
+   "ns": "nap",
+   "path": "/d0/d74/classnap_1_1_i_m_gui_service"
+  },
+  {
+   "name": "IMGuiServiceConfiguration",
+   "ns": "nap",
+   "path": "/d4/d0c/classnap_1_1_i_m_gui_service_configuration"
+  },
+  {
+   "name": "GeometryFromFile::ImportSettings",
+   "ns": "nap",
+   "path": "/d8/de3/structnap_1_1_geometry_from_file_1_1_import_settings"
+  },
+  {
+   "name": "IMultiChannelInput",
+   "ns": "nap::audio",
+   "path": "/d0/d46/classnap_1_1audio_1_1_i_multi_channel_input"
+  },
+  {
+   "name": "IMultiChannelOutput",
+   "ns": "nap::audio",
+   "path": "/d6/d4a/classnap_1_1audio_1_1_i_multi_channel_output"
+  },
+  {
+   "name": "IndexBuffer",
+   "ns": "nap",
+   "path": "/de/d97/classnap_1_1_index_buffer"
+  },
+  {
+   "name": "InputComponent",
+   "ns": "nap",
+   "path": "/de/d9a/classnap_1_1_input_component"
+  },
+  {
+   "name": "InputComponentInstance",
+   "ns": "nap",
+   "path": "/dc/da6/classnap_1_1_input_component_instance"
+  },
+  {
+   "name": "InputEvent",
+   "ns": "nap",
+   "path": "/dc/dc0/classnap_1_1_input_event"
+  },
+  {
+   "name": "InputNode",
+   "ns": "nap::audio",
+   "path": "/d3/d8d/classnap_1_1audio_1_1_input_node"
+  },
+  {
+   "name": "InputPin",
+   "ns": "nap::audio",
+   "path": "/d4/dd5/classnap_1_1audio_1_1_input_pin"
+  },
+  {
+   "name": "InputPinBase",
+   "ns": "nap::audio",
+   "path": "/d4/dc6/classnap_1_1audio_1_1_input_pin_base"
+  },
+  {
+   "name": "InputRouter",
+   "ns": "nap",
+   "path": "/db/d68/classnap_1_1_input_router"
+  },
+  {
+   "name": "InputService",
+   "ns": "nap",
+   "path": "/d0/d8d/classnap_1_1_input_service"
+  },
+  {
+   "name": "InsertAudioSegmentPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/da/d26/classnap_1_1sequenceguiactions_1_1_insert_audio_segment_popup"
+  },
+  {
+   "name": "InsertEventSegmentPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/dea/classnap_1_1sequenceguiactions_1_1_insert_event_segment_popup"
+  },
+  {
+   "name": "InsertingCurvePoint",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d9/d27/classnap_1_1sequenceguiactions_1_1_inserting_curve_point"
+  },
+  {
+   "name": "InsertingSegmentPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/de/d1f/classnap_1_1sequenceguiactions_1_1_inserting_segment_popup"
+  },
+  {
+   "name": "InsertingSequenceMarkerPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/da/d68/classnap_1_1sequenceguiactions_1_1_inserting_sequence_marker_popup"
+  },
+  {
+   "name": "InsertTrackPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d0/de7/classnap_1_1sequenceguiactions_1_1_insert_track_popup"
+  },
+  {
+   "name": "InstancePropertyValue",
+   "ns": "nap",
+   "path": "/d8/d81/classnap_1_1_instance_property_value"
+  },
+  {
+   "name": "IObjectCreator",
+   "ns": "nap::rtti",
+   "path": "/d0/dce/classnap_1_1rtti_1_1_i_object_creator"
+  },
+  {
+   "name": "IRenderTarget",
+   "ns": "nap",
+   "path": "/d7/da9/classnap_1_1_i_render_target"
+  },
+  {
+   "name": "IWebSocketClient",
+   "ns": "nap",
+   "path": "/dc/d74/classnap_1_1_i_web_socket_client"
+  },
+  {
+   "name": "IWebSocketClientEndPoint",
+   "ns": "nap",
+   "path": "/d7/d3d/classnap_1_1_i_web_socket_client_end_point"
+  },
+  {
+   "name": "IWebSocketServer",
+   "ns": "nap",
+   "path": "/dc/d3d/classnap_1_1_i_web_socket_server"
+  },
+  {
+   "name": "IWebSocketServerEndPoint",
+   "ns": "nap",
+   "path": "/d8/da7/classnap_1_1_i_web_socket_server_end_point"
+  },
+  {
+   "name": "JSONWriter",
+   "ns": "nap::rtti",
+   "path": "/d0/d76/classnap_1_1rtti_1_1_j_s_o_n_writer"
+  },
+  {
+   "name": "KeyEvent",
+   "ns": "nap",
+   "path": "/d6/d0d/classnap_1_1_key_event"
+  },
+  {
+   "name": "KeyInputComponent",
+   "ns": "nap",
+   "path": "/df/dd0/classnap_1_1_key_input_component"
+  },
+  {
+   "name": "KeyInputComponentInstance",
+   "ns": "nap",
+   "path": "/d3/d36/classnap_1_1_key_input_component_instance"
+  },
+  {
+   "name": "KeyPressEvent",
+   "ns": "nap",
+   "path": "/d1/ddb/classnap_1_1_key_press_event"
+  },
+  {
+   "name": "KeyReleaseEvent",
+   "ns": "nap",
+   "path": "/d6/d2d/classnap_1_1_key_release_event"
+  },
+  {
+   "name": "LevelMeterComponent",
+   "ns": "nap::audio",
+   "path": "/d7/db8/classnap_1_1audio_1_1_level_meter_component"
+  },
+  {
+   "name": "LevelMeterComponentInstance",
+   "ns": "nap::audio",
+   "path": "/db/d7c/classnap_1_1audio_1_1_level_meter_component_instance"
+  },
+  {
+   "name": "LevelMeterNode",
+   "ns": "nap::audio",
+   "path": "/d8/d36/classnap_1_1audio_1_1_level_meter_node"
+  },
+  {
+   "name": "LicenseConfiguration",
+   "ns": "nap",
+   "path": "/dd/de5/classnap_1_1_license_configuration"
+  },
+  {
+   "name": "LicenseInformation",
+   "ns": "nap",
+   "path": "/d0/dee/structnap_1_1_license_information"
+  },
+  {
+   "name": "LicenseService",
+   "ns": "nap",
+   "path": "/dd/d65/classnap_1_1_license_service"
+  },
+  {
+   "name": "LightComponent",
+   "ns": "nap",
+   "path": "/dc/dc0/classnap_1_1_light_component"
+  },
+  {
+   "name": "LightComponentInstance",
+   "ns": "nap",
+   "path": "/df/d1b/classnap_1_1_light_component_instance"
+  },
+  {
+   "name": "Line",
+   "ns": "nap",
+   "path": "/de/d34/classnap_1_1_line"
+  },
+  {
+   "name": "LinearSmoothedValue",
+   "ns": "nap::audio",
+   "path": "/d1/d2a/classnap_1_1audio_1_1_linear_smoothed_value"
+  },
+  {
+   "name": "LineFromFile",
+   "ns": "nap",
+   "path": "/d5/db8/classnap_1_1_line_from_file"
+  },
+  {
+   "name": "LinkResolver",
+   "ns": "nap::rtti",
+   "path": "/d2/d26/classnap_1_1rtti_1_1_link_resolver"
+  },
+  {
+   "name": "LoadPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/dbc/classnap_1_1sequenceguiactions_1_1_load_popup"
+  },
+  {
+   "name": "LoadPresetPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dd/d92/classnap_1_1sequenceguiactions_1_1_load_preset_popup"
+  },
+  {
+   "name": "LightComponent::Locator",
+   "ns": "nap",
+   "path": "/d5/d33/structnap_1_1_light_component_1_1_locator"
+  },
+  {
+   "name": "Logger",
+   "ns": "nap",
+   "path": "/de/d7f/classnap_1_1_logger"
+  },
+  {
+   "name": "LogHandler",
+   "ns": "nap",
+   "path": "/d1/d19/classnap_1_1_log_handler"
+  },
+  {
+   "name": "LogLevel",
+   "ns": "nap",
+   "path": "/d5/dea/classnap_1_1_log_level"
+  },
+  {
+   "name": "LogMessage",
+   "ns": "nap",
+   "path": "/d9/d61/classnap_1_1_log_message"
+  },
+  {
+   "name": "LucyMesh",
+   "ns": "nap",
+   "path": "/d6/d30/classnap_1_1_lucy_mesh"
+  },
+  {
+   "name": "Material",
+   "ns": "nap",
+   "path": "/d2/de3/classnap_1_1_material"
+  },
+  {
+   "name": "MaterialInstance",
+   "ns": "nap",
+   "path": "/d0/daa/classnap_1_1_material_instance"
+  },
+  {
+   "name": "MaterialInstanceResource",
+   "ns": "nap",
+   "path": "/d6/d4f/classnap_1_1_material_instance_resource"
+  },
+  {
+   "name": "MemoryStream",
+   "ns": "nap::utility",
+   "path": "/d1/d2f/classnap_1_1utility_1_1_memory_stream"
+  },
+  {
+   "name": "Mesh",
+   "ns": "nap",
+   "path": "/d0/d32/classnap_1_1_mesh"
+  },
+  {
+   "name": "MeshFromFile",
+   "ns": "nap",
+   "path": "/db/d48/classnap_1_1_mesh_from_file"
+  },
+  {
+   "name": "MeshInstance",
+   "ns": "nap",
+   "path": "/da/d17/classnap_1_1_mesh_instance"
+  },
+  {
+   "name": "MeshProperties",
+   "ns": "nap",
+   "path": "/d9/dca/structnap_1_1_mesh_properties"
+  },
+  {
+   "name": "MeshShape",
+   "ns": "nap",
+   "path": "/d2/d71/structnap_1_1_mesh_shape"
+  },
+  {
+   "name": "MidiEvent",
+   "ns": "nap",
+   "path": "/de/d53/classnap_1_1_midi_event"
+  },
+  {
+   "name": "MidiInputComponent",
+   "ns": "nap",
+   "path": "/d9/d65/classnap_1_1_midi_input_component"
+  },
+  {
+   "name": "MidiInputComponentInstance",
+   "ns": "nap",
+   "path": "/d7/d13/classnap_1_1_midi_input_component_instance"
+  },
+  {
+   "name": "MidiInputPort",
+   "ns": "nap",
+   "path": "/d5/d8d/classnap_1_1_midi_input_port"
+  },
+  {
+   "name": "MidiOutputPort",
+   "ns": "nap",
+   "path": "/dd/d23/classnap_1_1_midi_output_port"
+  },
+  {
+   "name": "MidiPortInfo",
+   "ns": "nap",
+   "path": "/d6/d71/classnap_1_1_midi_port_info"
+  },
+  {
+   "name": "MidiService",
+   "ns": "nap",
+   "path": "/d3/dfa/classnap_1_1_midi_service"
+  },
+  {
+   "name": "MixNode",
+   "ns": "nap::audio",
+   "path": "/d7/d34/classnap_1_1audio_1_1_mix_node"
+  },
+  {
+   "name": "Module",
+   "ns": "nap",
+   "path": "/d9/d25/classnap_1_1_module"
+  },
+  {
+   "name": "ModuleCache",
+   "ns": "nap",
+   "path": "/dc/d36/classnap_1_1_module_cache"
+  },
+  {
+   "name": "ModuleDescriptor",
+   "ns": "nap",
+   "path": "/dd/ddc/structnap_1_1_module_descriptor"
+  },
+  {
+   "name": "ModuleInfo",
+   "ns": "nap",
+   "path": "/d4/dce/classnap_1_1_module_info"
+  },
+  {
+   "name": "ModuleManager",
+   "ns": "nap",
+   "path": "/de/d8c/classnap_1_1_module_manager"
+  },
+  {
+   "name": "MonthlyCalendarItem",
+   "ns": "nap",
+   "path": "/d6/d5e/classnap_1_1_monthly_calendar_item"
+  },
+  {
+   "name": "MouseWheelEvent",
+   "ns": "nap",
+   "path": "/d7/d77/classnap_1_1_mouse_wheel_event"
+  },
+  {
+   "name": "MultiAudioFileResource",
+   "ns": "nap::audio",
+   "path": "/d1/d97/classnap_1_1audio_1_1_multi_audio_file_resource"
+  },
+  {
+   "name": "MultiInputPin",
+   "ns": "nap::audio",
+   "path": "/d8/d10/classnap_1_1audio_1_1_multi_input_pin"
+  },
+  {
+   "name": "MultiplyNode",
+   "ns": "nap::audio",
+   "path": "/d8/d4c/classnap_1_1audio_1_1_multiply_node"
+  },
+  {
+   "name": "MultiSampleBuffer",
+   "ns": "nap::audio",
+   "path": "/db/dde/classnap_1_1audio_1_1_multi_sample_buffer"
+  },
+  {
+   "name": "MultiSampleBufferPlayerNode",
+   "ns": "nap::audio",
+   "path": "/da/d0f/classnap_1_1audio_1_1_multi_sample_buffer_player_node"
+  },
+  {
+   "name": "Node",
+   "ns": "nap::audio",
+   "path": "/dc/d0d/classnap_1_1audio_1_1_node"
+  },
+  {
+   "name": "ObjectGraph::Node",
+   "ns": "nap",
+   "path": "/da/d1e/structnap_1_1_object_graph_1_1_node"
+  },
+  {
+   "name": "NodeManager",
+   "ns": "nap::audio",
+   "path": "/db/d55/classnap_1_1audio_1_1_node_manager"
+  },
+  {
+   "name": "None",
+   "ns": "nap::sequenceguiactions",
+   "path": "/df/d93/classnap_1_1sequenceguiactions_1_1_none"
+  },
+  {
+   "name": "NonePressed",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d7/d6a/classnap_1_1sequenceguiactions_1_1_none_pressed"
+  },
+  {
+   "name": "Object",
+   "ns": "nap::rtti",
+   "path": "/de/d01/classnap_1_1rtti_1_1_object"
+  },
+  {
+   "name": "ObjectCreator",
+   "ns": "nap::rtti",
+   "path": "/de/d87/classnap_1_1rtti_1_1_object_creator"
+  },
+  {
+   "name": "ObjectGraph",
+   "ns": "nap",
+   "path": "/dc/d8e/classnap_1_1_object_graph"
+  },
+  {
+   "name": "ObjectLink",
+   "ns": "nap::rtti",
+   "path": "/d2/ddb/structnap_1_1rtti_1_1_object_link"
+  },
+  {
+   "name": "ObjectPtr",
+   "ns": "nap::rtti",
+   "path": "/dd/d7c/classnap_1_1rtti_1_1_object_ptr"
+  },
+  {
+   "name": "ObjectPtrBase",
+   "ns": "nap::rtti",
+   "path": "/d7/dcb/classnap_1_1rtti_1_1_object_ptr_base"
+  },
+  {
+   "name": "ObjectPtrManager",
+   "ns": "nap::rtti",
+   "path": "/dc/d9f/classnap_1_1rtti_1_1_object_ptr_manager"
+  },
+  {
+   "name": "OpenEditEventSegmentPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d0/d65/classnap_1_1sequenceguiactions_1_1_open_edit_event_segment_popup"
+  },
+  {
+   "name": "OpenHistoryPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/da/d33/classnap_1_1sequenceguiactions_1_1_open_history_popup"
+  },
+  {
+   "name": "OperationalCalendar",
+   "ns": "nap",
+   "path": "/d0/d64/classnap_1_1_operational_calendar"
+  },
+  {
+   "name": "OrbitController",
+   "ns": "nap",
+   "path": "/d3/d93/classnap_1_1_orbit_controller"
+  },
+  {
+   "name": "OrbitControllerInstance",
+   "ns": "nap",
+   "path": "/dd/d4b/classnap_1_1_orbit_controller_instance"
+  },
+  {
+   "name": "OrthoCameraComponent",
+   "ns": "nap",
+   "path": "/de/dac/classnap_1_1_ortho_camera_component"
+  },
+  {
+   "name": "OrthoCameraComponentInstance",
+   "ns": "nap",
+   "path": "/de/daa/classnap_1_1_ortho_camera_component_instance"
+  },
+  {
+   "name": "OrthoCameraProperties",
+   "ns": "nap",
+   "path": "/d4/d02/structnap_1_1_ortho_camera_properties"
+  },
+  {
+   "name": "OrthoController",
+   "ns": "nap",
+   "path": "/d9/d75/classnap_1_1_ortho_controller"
+  },
+  {
+   "name": "OrthoControllerInstance",
+   "ns": "nap",
+   "path": "/dc/d66/classnap_1_1_ortho_controller_instance"
+  },
+  {
+   "name": "OSCArgument",
+   "ns": "nap",
+   "path": "/d0/d82/classnap_1_1_o_s_c_argument"
+  },
+  {
+   "name": "OSCBaseValue",
+   "ns": "nap",
+   "path": "/d5/d70/classnap_1_1_o_s_c_base_value"
+  },
+  {
+   "name": "OSCBlob",
+   "ns": "nap",
+   "path": "/d7/d55/classnap_1_1_o_s_c_blob"
+  },
+  {
+   "name": "OSCColor",
+   "ns": "nap",
+   "path": "/d9/d08/classnap_1_1_o_s_c_color"
+  },
+  {
+   "name": "OSCEvent",
+   "ns": "nap",
+   "path": "/d9/ddb/classnap_1_1_o_s_c_event"
+  },
+  {
+   "name": "OSCInputComponent",
+   "ns": "nap",
+   "path": "/d4/df7/classnap_1_1_o_s_c_input_component"
+  },
+  {
+   "name": "OSCInputComponentInstance",
+   "ns": "nap",
+   "path": "/db/d52/classnap_1_1_o_s_c_input_component_instance"
+  },
+  {
+   "name": "OSCNil",
+   "ns": "nap",
+   "path": "/d3/d0f/classnap_1_1_o_s_c_nil"
+  },
+  {
+   "name": "OSCPacketListener",
+   "ns": "nap",
+   "path": "/df/d29/classnap_1_1_o_s_c_packet_listener"
+  },
+  {
+   "name": "OSCReceiver",
+   "ns": "nap",
+   "path": "/dc/d99/classnap_1_1_o_s_c_receiver"
+  },
+  {
+   "name": "OSCReceivingSocket",
+   "ns": "nap",
+   "path": "/d6/df5/classnap_1_1_o_s_c_receiving_socket"
+  },
+  {
+   "name": "OSCSender",
+   "ns": "nap",
+   "path": "/db/d06/classnap_1_1_o_s_c_sender"
+  },
+  {
+   "name": "OSCService",
+   "ns": "nap",
+   "path": "/d9/d55/classnap_1_1_o_s_c_service"
+  },
+  {
+   "name": "OSCString",
+   "ns": "nap",
+   "path": "/d5/d18/classnap_1_1_o_s_c_string"
+  },
+  {
+   "name": "OSCTimeTag",
+   "ns": "nap",
+   "path": "/d1/d51/classnap_1_1_o_s_c_time_tag"
+  },
+  {
+   "name": "OSCValue",
+   "ns": "nap",
+   "path": "/d6/d4b/classnap_1_1_o_s_c_value"
+  },
+  {
+   "name": "OutputComponent",
+   "ns": "nap::audio",
+   "path": "/df/d82/classnap_1_1audio_1_1_output_component"
+  },
+  {
+   "name": "OutputComponentInstance",
+   "ns": "nap::audio",
+   "path": "/de/d9c/classnap_1_1audio_1_1_output_component_instance"
+  },
+  {
+   "name": "OutputNode",
+   "ns": "nap::audio",
+   "path": "/d2/da1/classnap_1_1audio_1_1_output_node"
+  },
+  {
+   "name": "OutputPin",
+   "ns": "nap::audio",
+   "path": "/dc/d5a/classnap_1_1audio_1_1_output_pin"
+  },
+  {
+   "name": "Parameter",
+   "ns": "nap",
+   "path": "/d5/de5/classnap_1_1_parameter"
+  },
+  {
+   "name": "ParameterBlendComponent",
+   "ns": "nap",
+   "path": "/de/de6/classnap_1_1_parameter_blend_component"
+  },
+  {
+   "name": "ParameterBlendComponentInstance",
+   "ns": "nap",
+   "path": "/d6/d8f/classnap_1_1_parameter_blend_component_instance"
+  },
+  {
+   "name": "ParameterBlender",
+   "ns": "nap",
+   "path": "/dc/d1b/classnap_1_1_parameter_blender"
+  },
+  {
+   "name": "ParameterBlendGroup",
+   "ns": "nap",
+   "path": "/d9/dc5/classnap_1_1_parameter_blend_group"
+  },
+  {
+   "name": "ParameterButton",
+   "ns": "nap",
+   "path": "/d0/d8a/classnap_1_1_parameter_button"
+  },
+  {
+   "name": "ParameterDropDown",
+   "ns": "nap",
+   "path": "/d6/d50/classnap_1_1_parameter_drop_down"
+  },
+  {
+   "name": "ParameterEnum",
+   "ns": "nap",
+   "path": "/dc/d3b/classnap_1_1_parameter_enum"
+  },
+  {
+   "name": "ParameterEnumBase",
+   "ns": "nap",
+   "path": "/d9/d38/classnap_1_1_parameter_enum_base"
+  },
+  {
+   "name": "ParameterGUI",
+   "ns": "nap",
+   "path": "/da/d64/classnap_1_1_parameter_g_u_i"
+  },
+  {
+   "name": "ParameterGUIService",
+   "ns": "nap",
+   "path": "/d5/d8d/classnap_1_1_parameter_g_u_i_service"
+  },
+  {
+   "name": "ParameterizedWindowEvent",
+   "ns": "nap",
+   "path": "/d3/d68/classnap_1_1_parameterized_window_event"
+  },
+  {
+   "name": "ParameterMat",
+   "ns": "nap",
+   "path": "/d8/d98/classnap_1_1_parameter_mat"
+  },
+  {
+   "name": "ParameterNumeric",
+   "ns": "nap",
+   "path": "/d0/d33/classnap_1_1_parameter_numeric"
+  },
+  {
+   "name": "ParameterService",
+   "ns": "nap",
+   "path": "/d9/df7/classnap_1_1_parameter_service"
+  },
+  {
+   "name": "ParameterServiceConfiguration",
+   "ns": "nap",
+   "path": "/d1/d24/classnap_1_1_parameter_service_configuration"
+  },
+  {
+   "name": "ParameterSimple",
+   "ns": "nap",
+   "path": "/da/dda/classnap_1_1_parameter_simple"
+  },
+  {
+   "name": "ParameterVec",
+   "ns": "nap",
+   "path": "/da/d1e/classnap_1_1_parameter_vec"
+  },
+  {
+   "name": "ParentProcess",
+   "ns": "nap::audio",
+   "path": "/dd/d43/classnap_1_1audio_1_1_parent_process"
+  },
+  {
+   "name": "Path",
+   "ns": "nap::rtti",
+   "path": "/d5/d81/classnap_1_1rtti_1_1_path"
+  },
+  {
+   "name": "PathElement",
+   "ns": "nap::rtti",
+   "path": "/d7/d7a/classnap_1_1rtti_1_1_path_element"
+  },
+  {
+   "name": "PathMapping",
+   "ns": "nap",
+   "path": "/d5/d92/classnap_1_1_path_mapping"
+  },
+  {
+   "name": "PerformRedo",
+   "ns": "nap::sequenceguiactions",
+   "path": "/df/d77/classnap_1_1sequenceguiactions_1_1_perform_redo"
+  },
+  {
+   "name": "PerformUndo",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d5/d7e/classnap_1_1sequenceguiactions_1_1_perform_undo"
+  },
+  {
+   "name": "PerspCameraComponent",
+   "ns": "nap",
+   "path": "/d6/d3d/classnap_1_1_persp_camera_component"
+  },
+  {
+   "name": "PerspCameraComponentInstance",
+   "ns": "nap",
+   "path": "/d2/d87/classnap_1_1_persp_camera_component_instance"
+  },
+  {
+   "name": "PerspCameraProperties",
+   "ns": "nap",
+   "path": "/d8/de3/structnap_1_1_persp_camera_properties"
+  },
+  {
+   "name": "PhysicalDevice",
+   "ns": "nap",
+   "path": "/d2/dff/classnap_1_1_physical_device"
+  },
+  {
+   "name": "RenderService::Pipeline",
+   "ns": "nap",
+   "path": "/dd/d41/structnap_1_1_render_service_1_1_pipeline"
+  },
+  {
+   "name": "PipelineKey",
+   "ns": "nap",
+   "path": "/d8/df5/structnap_1_1_pipeline_key"
+  },
+  {
+   "name": "PlaneMesh",
+   "ns": "nap",
+   "path": "/de/dd6/classnap_1_1_plane_mesh"
+  },
+  {
+   "name": "PlaybackComponent",
+   "ns": "nap::audio",
+   "path": "/d3/d49/classnap_1_1audio_1_1_playback_component"
+  },
+  {
+   "name": "PlaybackComponentInstance",
+   "ns": "nap::audio",
+   "path": "/d5/d5b/classnap_1_1audio_1_1_playback_component_instance"
+  },
+  {
+   "name": "CalendarItem::Point",
+   "ns": "nap",
+   "path": "/d1/d8d/structnap_1_1_calendar_item_1_1_point"
+  },
+  {
+   "name": "PointerClickEvent",
+   "ns": "nap",
+   "path": "/dd/d3f/classnap_1_1_pointer_click_event"
+  },
+  {
+   "name": "PointerEvent",
+   "ns": "nap",
+   "path": "/d3/d85/classnap_1_1_pointer_event"
+  },
+  {
+   "name": "PointerInputComponent",
+   "ns": "nap",
+   "path": "/da/d57/classnap_1_1_pointer_input_component"
+  },
+  {
+   "name": "PointerInputComponentInstance",
+   "ns": "nap",
+   "path": "/df/d36/classnap_1_1_pointer_input_component_instance"
+  },
+  {
+   "name": "PointerInstancePropertyValue",
+   "ns": "nap",
+   "path": "/d0/d4b/classnap_1_1_pointer_instance_property_value"
+  },
+  {
+   "name": "PointerMoveEvent",
+   "ns": "nap",
+   "path": "/d0/d87/classnap_1_1_pointer_move_event"
+  },
+  {
+   "name": "PointerPressEvent",
+   "ns": "nap",
+   "path": "/d5/dfd/classnap_1_1_pointer_press_event"
+  },
+  {
+   "name": "PointerReleaseEvent",
+   "ns": "nap",
+   "path": "/de/d98/classnap_1_1_pointer_release_event"
+  },
+  {
+   "name": "PointLightComponent",
+   "ns": "nap",
+   "path": "/d7/d85/classnap_1_1_point_light_component"
+  },
+  {
+   "name": "PointLightComponentInstance",
+   "ns": "nap",
+   "path": "/da/dd7/classnap_1_1_point_light_component_instance"
+  },
+  {
+   "name": "PolyLine",
+   "ns": "nap",
+   "path": "/db/d34/classnap_1_1_poly_line"
+  },
+  {
+   "name": "PolyLineProperties",
+   "ns": "nap",
+   "path": "/d1/d3f/structnap_1_1_poly_line_properties"
+  },
+  {
+   "name": "PortalComponent",
+   "ns": "nap",
+   "path": "/de/d63/classnap_1_1_portal_component"
+  },
+  {
+   "name": "PortalComponentInstance",
+   "ns": "nap",
+   "path": "/db/d0d/classnap_1_1_portal_component_instance"
+  },
+  {
+   "name": "PortalEvent",
+   "ns": "nap",
+   "path": "/d4/d3e/classnap_1_1_portal_event"
+  },
+  {
+   "name": "PortalEventHeader",
+   "ns": "nap",
+   "path": "/d5/d64/structnap_1_1_portal_event_header"
+  },
+  {
+   "name": "PortalItem",
+   "ns": "nap",
+   "path": "/da/d65/classnap_1_1_portal_item"
+  },
+  {
+   "name": "PortalItemButton",
+   "ns": "nap",
+   "path": "/dc/d60/classnap_1_1_portal_item_button"
+  },
+  {
+   "name": "PortalItemColor",
+   "ns": "nap",
+   "path": "/dd/ddc/classnap_1_1_portal_item_color"
+  },
+  {
+   "name": "PortalItemDropDown",
+   "ns": "nap",
+   "path": "/d8/d89/classnap_1_1_portal_item_drop_down"
+  },
+  {
+   "name": "PortalItemNumeric",
+   "ns": "nap",
+   "path": "/d2/d50/classnap_1_1_portal_item_numeric"
+  },
+  {
+   "name": "PortalItemOperationalCalendar",
+   "ns": "nap",
+   "path": "/d8/d3b/classnap_1_1_portal_item_operational_calendar"
+  },
+  {
+   "name": "PortalItemSimple",
+   "ns": "nap",
+   "path": "/d0/d9b/classnap_1_1_portal_item_simple"
+  },
+  {
+   "name": "PortalItemTextArea",
+   "ns": "nap",
+   "path": "/d3/da2/classnap_1_1_portal_item_text_area"
+  },
+  {
+   "name": "PortalItemVec",
+   "ns": "nap",
+   "path": "/d4/da8/classnap_1_1_portal_item_vec"
+  },
+  {
+   "name": "PortalService",
+   "ns": "nap",
+   "path": "/d5/d0f/classnap_1_1_portal_service"
+  },
+  {
+   "name": "PortalWebSocketServer",
+   "ns": "nap",
+   "path": "/d7/d1c/classnap_1_1_portal_web_socket_server"
+  },
+  {
+   "name": "PortAudioService",
+   "ns": "nap::audio",
+   "path": "/dd/d37/classnap_1_1audio_1_1_port_audio_service"
+  },
+  {
+   "name": "PortAudioServiceConfiguration",
+   "ns": "nap::audio",
+   "path": "/dc/d9a/classnap_1_1audio_1_1_port_audio_service_configuration"
+  },
+  {
+   "name": "Process",
+   "ns": "nap::audio",
+   "path": "/d4/d2d/classnap_1_1audio_1_1_process"
+  },
+  {
+   "name": "ProjectInfo",
+   "ns": "nap",
+   "path": "/d2/d82/classnap_1_1_project_info"
+  },
+  {
+   "name": "PublicKey",
+   "ns": "nap",
+   "path": "/dc/d4a/classnap_1_1_public_key"
+  },
+  {
+   "name": "PullNode",
+   "ns": "nap::audio",
+   "path": "/d6/d23/classnap_1_1audio_1_1_pull_node"
+  },
+  {
+   "name": "RampedValue",
+   "ns": "nap::audio",
+   "path": "/d5/df8/classnap_1_1audio_1_1_ramped_value"
+  },
+  {
+   "name": "RandomFillPolicy",
+   "ns": "nap",
+   "path": "/d3/d93/classnap_1_1_random_fill_policy"
+  },
+  {
+   "name": "RColor",
+   "ns": "nap",
+   "path": "/d0/d31/classnap_1_1_r_color"
+  },
+  {
+   "name": "ReadState",
+   "ns": "nap::rtti",
+   "path": "/dc/d21/structnap_1_1rtti_1_1_read_state"
+  },
+  {
+   "name": "Rect",
+   "ns": "nap::math",
+   "path": "/d5/da0/classnap_1_1math_1_1_rect"
+  },
+  {
+   "name": "Rectangle",
+   "ns": "nap",
+   "path": "/dd/d77/classnap_1_1_rectangle"
+  },
+  {
+   "name": "Renderable2DGlyph",
+   "ns": "nap",
+   "path": "/d9/df1/classnap_1_1_renderable2_d_glyph"
+  },
+  {
+   "name": "Renderable2DMipMapGlyph",
+   "ns": "nap",
+   "path": "/d8/d34/classnap_1_1_renderable2_d_mip_map_glyph"
+  },
+  {
+   "name": "Renderable2DTextComponent",
+   "ns": "nap",
+   "path": "/dc/d02/classnap_1_1_renderable2_d_text_component"
+  },
+  {
+   "name": "Renderable2DTextComponentInstance",
+   "ns": "nap",
+   "path": "/dc/d0b/classnap_1_1_renderable2_d_text_component_instance"
+  },
+  {
+   "name": "Renderable3DTextComponent",
+   "ns": "nap",
+   "path": "/d2/d4e/classnap_1_1_renderable3_d_text_component"
+  },
+  {
+   "name": "Renderable3DTextComponentInstance",
+   "ns": "nap",
+   "path": "/d4/d70/classnap_1_1_renderable3_d_text_component_instance"
+  },
+  {
+   "name": "RenderableComponent",
+   "ns": "nap",
+   "path": "/d1/d2c/classnap_1_1_renderable_component"
+  },
+  {
+   "name": "RenderableComponentInstance",
+   "ns": "nap",
+   "path": "/dd/da0/classnap_1_1_renderable_component_instance"
+  },
+  {
+   "name": "RenderableGlyph",
+   "ns": "nap",
+   "path": "/d7/d92/classnap_1_1_renderable_glyph"
+  },
+  {
+   "name": "RenderableMesh",
+   "ns": "nap",
+   "path": "/df/d52/classnap_1_1_renderable_mesh"
+  },
+  {
+   "name": "RenderableMeshComponent",
+   "ns": "nap",
+   "path": "/d4/d61/classnap_1_1_renderable_mesh_component"
+  },
+  {
+   "name": "RenderableMeshComponentInstance",
+   "ns": "nap",
+   "path": "/d9/d73/classnap_1_1_renderable_mesh_component_instance"
+  },
+  {
+   "name": "RenderableTextComponent",
+   "ns": "nap",
+   "path": "/d6/d4f/classnap_1_1_renderable_text_component"
+  },
+  {
+   "name": "RenderableTextComponentInstance",
+   "ns": "nap",
+   "path": "/db/d63/classnap_1_1_renderable_text_component_instance"
+  },
+  {
+   "name": "RenderAdvancedService",
+   "ns": "nap",
+   "path": "/d5/d68/classnap_1_1_render_advanced_service"
+  },
+  {
+   "name": "RenderAdvancedServiceConfiguration",
+   "ns": "nap",
+   "path": "/d0/d56/classnap_1_1_render_advanced_service_configuration"
+  },
+  {
+   "name": "RenderBloomComponent",
+   "ns": "nap",
+   "path": "/de/d8e/classnap_1_1_render_bloom_component"
+  },
+  {
+   "name": "RenderBloomComponentInstance",
+   "ns": "nap",
+   "path": "/dc/ddf/classnap_1_1_render_bloom_component_instance"
+  },
+  {
+   "name": "RenderChain",
+   "ns": "nap",
+   "path": "/df/de3/classnap_1_1_render_chain"
+  },
+  {
+   "name": "RenderFaderComponent",
+   "ns": "nap",
+   "path": "/d9/dec/classnap_1_1_render_fader_component"
+  },
+  {
+   "name": "RenderFaderComponentInstance",
+   "ns": "nap",
+   "path": "/d8/dc9/classnap_1_1_render_fader_component_instance"
+  },
+  {
+   "name": "RenderFrustumComponent",
+   "ns": "nap",
+   "path": "/d8/dd4/classnap_1_1_render_frustum_component"
+  },
+  {
+   "name": "RenderFrustumComponentInstance",
+   "ns": "nap",
+   "path": "/d1/d5d/classnap_1_1_render_frustum_component_instance"
+  },
+  {
+   "name": "RenderGnomonComponent",
+   "ns": "nap",
+   "path": "/d8/dc2/classnap_1_1_render_gnomon_component"
+  },
+  {
+   "name": "RenderGnomonComponentInstance",
+   "ns": "nap",
+   "path": "/db/dce/classnap_1_1_render_gnomon_component_instance"
+  },
+  {
+   "name": "RenderLayer",
+   "ns": "nap",
+   "path": "/d8/dd2/classnap_1_1_render_layer"
+  },
+  {
+   "name": "RenderService",
+   "ns": "nap",
+   "path": "/d5/dc6/classnap_1_1_render_service"
+  },
+  {
+   "name": "RenderServiceConfiguration",
+   "ns": "nap",
+   "path": "/df/d57/classnap_1_1_render_service_configuration"
+  },
+  {
+   "name": "RenderSkyBoxComponent",
+   "ns": "nap",
+   "path": "/df/d7c/classnap_1_1_render_sky_box_component"
+  },
+  {
+   "name": "RenderSkyBoxComponentInstance",
+   "ns": "nap",
+   "path": "/d8/d7f/classnap_1_1_render_sky_box_component_instance"
+  },
+  {
+   "name": "RenderTag",
+   "ns": "nap",
+   "path": "/d1/d73/classnap_1_1_render_tag"
+  },
+  {
+   "name": "RenderTarget",
+   "ns": "nap",
+   "path": "/de/dd1/classnap_1_1_render_target"
+  },
+  {
+   "name": "RenderTexture2D",
+   "ns": "nap",
+   "path": "/d6/d5e/classnap_1_1_render_texture2_d"
+  },
+  {
+   "name": "RenderTextureCube",
+   "ns": "nap",
+   "path": "/db/d45/classnap_1_1_render_texture_cube"
+  },
+  {
+   "name": "RenderToTextureComponent",
+   "ns": "nap",
+   "path": "/dc/d0b/classnap_1_1_render_to_texture_component"
+  },
+  {
+   "name": "RenderToTextureComponentInstance",
+   "ns": "nap",
+   "path": "/d5/d30/classnap_1_1_render_to_texture_component_instance"
+  },
+  {
+   "name": "RenderToWindowComponent",
+   "ns": "nap",
+   "path": "/d8/ddf/classnap_1_1_render_to_window_component"
+  },
+  {
+   "name": "RenderToWindowComponentInstance",
+   "ns": "nap",
+   "path": "/d4/d03/classnap_1_1_render_to_window_component_instance"
+  },
+  {
+   "name": "RenderVideoComponent",
+   "ns": "nap",
+   "path": "/d1/d5d/classnap_1_1_render_video_component"
+  },
+  {
+   "name": "RenderVideoComponentInstance",
+   "ns": "nap",
+   "path": "/df/d41/classnap_1_1_render_video_component_instance"
+  },
+  {
+   "name": "RenderWindow",
+   "ns": "nap",
+   "path": "/d6/d4f/classnap_1_1_render_window"
+  },
+  {
+   "name": "ResolvedPath",
+   "ns": "nap::rtti",
+   "path": "/df/ded/classnap_1_1rtti_1_1_resolved_path"
+  },
+  {
+   "name": "ResolvedRTTIPathElement",
+   "ns": "nap::rtti",
+   "path": "/d2/d57/classnap_1_1rtti_1_1_resolved_r_t_t_i_path_element"
+  },
+  {
+   "name": "Resource",
+   "ns": "nap",
+   "path": "/d9/dea/classnap_1_1_resource"
+  },
+  {
+   "name": "ResourceManager",
+   "ns": "nap",
+   "path": "/dc/dab/classnap_1_1_resource_manager"
+  },
+  {
+   "name": "RGBAColor",
+   "ns": "nap",
+   "path": "/d6/db8/classnap_1_1_r_g_b_a_color"
+  },
+  {
+   "name": "RGBColor",
+   "ns": "nap",
+   "path": "/d4/dd7/classnap_1_1_r_g_b_color"
+  },
+  {
+   "name": "RootEntity",
+   "ns": "nap",
+   "path": "/dc/d35/classnap_1_1_root_entity"
+  },
+  {
+   "name": "RotateComponent",
+   "ns": "nap",
+   "path": "/d1/de7/classnap_1_1_rotate_component"
+  },
+  {
+   "name": "RotateComponentInstance",
+   "ns": "nap",
+   "path": "/df/d71/classnap_1_1_rotate_component_instance"
+  },
+  {
+   "name": "RotateProperties",
+   "ns": "nap",
+   "path": "/d0/d3c/structnap_1_1_rotate_properties"
+  },
+  {
+   "name": "RTTIObjectGraphItem",
+   "ns": "nap",
+   "path": "/d8/dfb/classnap_1_1_r_t_t_i_object_graph_item"
+  },
+  {
+   "name": "SafeOwner",
+   "ns": "nap::audio",
+   "path": "/df/d53/classnap_1_1audio_1_1_safe_owner"
+  },
+  {
+   "name": "SafeOwnerBase",
+   "ns": "nap::audio",
+   "path": "/df/d41/classnap_1_1audio_1_1_safe_owner_base"
+  },
+  {
+   "name": "SafePtr",
+   "ns": "nap::audio",
+   "path": "/da/d06/classnap_1_1audio_1_1_safe_ptr"
+  },
+  {
+   "name": "SafePtrBase",
+   "ns": "nap::audio",
+   "path": "/d4/da4/classnap_1_1audio_1_1_safe_ptr_base"
+  },
+  {
+   "name": "Sampler",
+   "ns": "nap",
+   "path": "/d4/def/classnap_1_1_sampler"
+  },
+  {
+   "name": "Sampler2D",
+   "ns": "nap",
+   "path": "/d7/d5c/classnap_1_1_sampler2_d"
+  },
+  {
+   "name": "Sampler2DArray",
+   "ns": "nap",
+   "path": "/de/d6f/classnap_1_1_sampler2_d_array"
+  },
+  {
+   "name": "Sampler2DArrayInstance",
+   "ns": "nap",
+   "path": "/d3/db6/classnap_1_1_sampler2_d_array_instance"
+  },
+  {
+   "name": "Sampler2DInstance",
+   "ns": "nap",
+   "path": "/db/d93/classnap_1_1_sampler2_d_instance"
+  },
+  {
+   "name": "SamplerArray",
+   "ns": "nap",
+   "path": "/d1/d32/classnap_1_1_sampler_array"
+  },
+  {
+   "name": "SamplerArrayInstance",
+   "ns": "nap",
+   "path": "/d8/d00/classnap_1_1_sampler_array_instance"
+  },
+  {
+   "name": "SamplerCube",
+   "ns": "nap",
+   "path": "/d7/d02/classnap_1_1_sampler_cube"
+  },
+  {
+   "name": "SamplerCubeArray",
+   "ns": "nap",
+   "path": "/dd/d86/classnap_1_1_sampler_cube_array"
+  },
+  {
+   "name": "SamplerCubeArrayInstance",
+   "ns": "nap",
+   "path": "/d4/d61/classnap_1_1_sampler_cube_array_instance"
+  },
+  {
+   "name": "SamplerCubeInstance",
+   "ns": "nap",
+   "path": "/db/d5e/classnap_1_1_sampler_cube_instance"
+  },
+  {
+   "name": "SamplerDeclaration",
+   "ns": "nap",
+   "path": "/d0/d38/classnap_1_1_sampler_declaration"
+  },
+  {
+   "name": "SamplerInstance",
+   "ns": "nap",
+   "path": "/d2/dec/classnap_1_1_sampler_instance"
+  },
+  {
+   "name": "SaveAsPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/d81/classnap_1_1sequenceguiactions_1_1_save_as_popup"
+  },
+  {
+   "name": "SavePresetPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dd/db8/classnap_1_1sequenceguiactions_1_1_save_preset_popup"
+  },
+  {
+   "name": "ScatterPointsMesh",
+   "ns": "nap",
+   "path": "/de/d85/classnap_1_1_scatter_points_mesh"
+  },
+  {
+   "name": "Scene",
+   "ns": "nap",
+   "path": "/d7/d68/classnap_1_1_scene"
+  },
+  {
+   "name": "SceneService",
+   "ns": "nap",
+   "path": "/dc/db5/classnap_1_1_scene_service"
+  },
+  {
+   "name": "SDLAppEventHandler",
+   "ns": "nap",
+   "path": "/d2/d7e/classnap_1_1_s_d_l_app_event_handler"
+  },
+  {
+   "name": "SDLInputService::SDLController",
+   "ns": "nap",
+   "path": "/d0/dec/classnap_1_1_s_d_l_input_service_1_1_s_d_l_controller"
+  },
+  {
+   "name": "SDLEventConverter",
+   "ns": "nap",
+   "path": "/dd/d9f/classnap_1_1_s_d_l_event_converter"
+  },
+  {
+   "name": "SDLInputService",
+   "ns": "nap",
+   "path": "/dc/dbc/classnap_1_1_s_d_l_input_service"
+  },
+  {
+   "name": "SecureWebSocketClientEndPoint",
+   "ns": "nap",
+   "path": "/d1/de0/classnap_1_1_secure_web_socket_client_end_point"
+  },
+  {
+   "name": "SecureWebSocketServerEndPoint",
+   "ns": "nap",
+   "path": "/d0/dcd/classnap_1_1_secure_web_socket_server_end_point"
+  },
+  {
+   "name": "SelectHistoryPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d2/d05/classnap_1_1sequenceguiactions_1_1_select_history_popup"
+  },
+  {
+   "name": "Sequence",
+   "ns": "nap",
+   "path": "/d9/da0/classnap_1_1_sequence"
+  },
+  {
+   "name": "SequenceAudioGUIService",
+   "ns": "nap",
+   "path": "/dc/dd3/classnap_1_1_sequence_audio_g_u_i_service"
+  },
+  {
+   "name": "SequenceAudioTrackView",
+   "ns": "nap",
+   "path": "/dd/d4f/classnap_1_1_sequence_audio_track_view"
+  },
+  {
+   "name": "SequenceController",
+   "ns": "nap",
+   "path": "/d0/dff/classnap_1_1_sequence_controller"
+  },
+  {
+   "name": "SequenceControllerAudio",
+   "ns": "nap",
+   "path": "/d4/d38/classnap_1_1_sequence_controller_audio"
+  },
+  {
+   "name": "SequenceControllerCurve",
+   "ns": "nap",
+   "path": "/de/dff/classnap_1_1_sequence_controller_curve"
+  },
+  {
+   "name": "SequenceControllerEvent",
+   "ns": "nap",
+   "path": "/d8/d76/classnap_1_1_sequence_controller_event"
+  },
+  {
+   "name": "SequenceCurveTrackView",
+   "ns": "nap",
+   "path": "/d9/db2/classnap_1_1_sequence_curve_track_view"
+  },
+  {
+   "name": "SequenceEditor",
+   "ns": "nap",
+   "path": "/d9/dde/classnap_1_1_sequence_editor"
+  },
+  {
+   "name": "SequenceEditorGUI",
+   "ns": "nap",
+   "path": "/dd/d58/classnap_1_1_sequence_editor_g_u_i"
+  },
+  {
+   "name": "SequenceEditorGUIState",
+   "ns": "nap",
+   "path": "/db/d94/structnap_1_1_sequence_editor_g_u_i_state"
+  },
+  {
+   "name": "SequenceEditorGUIView",
+   "ns": "nap",
+   "path": "/d2/d74/classnap_1_1_sequence_editor_g_u_i_view"
+  },
+  {
+   "name": "SequenceEditorHistoryPoint",
+   "ns": "nap",
+   "path": "/de/d38/structnap_1_1_sequence_editor_history_point"
+  },
+  {
+   "name": "SequenceEvent",
+   "ns": "nap",
+   "path": "/de/d60/classnap_1_1_sequence_event"
+  },
+  {
+   "name": "SequenceEventBase",
+   "ns": "nap",
+   "path": "/d5/d51/classnap_1_1_sequence_event_base"
+  },
+  {
+   "name": "SequenceEventTrackSegmentView",
+   "ns": "nap",
+   "path": "/d6/db6/classnap_1_1_sequence_event_track_segment_view"
+  },
+  {
+   "name": "SequenceEventTrackSegmentViewBase",
+   "ns": "nap",
+   "path": "/df/dcf/classnap_1_1_sequence_event_track_segment_view_base"
+  },
+  {
+   "name": "SequenceEventTrackView",
+   "ns": "nap",
+   "path": "/d0/d1b/classnap_1_1_sequence_event_track_view"
+  },
+  {
+   "name": "SequenceGUIService",
+   "ns": "nap",
+   "path": "/d0/d0a/classnap_1_1_sequence_g_u_i_service"
+  },
+  {
+   "name": "SequenceMarker",
+   "ns": "nap",
+   "path": "/d5/d9c/classnap_1_1_sequence_marker"
+  },
+  {
+   "name": "SequencePlayer",
+   "ns": "nap",
+   "path": "/dc/d17/classnap_1_1_sequence_player"
+  },
+  {
+   "name": "SequencePlayerAdapter",
+   "ns": "nap",
+   "path": "/d7/d45/classnap_1_1_sequence_player_adapter"
+  },
+  {
+   "name": "SequencePlayerAudioAdapter",
+   "ns": "nap",
+   "path": "/d2/d2e/classnap_1_1_sequence_player_audio_adapter"
+  },
+  {
+   "name": "SequencePlayerAudioClock",
+   "ns": "nap",
+   "path": "/d6/d0f/classnap_1_1_sequence_player_audio_clock"
+  },
+  {
+   "name": "SequencePlayerAudioClockProcess",
+   "ns": "nap",
+   "path": "/db/d23/classnap_1_1_sequence_player_audio_clock_process"
+  },
+  {
+   "name": "SequencePlayerAudioOutput",
+   "ns": "nap",
+   "path": "/d4/d49/classnap_1_1_sequence_player_audio_output"
+  },
+  {
+   "name": "SequencePlayerAudioOutputComponent",
+   "ns": "nap::audio",
+   "path": "/d2/d14/classnap_1_1audio_1_1_sequence_player_audio_output_component"
+  },
+  {
+   "name": "SequencePlayerAudioOutputComponentInstance",
+   "ns": "nap::audio",
+   "path": "/d4/da3/classnap_1_1audio_1_1_sequence_player_audio_output_component_instance"
+  },
+  {
+   "name": "SequencePlayerClock",
+   "ns": "nap",
+   "path": "/dd/dcd/classnap_1_1_sequence_player_clock"
+  },
+  {
+   "name": "SequencePlayerCurveAdapter",
+   "ns": "nap",
+   "path": "/d9/d0c/classnap_1_1_sequence_player_curve_adapter"
+  },
+  {
+   "name": "SequencePlayerCurveAdapterBase",
+   "ns": "nap",
+   "path": "/d5/d0c/classnap_1_1_sequence_player_curve_adapter_base"
+  },
+  {
+   "name": "SequencePlayerCurveOutput",
+   "ns": "nap",
+   "path": "/d7/d31/classnap_1_1_sequence_player_curve_output"
+  },
+  {
+   "name": "SequencePlayerEventAdapter",
+   "ns": "nap",
+   "path": "/d3/d70/classnap_1_1_sequence_player_event_adapter"
+  },
+  {
+   "name": "SequencePlayerEventOutput",
+   "ns": "nap",
+   "path": "/d3/d0d/classnap_1_1_sequence_player_event_output"
+  },
+  {
+   "name": "SequencePlayerIndependentClock",
+   "ns": "nap",
+   "path": "/de/df4/classnap_1_1_sequence_player_independent_clock"
+  },
+  {
+   "name": "SequencePlayerOutput",
+   "ns": "nap",
+   "path": "/de/dac/classnap_1_1_sequence_player_output"
+  },
+  {
+   "name": "SequencePlayerStandardClock",
+   "ns": "nap",
+   "path": "/d0/dd1/classnap_1_1_sequence_player_standard_clock"
+  },
+  {
+   "name": "SequenceService",
+   "ns": "nap",
+   "path": "/df/dbe/classnap_1_1_sequence_service"
+  },
+  {
+   "name": "SequenceServiceAudio",
+   "ns": "nap",
+   "path": "/d4/d59/classnap_1_1_sequence_service_audio"
+  },
+  {
+   "name": "SequenceTrack",
+   "ns": "nap",
+   "path": "/d5/d30/classnap_1_1_sequence_track"
+  },
+  {
+   "name": "SequenceTrackAudio",
+   "ns": "nap",
+   "path": "/d9/d10/classnap_1_1_sequence_track_audio"
+  },
+  {
+   "name": "SequenceTrackCurve",
+   "ns": "nap",
+   "path": "/d7/d62/classnap_1_1_sequence_track_curve"
+  },
+  {
+   "name": "SequenceTrackEvent",
+   "ns": "nap",
+   "path": "/de/d9d/classnap_1_1_sequence_track_event"
+  },
+  {
+   "name": "SequenceTrackSegment",
+   "ns": "nap",
+   "path": "/de/d50/classnap_1_1_sequence_track_segment"
+  },
+  {
+   "name": "SequenceTrackSegmentAudio",
+   "ns": "nap",
+   "path": "/d4/db8/classnap_1_1_sequence_track_segment_audio"
+  },
+  {
+   "name": "SequenceTrackSegmentCurve",
+   "ns": "nap",
+   "path": "/dc/dd1/classnap_1_1_sequence_track_segment_curve"
+  },
+  {
+   "name": "SequenceTrackSegmentCurveBase",
+   "ns": "nap",
+   "path": "/da/dc8/classnap_1_1_sequence_track_segment_curve_base"
+  },
+  {
+   "name": "SequenceTrackSegmentDuration",
+   "ns": "nap",
+   "path": "/d2/dfc/classnap_1_1_sequence_track_segment_duration"
+  },
+  {
+   "name": "SequenceTrackSegmentEvent",
+   "ns": "nap",
+   "path": "/de/df2/classnap_1_1_sequence_track_segment_event"
+  },
+  {
+   "name": "SequenceTrackSegmentEventBase",
+   "ns": "nap",
+   "path": "/d9/d16/classnap_1_1_sequence_track_segment_event_base"
+  },
+  {
+   "name": "SequenceTrackView",
+   "ns": "nap",
+   "path": "/d4/d58/classnap_1_1_sequence_track_view"
+  },
+  {
+   "name": "SerialPort",
+   "ns": "nap",
+   "path": "/d5/db1/classnap_1_1_serial_port"
+  },
+  {
+   "name": "SerialService",
+   "ns": "nap",
+   "path": "/d2/d43/classnap_1_1_serial_service"
+  },
+  {
+   "name": "Service",
+   "ns": "nap",
+   "path": "/d8/d8e/classnap_1_1_service"
+  },
+  {
+   "name": "ServiceConfiguration",
+   "ns": "nap",
+   "path": "/dd/db7/classnap_1_1_service_configuration"
+  },
+  {
+   "name": "ServiceObjectGraphItem",
+   "ns": "nap",
+   "path": "/de/d88/classnap_1_1_service_object_graph_item"
+  },
+  {
+   "name": "ServiceRunner",
+   "ns": "nap",
+   "path": "/d4/d78/classnap_1_1_service_runner"
+  },
+  {
+   "name": "Core::Services",
+   "ns": "nap",
+   "path": "/dc/d5c/classnap_1_1_core_1_1_services"
+  },
+  {
+   "name": "Shader",
+   "ns": "nap",
+   "path": "/dd/d44/classnap_1_1_shader"
+  },
+  {
+   "name": "ShaderBallMesh",
+   "ns": "nap",
+   "path": "/de/d6f/classnap_1_1_shader_ball_mesh"
+  },
+  {
+   "name": "ShaderConstant",
+   "ns": "nap",
+   "path": "/d8/d8c/classnap_1_1_shader_constant"
+  },
+  {
+   "name": "ShaderConstantDeclaration",
+   "ns": "nap",
+   "path": "/de/d7a/classnap_1_1_shader_constant_declaration"
+  },
+  {
+   "name": "ShaderConstantInstance",
+   "ns": "nap",
+   "path": "/d6/de8/classnap_1_1_shader_constant_instance"
+  },
+  {
+   "name": "ShaderFromFile",
+   "ns": "nap",
+   "path": "/d6/d49/classnap_1_1_shader_from_file"
+  },
+  {
+   "name": "ShaderSpecializationConstantInfo",
+   "ns": "nap",
+   "path": "/db/dc7/structnap_1_1_shader_specialization_constant_info"
+  },
+  {
+   "name": "ShaderStorageBufferObject",
+   "ns": "nap",
+   "path": "/dd/df0/classnap_1_1_shader_storage_buffer_object"
+  },
+  {
+   "name": "ShaderVariableDeclaration",
+   "ns": "nap",
+   "path": "/dc/d72/classnap_1_1_shader_variable_declaration"
+  },
+  {
+   "name": "ShaderVariableStructArrayDeclaration",
+   "ns": "nap",
+   "path": "/de/d72/classnap_1_1_shader_variable_struct_array_declaration"
+  },
+  {
+   "name": "ShaderVariableStructBufferDeclaration",
+   "ns": "nap",
+   "path": "/d9/d70/classnap_1_1_shader_variable_struct_buffer_declaration"
+  },
+  {
+   "name": "ShaderVariableStructDeclaration",
+   "ns": "nap",
+   "path": "/d1/d7d/classnap_1_1_shader_variable_struct_declaration"
+  },
+  {
+   "name": "ShaderVariableValueArrayDeclaration",
+   "ns": "nap",
+   "path": "/d8/d24/classnap_1_1_shader_variable_value_array_declaration"
+  },
+  {
+   "name": "ShaderVariableValueDeclaration",
+   "ns": "nap",
+   "path": "/d6/df3/classnap_1_1_shader_variable_value_declaration"
+  },
+  {
+   "name": "ShapeTriangle",
+   "ns": "nap",
+   "path": "/dd/da9/classnap_1_1_shape_triangle"
+  },
+  {
+   "name": "ShapeTriangleFanIterator",
+   "ns": "nap",
+   "path": "/d4/d23/classnap_1_1_shape_triangle_fan_iterator"
+  },
+  {
+   "name": "ShapeTriangleIterator",
+   "ns": "nap",
+   "path": "/da/d9c/classnap_1_1_shape_triangle_iterator"
+  },
+  {
+   "name": "ShapeTriangleListIterator",
+   "ns": "nap",
+   "path": "/db/dc1/classnap_1_1_shape_triangle_list_iterator"
+  },
+  {
+   "name": "ShapeTriangleStripIterator",
+   "ns": "nap",
+   "path": "/d5/d59/classnap_1_1_shape_triangle_strip_iterator"
+  },
+  {
+   "name": "Signal",
+   "ns": "nap",
+   "path": "/de/d80/classnap_1_1_signal"
+  },
+  {
+   "name": "SkyBoxShader",
+   "ns": "nap",
+   "path": "/d4/d87/classnap_1_1_sky_box_shader"
+  },
+  {
+   "name": "Slot",
+   "ns": "nap",
+   "path": "/db/dc3/classnap_1_1_slot"
+  },
+  {
+   "name": "SmoothOperator",
+   "ns": "nap::math",
+   "path": "/d1/de9/classnap_1_1math_1_1_smooth_operator"
+  },
+  {
+   "name": "Snapshot",
+   "ns": "nap",
+   "path": "/da/d9f/classnap_1_1_snapshot"
+  },
+  {
+   "name": "SnapshotRenderTarget",
+   "ns": "nap",
+   "path": "/d1/d8d/classnap_1_1_snapshot_render_target"
+  },
+  {
+   "name": "SpawnedEntityInstance",
+   "ns": "nap",
+   "path": "/da/d6a/classnap_1_1_spawned_entity_instance"
+  },
+  {
+   "name": "SphereMesh",
+   "ns": "nap",
+   "path": "/d6/d7b/classnap_1_1_sphere_mesh"
+  },
+  {
+   "name": "SpotLightComponent",
+   "ns": "nap",
+   "path": "/da/d41/classnap_1_1_spot_light_component"
+  },
+  {
+   "name": "SpotLightComponentInstance",
+   "ns": "nap",
+   "path": "/d6/d2c/classnap_1_1_spot_light_component_instance"
+  },
+  {
+   "name": "StartDraggingSegment",
+   "ns": "nap::sequenceguiactions",
+   "path": "/dc/da3/classnap_1_1sequenceguiactions_1_1_start_dragging_segment"
+  },
+  {
+   "name": "StereoPannerNode",
+   "ns": "nap::audio",
+   "path": "/d9/d58/classnap_1_1audio_1_1_stereo_panner_node"
+  },
+  {
+   "name": "StructBuffer",
+   "ns": "nap",
+   "path": "/de/d32/classnap_1_1_struct_buffer"
+  },
+  {
+   "name": "StructBufferDescriptor",
+   "ns": "nap",
+   "path": "/d3/d72/structnap_1_1_struct_buffer_descriptor"
+  },
+  {
+   "name": "StructFillPolicy",
+   "ns": "nap",
+   "path": "/db/d36/classnap_1_1_struct_fill_policy"
+  },
+  {
+   "name": "Style",
+   "ns": "nap::gui",
+   "path": "/d4/dee/structnap_1_1gui_1_1_style"
+  },
+  {
+   "name": "SunsetCubeMap",
+   "ns": "nap",
+   "path": "/df/d57/classnap_1_1_sunset_cube_map"
+  },
+  {
+   "name": "SurfaceDescriptor",
+   "ns": "nap",
+   "path": "/d9/d76/structnap_1_1_surface_descriptor"
+  },
+  {
+   "name": "TableTranslator",
+   "ns": "nap::audio",
+   "path": "/d1/d4e/classnap_1_1audio_1_1_table_translator"
+  },
+  {
+   "name": "TargetAttribute",
+   "ns": "nap",
+   "path": "/d1/d54/classnap_1_1_target_attribute"
+  },
+  {
+   "name": "TaskQueue",
+   "ns": "nap",
+   "path": "/d2/d59/classnap_1_1_task_queue"
+  },
+  {
+   "name": "TestCubeMap",
+   "ns": "nap",
+   "path": "/d4/dda/classnap_1_1_test_cube_map"
+  },
+  {
+   "name": "TextInputEvent",
+   "ns": "nap",
+   "path": "/d0/d66/classnap_1_1_text_input_event"
+  },
+  {
+   "name": "Texture",
+   "ns": "nap",
+   "path": "/d9/d0c/classnap_1_1_texture"
+  },
+  {
+   "name": "Texture2D",
+   "ns": "nap",
+   "path": "/d6/d0e/classnap_1_1_texture2_d"
+  },
+  {
+   "name": "Texture2DLink",
+   "ns": "nap",
+   "path": "/d9/dd8/classnap_1_1_texture2_d_link"
+  },
+  {
+   "name": "Texture2DTargetLink",
+   "ns": "nap",
+   "path": "/d8/ddc/classnap_1_1_texture2_d_target_link"
+  },
+  {
+   "name": "TextureCube",
+   "ns": "nap",
+   "path": "/dc/df7/classnap_1_1_texture_cube"
+  },
+  {
+   "name": "TextureCubeLink",
+   "ns": "nap",
+   "path": "/d2/da0/classnap_1_1_texture_cube_link"
+  },
+  {
+   "name": "TextureCubeTargetLink",
+   "ns": "nap",
+   "path": "/d7/d79/classnap_1_1_texture_cube_target_link"
+  },
+  {
+   "name": "TextureShader",
+   "ns": "nap",
+   "path": "/d3/d9a/classnap_1_1_texture_shader"
+  },
+  {
+   "name": "ThreadPool",
+   "ns": "nap",
+   "path": "/d1/da3/classnap_1_1_thread_pool"
+  },
+  {
+   "name": "CalendarItem::Time",
+   "ns": "nap",
+   "path": "/d4/db2/structnap_1_1_calendar_item_1_1_time"
+  },
+  {
+   "name": "Timer",
+   "ns": "nap",
+   "path": "/de/d16/classnap_1_1_timer"
+  },
+  {
+   "name": "TimeStamp",
+   "ns": "nap",
+   "path": "/d0/d5d/classnap_1_1_time_stamp"
+  },
+  {
+   "name": "TorusMesh",
+   "ns": "nap",
+   "path": "/d3/d4f/classnap_1_1_torus_mesh"
+  },
+  {
+   "name": "TouchEvent",
+   "ns": "nap",
+   "path": "/d0/d3f/classnap_1_1_touch_event"
+  },
+  {
+   "name": "TouchInputComponent",
+   "ns": "nap",
+   "path": "/d5/dd1/classnap_1_1_touch_input_component"
+  },
+  {
+   "name": "TouchInputComponentInstance",
+   "ns": "nap",
+   "path": "/dc/d08/classnap_1_1_touch_input_component_instance"
+  },
+  {
+   "name": "TouchMoveEvent",
+   "ns": "nap",
+   "path": "/d9/dae/classnap_1_1_touch_move_event"
+  },
+  {
+   "name": "TouchPressEvent",
+   "ns": "nap",
+   "path": "/dc/d99/classnap_1_1_touch_press_event"
+  },
+  {
+   "name": "TouchReleaseEvent",
+   "ns": "nap",
+   "path": "/db/dcb/classnap_1_1_touch_release_event"
+  },
+  {
+   "name": "ToyMesh",
+   "ns": "nap",
+   "path": "/df/de9/classnap_1_1_toy_mesh"
+  },
+  {
+   "name": "TrackAction",
+   "ns": "nap::sequenceguiactions",
+   "path": "/d5/d0e/classnap_1_1sequenceguiactions_1_1_track_action"
+  },
+  {
+   "name": "TrackOptionsPopup",
+   "ns": "nap::sequenceguiactions",
+   "path": "/db/db8/classnap_1_1sequenceguiactions_1_1_track_options_popup"
+  },
+  {
+   "name": "TransformComponent",
+   "ns": "nap",
+   "path": "/de/d34/classnap_1_1_transform_component"
+  },
+  {
+   "name": "TransformComponentInstance",
+   "ns": "nap",
+   "path": "/d2/d51/classnap_1_1_transform_component_instance"
+  },
+  {
+   "name": "TransformInstanceProperties",
+   "ns": "nap",
+   "path": "/dc/dab/structnap_1_1_transform_instance_properties"
+  },
+  {
+   "name": "TransformProperties",
+   "ns": "nap",
+   "path": "/d1/d9e/structnap_1_1_transform_properties"
+  },
+  {
+   "name": "Translator",
+   "ns": "nap::audio",
+   "path": "/df/d86/classnap_1_1audio_1_1_translator"
+  },
+  {
+   "name": "Triangle",
+   "ns": "nap",
+   "path": "/d7/d43/classnap_1_1_triangle"
+  },
+  {
+   "name": "TriangleData",
+   "ns": "nap",
+   "path": "/d5/d7a/classnap_1_1_triangle_data"
+  },
+  {
+   "name": "TriangleIterator",
+   "ns": "nap",
+   "path": "/d2/d3d/classnap_1_1_triangle_iterator"
+  },
+  {
+   "name": "TriangleLine",
+   "ns": "nap",
+   "path": "/d9/d8d/classnap_1_1_triangle_line"
+  },
+  {
+   "name": "TriangleMesh",
+   "ns": "nap",
+   "path": "/d6/d9c/classnap_1_1_triangle_mesh"
+  },
+  {
+   "name": "TypedBufferBindingNumeric",
+   "ns": "nap",
+   "path": "/d5/d93/classnap_1_1_typed_buffer_binding_numeric"
+  },
+  {
+   "name": "TypedBufferBindingNumericInstance",
+   "ns": "nap",
+   "path": "/d3/d02/classnap_1_1_typed_buffer_binding_numeric_instance"
+  },
+  {
+   "name": "TypedGPUBufferNumeric",
+   "ns": "nap",
+   "path": "/d4/d83/classnap_1_1_typed_g_p_u_buffer_numeric"
+  },
+  {
+   "name": "TypedInstancePropertyValue",
+   "ns": "nap",
+   "path": "/d9/dc4/classnap_1_1_typed_instance_property_value"
+  },
+  {
+   "name": "TypedUniformValue",
+   "ns": "nap",
+   "path": "/d5/d6a/classnap_1_1_typed_uniform_value"
+  },
+  {
+   "name": "TypedUniformValueArray",
+   "ns": "nap",
+   "path": "/d2/d01/classnap_1_1_typed_uniform_value_array"
+  },
+  {
+   "name": "TypedUniformValueArrayInstance",
+   "ns": "nap",
+   "path": "/d3/d48/classnap_1_1_typed_uniform_value_array_instance"
+  },
+  {
+   "name": "TypedUniformValueInstance",
+   "ns": "nap",
+   "path": "/d7/d60/classnap_1_1_typed_uniform_value_instance"
+  },
+  {
+   "name": "UDPAdapter",
+   "ns": "nap",
+   "path": "/d7/da3/classnap_1_1_u_d_p_adapter"
+  },
+  {
+   "name": "UDPClient",
+   "ns": "nap",
+   "path": "/d3/d19/classnap_1_1_u_d_p_client"
+  },
+  {
+   "name": "UDPPacket",
+   "ns": "nap",
+   "path": "/df/d81/structnap_1_1_u_d_p_packet"
+  },
+  {
+   "name": "UDPServer",
+   "ns": "nap",
+   "path": "/d6/d57/classnap_1_1_u_d_p_server"
+  },
+  {
+   "name": "UDPService",
+   "ns": "nap",
+   "path": "/dc/dc3/classnap_1_1_u_d_p_service"
+  },
+  {
+   "name": "UDPThread",
+   "ns": "nap",
+   "path": "/d0/d7d/classnap_1_1_u_d_p_thread"
+  },
+  {
+   "name": "Uniform",
+   "ns": "nap",
+   "path": "/d7/da4/classnap_1_1_uniform"
+  },
+  {
+   "name": "UniformBufferObject",
+   "ns": "nap",
+   "path": "/d9/d8c/classnap_1_1_uniform_buffer_object"
+  },
+  {
+   "name": "UniformContainer",
+   "ns": "nap",
+   "path": "/d5/d6c/classnap_1_1_uniform_container"
+  },
+  {
+   "name": "UniformInstance",
+   "ns": "nap",
+   "path": "/d6/d6a/classnap_1_1_uniform_instance"
+  },
+  {
+   "name": "UniformLeafInstance",
+   "ns": "nap",
+   "path": "/dd/d94/classnap_1_1_uniform_leaf_instance"
+  },
+  {
+   "name": "UniformStruct",
+   "ns": "nap",
+   "path": "/d0/de5/classnap_1_1_uniform_struct"
+  },
+  {
+   "name": "UniformStructArray",
+   "ns": "nap",
+   "path": "/d9/d1e/classnap_1_1_uniform_struct_array"
+  },
+  {
+   "name": "UniformStructArrayInstance",
+   "ns": "nap",
+   "path": "/d4/da2/classnap_1_1_uniform_struct_array_instance"
+  },
+  {
+   "name": "UniformStructInstance",
+   "ns": "nap",
+   "path": "/dd/d44/classnap_1_1_uniform_struct_instance"
+  },
+  {
+   "name": "UniformValue",
+   "ns": "nap",
+   "path": "/d4/d4a/classnap_1_1_uniform_value"
+  },
+  {
+   "name": "UniformValueArray",
+   "ns": "nap",
+   "path": "/d6/d98/classnap_1_1_uniform_value_array"
+  },
+  {
+   "name": "UniformValueArrayInstance",
+   "ns": "nap",
+   "path": "/d8/da5/classnap_1_1_uniform_value_array_instance"
+  },
+  {
+   "name": "UniformValueInstance",
+   "ns": "nap",
+   "path": "/d0/dac/classnap_1_1_uniform_value_instance"
+  },
+  {
+   "name": "UniqueCalendarItem",
+   "ns": "nap",
+   "path": "/dc/dc6/classnap_1_1_unique_calendar_item"
+  },
+  {
+   "name": "UniquePtrConstMapWrapper",
+   "ns": "nap::utility",
+   "path": "/d5/da4/classnap_1_1utility_1_1_unique_ptr_const_map_wrapper"
+  },
+  {
+   "name": "UniquePtrConstVectorWrapper",
+   "ns": "nap::utility",
+   "path": "/d0/dc6/classnap_1_1utility_1_1_unique_ptr_const_vector_wrapper"
+  },
+  {
+   "name": "UniquePtrMapIterator",
+   "ns": "nap::utility",
+   "path": "/d4/d82/classnap_1_1utility_1_1_unique_ptr_map_iterator"
+  },
+  {
+   "name": "UniquePtrMapWrapper",
+   "ns": "nap::utility",
+   "path": "/d6/de8/classnap_1_1utility_1_1_unique_ptr_map_wrapper"
+  },
+  {
+   "name": "UniquePtrVectorIterator",
+   "ns": "nap::utility",
+   "path": "/d9/d95/classnap_1_1utility_1_1_unique_ptr_vector_iterator"
+  },
+  {
+   "name": "UniquePtrVectorWrapper",
+   "ns": "nap::utility",
+   "path": "/d7/d22/classnap_1_1utility_1_1_unique_ptr_vector_wrapper"
+  },
+  {
+   "name": "UnresolvedPointer",
+   "ns": "nap::rtti",
+   "path": "/d6/dbc/structnap_1_1rtti_1_1_unresolved_pointer"
+  },
+  {
+   "name": "UVTestTexture",
+   "ns": "nap",
+   "path": "/dc/d4b/classnap_1_1_u_v_test_texture"
+  },
+  {
+   "name": "VertexAttribute",
+   "ns": "nap",
+   "path": "/d7/da0/classnap_1_1_vertex_attribute"
+  },
+  {
+   "name": "Material::VertexAttributeBinding",
+   "ns": "nap",
+   "path": "/d1/dfe/structnap_1_1_material_1_1_vertex_attribute_binding"
+  },
+  {
+   "name": "VertexAttributeDeclaration",
+   "ns": "nap",
+   "path": "/dc/d2c/classnap_1_1_vertex_attribute_declaration"
+  },
+  {
+   "name": "VertexBuffer",
+   "ns": "nap",
+   "path": "/d9/d9a/classnap_1_1_vertex_buffer"
+  },
+  {
+   "name": "Video",
+   "ns": "nap",
+   "path": "/d3/d69/classnap_1_1_video"
+  },
+  {
+   "name": "VideoAudioComponent",
+   "ns": "nap::audio",
+   "path": "/db/df8/classnap_1_1audio_1_1_video_audio_component"
+  },
+  {
+   "name": "VideoAudioComponentInstance",
+   "ns": "nap::audio",
+   "path": "/df/de7/classnap_1_1audio_1_1_video_audio_component_instance"
+  },
+  {
+   "name": "VideoFile",
+   "ns": "nap",
+   "path": "/dd/dbc/classnap_1_1_video_file"
+  },
+  {
+   "name": "VideoNode",
+   "ns": "nap::audio",
+   "path": "/d9/d05/classnap_1_1audio_1_1_video_node"
+  },
+  {
+   "name": "VideoPlayer",
+   "ns": "nap",
+   "path": "/d3/d08/classnap_1_1_video_player"
+  },
+  {
+   "name": "VideoService",
+   "ns": "nap",
+   "path": "/d4/dcd/classnap_1_1_video_service"
+  },
+  {
+   "name": "VideoShader",
+   "ns": "nap",
+   "path": "/d6/df5/classnap_1_1_video_shader"
+  },
+  {
+   "name": "VisualizeNormalsMesh",
+   "ns": "nap",
+   "path": "/de/d45/classnap_1_1_visualize_normals_mesh"
+  },
+  {
+   "name": "WebSocketClient",
+   "ns": "nap",
+   "path": "/dd/d1b/classnap_1_1_web_socket_client"
+  },
+  {
+   "name": "WebSocketClientEndPointSetup",
+   "ns": "nap",
+   "path": "/d5/d0a/classnap_1_1_web_socket_client_end_point_setup"
+  },
+  {
+   "name": "WebSocketClientWrapper",
+   "ns": "nap",
+   "path": "/d5/d75/classnap_1_1_web_socket_client_wrapper"
+  },
+  {
+   "name": "WebSocketComponent",
+   "ns": "nap",
+   "path": "/d7/d5b/classnap_1_1_web_socket_component"
+  },
+  {
+   "name": "WebSocketComponentInstance",
+   "ns": "nap",
+   "path": "/d4/d37/classnap_1_1_web_socket_component_instance"
+  },
+  {
+   "name": "WebSocketConnection",
+   "ns": "nap",
+   "path": "/d6/d2e/classnap_1_1_web_socket_connection"
+  },
+  {
+   "name": "WebSocketConnectionClosedEvent",
+   "ns": "nap",
+   "path": "/df/ddd/classnap_1_1_web_socket_connection_closed_event"
+  },
+  {
+   "name": "WebSocketConnectionEvent",
+   "ns": "nap",
+   "path": "/de/d42/classnap_1_1_web_socket_connection_event"
+  },
+  {
+   "name": "WebSocketConnectionFailedEvent",
+   "ns": "nap",
+   "path": "/df/dd1/classnap_1_1_web_socket_connection_failed_event"
+  },
+  {
+   "name": "WebSocketConnectionOpenedEvent",
+   "ns": "nap",
+   "path": "/d1/d76/classnap_1_1_web_socket_connection_opened_event"
+  },
+  {
+   "name": "WebSocketEvent",
+   "ns": "nap",
+   "path": "/d6/d83/classnap_1_1_web_socket_event"
+  },
+  {
+   "name": "WebSocketInterface",
+   "ns": "nap",
+   "path": "/d6/d44/classnap_1_1_web_socket_interface"
+  },
+  {
+   "name": "WebSocketMessage",
+   "ns": "nap",
+   "path": "/df/dc6/classnap_1_1_web_socket_message"
+  },
+  {
+   "name": "WebSocketMessageReceivedEvent",
+   "ns": "nap",
+   "path": "/d6/dd9/classnap_1_1_web_socket_message_received_event"
+  },
+  {
+   "name": "WebSocketServer",
+   "ns": "nap",
+   "path": "/de/d44/classnap_1_1_web_socket_server"
+  },
+  {
+   "name": "WebSocketServerEndPointSetup",
+   "ns": "nap",
+   "path": "/de/d7e/classnap_1_1_web_socket_server_end_point_setup"
+  },
+  {
+   "name": "WebSocketService",
+   "ns": "nap",
+   "path": "/dd/d2f/classnap_1_1_web_socket_service"
+  },
+  {
+   "name": "WebSocketTicket",
+   "ns": "nap",
+   "path": "/df/d49/classnap_1_1_web_socket_ticket"
+  },
+  {
+   "name": "WebSocketTicketHash",
+   "ns": "nap",
+   "path": "/d8/da2/structnap_1_1_web_socket_ticket_hash"
+  },
+  {
+   "name": "WeeklyCalendarItem",
+   "ns": "nap",
+   "path": "/dc/df7/classnap_1_1_weekly_calendar_item"
+  },
+  {
+   "name": "Window",
+   "ns": "nap",
+   "path": "/d0/dc5/classnap_1_1_window"
+  },
+  {
+   "name": "WindowCloseEvent",
+   "ns": "nap",
+   "path": "/df/dc6/classnap_1_1_window_close_event"
+  },
+  {
+   "name": "WindowEnterEvent",
+   "ns": "nap",
+   "path": "/d7/d03/classnap_1_1_window_enter_event"
+  },
+  {
+   "name": "WindowEvent",
+   "ns": "nap",
+   "path": "/d5/dea/classnap_1_1_window_event"
+  },
+  {
+   "name": "WindowExposedEvent",
+   "ns": "nap",
+   "path": "/d4/d8b/classnap_1_1_window_exposed_event"
+  },
+  {
+   "name": "WindowFocusGainedEvent",
+   "ns": "nap",
+   "path": "/db/d67/classnap_1_1_window_focus_gained_event"
+  },
+  {
+   "name": "WindowFocusLostEvent",
+   "ns": "nap",
+   "path": "/d1/d41/classnap_1_1_window_focus_lost_event"
+  },
+  {
+   "name": "WindowHiddenEvent",
+   "ns": "nap",
+   "path": "/dc/d3b/classnap_1_1_window_hidden_event"
+  },
+  {
+   "name": "WindowInputEvent",
+   "ns": "nap",
+   "path": "/d6/d58/classnap_1_1_window_input_event"
+  },
+  {
+   "name": "WindowLeaveEvent",
+   "ns": "nap",
+   "path": "/da/d55/classnap_1_1_window_leave_event"
+  },
+  {
+   "name": "WindowMaximizedEvent",
+   "ns": "nap",
+   "path": "/d7/d6a/classnap_1_1_window_maximized_event"
+  },
+  {
+   "name": "WindowMinimizedEvent",
+   "ns": "nap",
+   "path": "/d0/db2/classnap_1_1_window_minimized_event"
+  },
+  {
+   "name": "WindowMovedEvent",
+   "ns": "nap",
+   "path": "/d8/d4b/classnap_1_1_window_moved_event"
+  },
+  {
+   "name": "WindowResizedEvent",
+   "ns": "nap",
+   "path": "/d7/da9/classnap_1_1_window_resized_event"
+  },
+  {
+   "name": "WindowRestoredEvent",
+   "ns": "nap",
+   "path": "/d3/d8c/classnap_1_1_window_restored_event"
+  },
+  {
+   "name": "WindowShownEvent",
+   "ns": "nap",
+   "path": "/dd/d16/classnap_1_1_window_shown_event"
+  },
+  {
+   "name": "WindowTakeFocusEvent",
+   "ns": "nap",
+   "path": "/db/d02/classnap_1_1_window_take_focus_event"
+  },
+  {
+   "name": "WorkerThread",
+   "ns": "nap",
+   "path": "/df/d8f/classnap_1_1_worker_thread"
+  },
+  {
+   "name": "Writer",
+   "ns": "nap::rtti",
+   "path": "/d8/d4b/classnap_1_1rtti_1_1_writer"
+  },
+  {
+   "name": "YearlyCalendarItem",
+   "ns": "nap",
+   "path": "/d4/d63/classnap_1_1_yearly_calendar_item"
+  },
+  {
+   "name": "ZComparer",
+   "ns": "nap",
+   "path": "/d9/d0d/classnap_1_1_z_comparer"
+  },
+  {
+   "name": "ZoomPanController",
+   "ns": "nap",
+   "path": "/df/d9d/classnap_1_1_zoom_pan_controller"
+  },
+  {
+   "name": "ZoomPanControllerInstance",
+   "ns": "nap",
+   "path": "/d1/dcf/classnap_1_1_zoom_pan_controller_instance"
+  }
+ ],
+ "namespaces": [
+  {
+   "fqn": "asio",
+   "path": "/d6/d05/namespaceasio"
+  },
+  {
+   "fqn": "_im_gui",
+   "path": "/df/d13/namespace_im_gui"
+  },
+  {
+   "fqn": "nap",
+   "path": "/d3/d14/namespacenap"
+  },
+  {
+   "fqn": "nap::artnet",
+   "path": "/d0/dec/namespacenap_1_1artnet"
+  },
+  {
+   "fqn": "nap::audio",
+   "path": "/d8/df5/namespacenap_1_1audio"
+  },
+  {
+   "fqn": "nap::font",
+   "path": "/dc/df3/namespacenap_1_1font"
+  },
+  {
+   "fqn": "nap::group",
+   "path": "/dd/daf/namespacenap_1_1group"
+  },
+  {
+   "fqn": "nap::group::parameter",
+   "path": "/dd/d55/namespacenap_1_1group_1_1parameter"
+  },
+  {
+   "fqn": "nap::gui",
+   "path": "/d4/d64/namespacenap_1_1gui"
+  },
+  {
+   "fqn": "nap::icon",
+   "path": "/d0/de8/namespacenap_1_1icon"
+  },
+  {
+   "fqn": "nap::icon::sequencer",
+   "path": "/d0/db7/namespacenap_1_1icon_1_1sequencer"
+  },
+  {
+   "fqn": "nap::index",
+   "path": "/d8/d8d/namespacenap_1_1index"
+  },
+  {
+   "fqn": "nap::input",
+   "path": "/d7/d46/namespacenap_1_1input"
+  },
+  {
+   "fqn": "nap::layer",
+   "path": "/d8/d8b/namespacenap_1_1layer"
+  },
+  {
+   "fqn": "nap::layer::rank",
+   "path": "/d2/d2d/namespacenap_1_1layer_1_1rank"
+  },
+  {
+   "fqn": "nap::mask",
+   "path": "/de/d7e/namespacenap_1_1mask"
+  },
+  {
+   "fqn": "nap::material",
+   "path": "/d4/dd1/namespacenap_1_1material"
+  },
+  {
+   "fqn": "nap::material::instance",
+   "path": "/d5/dd5/namespacenap_1_1material_1_1instance"
+  },
+  {
+   "fqn": "nap::math",
+   "path": "/d9/de3/namespacenap_1_1math"
+  },
+  {
+   "fqn": "nap::math::_back",
+   "path": "/d6/daa/namespacenap_1_1math_1_1_back"
+  },
+  {
+   "fqn": "nap::math::_bounce",
+   "path": "/db/d93/namespacenap_1_1math_1_1_bounce"
+  },
+  {
+   "fqn": "nap::math::_circ",
+   "path": "/d7/d64/namespacenap_1_1math_1_1_circ"
+  },
+  {
+   "fqn": "nap::math::_cubic",
+   "path": "/d2/d80/namespacenap_1_1math_1_1_cubic"
+  },
+  {
+   "fqn": "nap::math::_elastic",
+   "path": "/d5/d13/namespacenap_1_1math_1_1_elastic"
+  },
+  {
+   "fqn": "nap::math::_expo",
+   "path": "/d0/d5d/namespacenap_1_1math_1_1_expo"
+  },
+  {
+   "fqn": "nap::math::_linear",
+   "path": "/d5/d70/namespacenap_1_1math_1_1_linear"
+  },
+  {
+   "fqn": "nap::math::_quad",
+   "path": "/d3/df9/namespacenap_1_1math_1_1_quad"
+  },
+  {
+   "fqn": "nap::math::_quart",
+   "path": "/df/dae/namespacenap_1_1math_1_1_quart"
+  },
+  {
+   "fqn": "nap::math::_quint",
+   "path": "/d0/d03/namespacenap_1_1math_1_1_quint"
+  },
+  {
+   "fqn": "nap::math::_sine",
+   "path": "/d4/d5b/namespacenap_1_1math_1_1_sine"
+  },
+  {
+   "fqn": "nap::openssl",
+   "path": "/d5/d18/namespacenap_1_1openssl"
+  },
+  {
+   "fqn": "nap::portal",
+   "path": "/d4/da3/namespacenap_1_1portal"
+  },
+  {
+   "fqn": "nap::projectinfo",
+   "path": "/d0/d02/namespacenap_1_1projectinfo"
+  },
+  {
+   "fqn": "nap::rtti",
+   "path": "/d5/d40/namespacenap_1_1rtti"
+  },
+  {
+   "fqn": "nap::rtti::instanceproperty",
+   "path": "/d1/d82/namespacenap_1_1rtti_1_1instanceproperty"
+  },
+  {
+   "fqn": "nap::rtti::method",
+   "path": "/d1/d9d/namespacenap_1_1rtti_1_1method"
+  },
+  {
+   "fqn": "nap::sampler",
+   "path": "/dd/d75/namespacenap_1_1sampler"
+  },
+  {
+   "fqn": "nap::sampler::light",
+   "path": "/df/dc3/namespacenap_1_1sampler_1_1light"
+  },
+  {
+   "fqn": "nap::scene",
+   "path": "/d4/ddf/namespacenap_1_1scene"
+  },
+  {
+   "fqn": "nap::scene::light",
+   "path": "/d1/d7e/namespacenap_1_1scene_1_1light"
+  },
+  {
+   "fqn": "nap::_s_d_l",
+   "path": "/d6/d5a/namespacenap_1_1_s_d_l"
+  },
+  {
+   "fqn": "nap::sequencecurveenums",
+   "path": "/da/d85/namespacenap_1_1sequencecurveenums"
+  },
+  {
+   "fqn": "nap::sequenceguiactions",
+   "path": "/d2/d97/namespacenap_1_1sequenceguiactions"
+  },
+  {
+   "fqn": "nap::sequenceguiclipboard",
+   "path": "/d3/d3f/namespacenap_1_1sequenceguiclipboard"
+  },
+  {
+   "fqn": "nap::shader",
+   "path": "/db/d16/namespacenap_1_1shader"
+  },
+  {
+   "fqn": "nap::sorter",
+   "path": "/db/dbb/namespacenap_1_1sorter"
+  },
+  {
+   "fqn": "nap::uniform",
+   "path": "/d4/dff/namespacenap_1_1uniform"
+  },
+  {
+   "fqn": "nap::uniform::blinnphongcolor",
+   "path": "/da/de1/namespacenap_1_1uniform_1_1blinnphongcolor"
+  },
+  {
+   "fqn": "nap::uniform::blinnphongcolor::sampler",
+   "path": "/d9/d58/namespacenap_1_1uniform_1_1blinnphongcolor_1_1sampler"
+  },
+  {
+   "fqn": "nap::uniform::blinnphongtexture",
+   "path": "/d0/d05/namespacenap_1_1uniform_1_1blinnphongtexture"
+  },
+  {
+   "fqn": "nap::uniform::blinnphongtexture::sampler",
+   "path": "/da/d6c/namespacenap_1_1uniform_1_1blinnphongtexture_1_1sampler"
+  },
+  {
+   "fqn": "nap::uniform::blur",
+   "path": "/dd/d21/namespacenap_1_1uniform_1_1blur"
+  },
+  {
+   "fqn": "nap::uniform::blur::sampler",
+   "path": "/d4/dc4/namespacenap_1_1uniform_1_1blur_1_1sampler"
+  },
+  {
+   "fqn": "nap::uniform::coloradjustment",
+   "path": "/d7/dcd/namespacenap_1_1uniform_1_1coloradjustment"
+  },
+  {
+   "fqn": "nap::uniform::coloradjustment::sampler",
+   "path": "/d6/ded/namespacenap_1_1uniform_1_1coloradjustment_1_1sampler"
+  },
+  {
+   "fqn": "nap::uniform::constant",
+   "path": "/dc/dac/namespacenap_1_1uniform_1_1constant"
+  },
+  {
+   "fqn": "nap::uniform::cubemap",
+   "path": "/d2/d38/namespacenap_1_1uniform_1_1cubemap"
+  },
+  {
+   "fqn": "nap::uniform::cubemap::sampler",
+   "path": "/df/df6/namespacenap_1_1uniform_1_1cubemap_1_1sampler"
+  },
+  {
+   "fqn": "nap::uniform::fade",
+   "path": "/dd/d57/namespacenap_1_1uniform_1_1fade"
+  },
+  {
+   "fqn": "nap::uniform::font",
+   "path": "/d7/d36/namespacenap_1_1uniform_1_1font"
+  },
+  {
+   "fqn": "nap::uniform::light",
+   "path": "/d9/d2b/namespacenap_1_1uniform_1_1light"
+  },
+  {
+   "fqn": "nap::uniform::shadow",
+   "path": "/d5/d96/namespacenap_1_1uniform_1_1shadow"
+  },
+  {
+   "fqn": "nap::uniform::skybox",
+   "path": "/d5/d92/namespacenap_1_1uniform_1_1skybox"
+  },
+  {
+   "fqn": "nap::uniform::texture",
+   "path": "/d4/da8/namespacenap_1_1uniform_1_1texture"
+  },
+  {
+   "fqn": "nap::uniform::texture::sampler",
+   "path": "/dd/d61/namespacenap_1_1uniform_1_1texture_1_1sampler"
+  },
+  {
+   "fqn": "nap::uniform::video",
+   "path": "/d4/d64/namespacenap_1_1uniform_1_1video"
+  },
+  {
+   "fqn": "nap::uniform::video::sampler",
+   "path": "/d5/d16/namespacenap_1_1uniform_1_1video_1_1sampler"
+  },
+  {
+   "fqn": "nap::utility",
+   "path": "/dd/db0/namespacenap_1_1utility"
+  },
+  {
+   "fqn": "nap::utility::path",
+   "path": "/d8/d89/namespacenap_1_1utility_1_1path"
+  },
+  {
+   "fqn": "nap::vertexid",
+   "path": "/d3/db4/namespacenap_1_1vertexid"
+  },
+  {
+   "fqn": "nap::vertexid::shader",
+   "path": "/db/dc1/namespacenap_1_1vertexid_1_1shader"
+  },
+  {
+   "fqn": "nap::wspp",
+   "path": "/dc/dbd/namespacenap_1_1wspp"
+  }
+ ],
+ "pages": [
+  {
+   "title": "Installation",
+   "path": "/d9/d87/install"
+  },
+  {
+   "title": "Getting Started",
+   "path": "/d1/d66/getting_started"
+  },
+  {
+   "title": "System",
+   "path": "/d1/d76/system"
+  },
+  {
+   "title": "Editor",
+   "path": "/da/d34/napkin"
+  },
+  {
+   "title": "Resource Management",
+   "path": "/d9/d3b/resources"
+  },
+  {
+   "title": "Scene Management",
+   "path": "/d0/d9b/scene"
+  },
+  {
+   "title": "Project Management",
+   "path": "/d9/d68/project_management"
+  },
+  {
+   "title": "Rendering",
+   "path": "/dd/d9b/rendering"
+  },
+  {
+   "title": "Audio",
+   "path": "/dd/d1e/audio"
+  },
+  {
+   "title": "Sequencer",
+   "path": "/d7/d81/sequencer"
+  },
+  {
+   "title": "License",
+   "path": "/de/d7e/license"
+  },
+  {
+   "title": "FAQ",
+   "path": "/d3/d2d/faq"
+  }
+ ]
+}

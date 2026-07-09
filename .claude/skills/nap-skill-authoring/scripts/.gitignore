@@ -1,0 +1,6 @@
+# Python bytecode
+__pycache__/
+
+# NOTE: .doc_cache/index.json is intentionally NOT ignored — it ships a prebuilt name->URL
+# index so lookups work offline on a fresh checkout. Run `nap_doc.py --refresh` after a
+# docs-site update to regenerate it.
