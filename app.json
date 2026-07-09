@@ -1,0 +1,18 @@
+{
+  "Type": "nap::ProjectInfo",
+  "mID": "ProjectInfo",
+  "Title": "lxcontrol",
+  "Version": "0.1.0",
+  "RequiredModules": [
+    "napapp",
+    "napcameracontrol",
+    "napartnet",
+    "napmidi",
+    "napparametergui",
+    "napsequencegui",
+    "naplxcontrol"
+  ],
+  "Data": "data/objects.json",
+  "ServiceConfig": "",
+  "PathMapping": "cache/path_mapping.json"
+}
