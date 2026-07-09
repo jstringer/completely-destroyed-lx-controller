@@ -53,19 +53,6 @@ namespace nap
 		if (!error.check(mGnomonEntity != nullptr, "unable to find entity with name: %s", "GnomonEntity"))
 			return false;
 
-		// Get the fixture value editing GUIs
-		mFixtureParameterGUI = mResourceManager->findObject<ParameterGUI>("FixtureParameterGUI");
-		if (!error.check(mFixtureParameterGUI != nullptr, "unable to find object with name: %s", "FixtureParameterGUI"))
-			return false;
-
-		mFixtureParameterGUI2 = mResourceManager->findObject<ParameterGUI>("FixtureParameterGUI2");
-		if (!error.check(mFixtureParameterGUI2 != nullptr, "unable to find object with name: %s", "FixtureParameterGUI2"))
-			return false;
-
-		mFixtureParameterGUI3 = mResourceManager->findObject<ParameterGUI>("FixtureParameterGUI3");
-		if (!error.check(mFixtureParameterGUI3 != nullptr, "unable to find object with name: %s", "FixtureParameterGUI3"))
-			return false;
-
 		// Gather the fixture rig and hand it, plus the wildcard MIDI listener, to lxcontrolService
 		std::vector<ResourcePtr<Fixture>> fixtures;
 		std::vector<ResourcePtr<ParameterGroup>> fixture_params;
@@ -83,6 +70,11 @@ namespace nap
 				return false;
 			fixture_params.emplace_back(group);
 		}
+
+		// Keep the same three groups around for the Fixtures tab's own custom draw routine
+		mFixtureParams1 = fixture_params[0];
+		mFixtureParams2 = fixture_params[1];
+		mFixtureParams3 = fixture_params[2];
 
 		auto midi_monitor_entity = mScene->findEntity("MidiMonitorEntity");
 		if (!error.check(midi_monitor_entity != nullptr, "unable to find entity with name: %s", "MidiMonitorEntity"))
@@ -126,6 +118,71 @@ namespace nap
 	}
 
 
+	// Draws a fixture's parameter group, rendering contiguous R/G/B channel triplets
+	// (detected by display-name suffix, e.g. "Unit1 R"/"Unit1 G"/"Unit1 B") as a single
+	// ImGui::ColorEdit3 swatch instead of three separate sliders. Every other parameter
+	// keeps rendering as a plain slider, in its original declared order.
+	void lxcontrolApp::drawFixtureParamGroup(ParameterGroup& group)
+	{
+		auto& members = group.mMembers;
+		int swatches_on_line = 0;
+		for (size_t i = 0; i < members.size(); )
+		{
+			auto* r = rtti_cast<ParameterFloat>(members[i].get());
+			if (r == nullptr)
+			{
+				i++;
+				continue;
+			}
+			std::string name = r->getDisplayName();
+
+			ParameterFloat *g = nullptr, *b = nullptr;
+			bool is_triplet = false;
+			if (name.size() > 2 && name.compare(name.size() - 2, 2, " R") == 0 && i + 2 < members.size())
+			{
+				std::string prefix = name.substr(0, name.size() - 2);
+				g = rtti_cast<ParameterFloat>(members[i + 1].get());
+				b = rtti_cast<ParameterFloat>(members[i + 2].get());
+				is_triplet = g != nullptr && b != nullptr &&
+					g->getDisplayName() == prefix + " G" &&
+					b->getDisplayName() == prefix + " B";
+			}
+
+			ImGui::PushID(static_cast<int>(i));
+			if (is_triplet)
+			{
+				float col[3] = { r->mValue, g->mValue, b->mValue };
+				std::string label = name.substr(0, name.size() - 2);
+				if (ImGui::ColorEdit3(label.c_str(), col, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs))
+				{
+					r->setValue(col[0]);
+					g->setValue(col[1]);
+					b->setValue(col[2]);
+				}
+				if (swatches_on_line < 2)
+				{
+					ImGui::SameLine();
+					swatches_on_line++;
+				}
+				else
+				{
+					swatches_on_line = 0;
+				}
+				i += 3;
+			}
+			else
+			{
+				float v = r->mValue;
+				if (ImGui::SliderFloat(name.c_str(), &v, r->mMinimum, r->mMaximum))
+					r->setValue(v);
+				swatches_on_line = 0;
+				i += 1;
+			}
+			ImGui::PopID();
+		}
+	}
+
+
 	void lxcontrolApp::drawMainUI()
 	{
 		ImGui::Begin("lxcontrol");
@@ -133,14 +190,18 @@ namespace nap
 		{
 			if (ImGui::BeginTabItem("Fixtures"))
 			{
-				ImGui::Text("Fixture_Strobe1");
-				mFixtureParameterGUI->show(false);
-				ImGui::Separator();
-				ImGui::Text("Fixture_Strobe2");
-				mFixtureParameterGUI2->show(false);
-				ImGui::Separator();
-				ImGui::Text("Fixture_Strobe3");
-				mFixtureParameterGUI3->show(false);
+				const char* fixture_names[3] = { "Strobe 1", "Strobe 2", "Strobe 3" };
+				ParameterGroup* fixture_groups[3] = { mFixtureParams1.get(), mFixtureParams2.get(), mFixtureParams3.get() };
+				for (int i = 0; i < 3; i++)
+				{
+					if (i > 0)
+						ImGui::SameLine();
+					ImGui::BeginChild(fixture_names[i], ImVec2(300, 0), true);
+					ImGui::Text("%s", fixture_names[i]);
+					ImGui::Separator();
+					drawFixtureParamGroup(*fixture_groups[i]);
+					ImGui::EndChild();
+				}
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Presets"))

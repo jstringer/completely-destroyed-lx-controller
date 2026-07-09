@@ -14,6 +14,7 @@
 #include <entity.h>
 #include <app.h>
 #include <parametergui.h>
+#include <parametergroup.h>
 #include <lxcontrolservice.h>
 #include <midiport/midiinputport.h>
 #include <set>
@@ -76,6 +77,7 @@ namespace nap
 		void drawPresetsTab();
 		void drawEffectsTab();
 		void drawMidiTab();
+		void drawFixtureParamGroup(ParameterGroup& group);
 
 		ResourceManager*			mResourceManager = nullptr;		///< Manages all the loaded data
 		RenderService*				mRenderService = nullptr;		///< Render Service that handles render calls
@@ -88,9 +90,9 @@ namespace nap
 		ObjectPtr<EntityInstance>	mCameraEntity = nullptr;		///< Pointer to the entity that holds the perspective camera
 		ObjectPtr<EntityInstance>	mGnomonEntity = nullptr;		///< Pointer to the entity that can render the gnomon
 
-		ObjectPtr<ParameterGUI>		mFixtureParameterGUI = nullptr;	///< Fixture 1 value editor
-		ObjectPtr<ParameterGUI>		mFixtureParameterGUI2 = nullptr;	///< Fixture 2 value editor
-		ObjectPtr<ParameterGUI>		mFixtureParameterGUI3 = nullptr;	///< Fixture 3 value editor
+		ObjectPtr<ParameterGroup>	mFixtureParams1 = nullptr;		///< Fixture 1 parameter group
+		ObjectPtr<ParameterGroup>	mFixtureParams2 = nullptr;		///< Fixture 2 parameter group
+		ObjectPtr<ParameterGroup>	mFixtureParams3 = nullptr;		///< Fixture 3 parameter group
 
 		// Effect-creation form state
 		char						mNewEffectName[128] = "";
