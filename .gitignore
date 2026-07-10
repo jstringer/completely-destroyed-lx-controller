@@ -1,2 +1,5 @@
 msvc64/
 bin/
+
+# v0.2 run: deferred-questions log, force-added & pushed only at end of run
+QUESTIONS.md
