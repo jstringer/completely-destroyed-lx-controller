@@ -129,7 +129,6 @@
             "Samples": "Four",
             "AdditionalSwapImages": 1
         },
-
         {
             "Type": "nap::ArtNetController",
             "mID": "Universe0",
@@ -140,197 +139,12 @@
             "Mode": "Broadcast",
             "ChannelCount": 512
         },
-
         {
             "Type": "nap::MidiInputPort",
             "mID": "MidiPort",
             "Ports": [],
             "EnableDebugOutput": false
         },
-
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Dimmer",
-            "Name": "Dimmer",
-            "Offset": 0,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Strobe",
-            "Name": "Strobe",
-            "Offset": 1,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit1_R",
-            "Name": "Unit1_R",
-            "Offset": 2,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit1_G",
-            "Name": "Unit1_G",
-            "Offset": 3,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit1_B",
-            "Name": "Unit1_B",
-            "Offset": 4,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit2_R",
-            "Name": "Unit2_R",
-            "Offset": 5,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit2_G",
-            "Name": "Unit2_G",
-            "Offset": 6,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit2_B",
-            "Name": "Unit2_B",
-            "Offset": 7,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit3_R",
-            "Name": "Unit3_R",
-            "Offset": 8,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit3_G",
-            "Name": "Unit3_G",
-            "Offset": 9,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit3_B",
-            "Name": "Unit3_B",
-            "Offset": 10,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit4_R",
-            "Name": "Unit4_R",
-            "Offset": 11,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit4_G",
-            "Name": "Unit4_G",
-            "Offset": 12,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit4_B",
-            "Name": "Unit4_B",
-            "Offset": 13,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit5_R",
-            "Name": "Unit5_R",
-            "Offset": 14,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit5_G",
-            "Name": "Unit5_G",
-            "Offset": 15,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit5_B",
-            "Name": "Unit5_B",
-            "Offset": 16,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit6_R",
-            "Name": "Unit6_R",
-            "Offset": 17,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit6_G",
-            "Name": "Unit6_G",
-            "Offset": 18,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_Unit6_B",
-            "Name": "Unit6_B",
-            "Offset": 19,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_PresetColor",
-            "Name": "PresetColor",
-            "Offset": 20,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureChannel",
-            "mID": "Strobe1_AutoSound",
-            "Name": "AutoSound",
-            "Offset": 21,
-            "ChannelType": "Value8"
-        },
-        {
-            "Type": "nap::FixtureType",
-            "mID": "FixtureType_EuroliteStrobe540_22ch",
-            "Channels": [
-                "Strobe1_Dimmer",
-                "Strobe1_Strobe",
-                "Strobe1_Unit1_R",
-                "Strobe1_Unit1_G",
-                "Strobe1_Unit1_B",
-                "Strobe1_Unit2_R",
-                "Strobe1_Unit2_G",
-                "Strobe1_Unit2_B",
-                "Strobe1_Unit3_R",
-                "Strobe1_Unit3_G",
-                "Strobe1_Unit3_B",
-                "Strobe1_Unit4_R",
-                "Strobe1_Unit4_G",
-                "Strobe1_Unit4_B",
-                "Strobe1_Unit5_R",
-                "Strobe1_Unit5_G",
-                "Strobe1_Unit5_B",
-                "Strobe1_Unit6_R",
-                "Strobe1_Unit6_G",
-                "Strobe1_Unit6_B",
-                "Strobe1_PresetColor",
-                "Strobe1_AutoSound"
-            ]
-        },
-
         {
             "Type": "nap::ParameterGroup",
             "mID": "Strobe1_Params",
@@ -880,588 +694,990 @@
             ],
             "Groups": []
         },
-
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Dimmer_Binding",
-            "ChannelName": "Dimmer",
-            "BaseParameter": "Strobe1_Dimmer_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Strobe_Binding",
-            "ChannelName": "Strobe",
-            "BaseParameter": "Strobe1_Strobe_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit1_R_Binding",
-            "ChannelName": "Unit1_R",
-            "BaseParameter": "Strobe1_Unit1_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit1_G_Binding",
-            "ChannelName": "Unit1_G",
-            "BaseParameter": "Strobe1_Unit1_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit1_B_Binding",
-            "ChannelName": "Unit1_B",
-            "BaseParameter": "Strobe1_Unit1_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit2_R_Binding",
-            "ChannelName": "Unit2_R",
-            "BaseParameter": "Strobe1_Unit2_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit2_G_Binding",
-            "ChannelName": "Unit2_G",
-            "BaseParameter": "Strobe1_Unit2_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit2_B_Binding",
-            "ChannelName": "Unit2_B",
-            "BaseParameter": "Strobe1_Unit2_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit3_R_Binding",
-            "ChannelName": "Unit3_R",
-            "BaseParameter": "Strobe1_Unit3_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit3_G_Binding",
-            "ChannelName": "Unit3_G",
-            "BaseParameter": "Strobe1_Unit3_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit3_B_Binding",
-            "ChannelName": "Unit3_B",
-            "BaseParameter": "Strobe1_Unit3_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit4_R_Binding",
-            "ChannelName": "Unit4_R",
-            "BaseParameter": "Strobe1_Unit4_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit4_G_Binding",
-            "ChannelName": "Unit4_G",
-            "BaseParameter": "Strobe1_Unit4_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit4_B_Binding",
-            "ChannelName": "Unit4_B",
-            "BaseParameter": "Strobe1_Unit4_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit5_R_Binding",
-            "ChannelName": "Unit5_R",
-            "BaseParameter": "Strobe1_Unit5_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit5_G_Binding",
-            "ChannelName": "Unit5_G",
-            "BaseParameter": "Strobe1_Unit5_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit5_B_Binding",
-            "ChannelName": "Unit5_B",
-            "BaseParameter": "Strobe1_Unit5_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit6_R_Binding",
-            "ChannelName": "Unit6_R",
-            "BaseParameter": "Strobe1_Unit6_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit6_G_Binding",
-            "ChannelName": "Unit6_G",
-            "BaseParameter": "Strobe1_Unit6_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_Unit6_B_Binding",
-            "ChannelName": "Unit6_B",
-            "BaseParameter": "Strobe1_Unit6_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_PresetColor_Binding",
-            "ChannelName": "PresetColor",
-            "BaseParameter": "Strobe1_PresetColor_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe1_AutoSound_Binding",
-            "ChannelName": "AutoSound",
-            "BaseParameter": "Strobe1_AutoSound_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::Fixture",
-            "mID": "Fixture_Strobe1",
-            "FixtureType": "FixtureType_EuroliteStrobe540_22ch",
-            "Controller": "Universe0",
-            "StartChannel": 0,
-            "ChannelBindings": [
-                "Strobe1_Dimmer_Binding",
-                "Strobe1_Strobe_Binding",
-                "Strobe1_Unit1_R_Binding",
-                "Strobe1_Unit1_G_Binding",
-                "Strobe1_Unit1_B_Binding",
-                "Strobe1_Unit2_R_Binding",
-                "Strobe1_Unit2_G_Binding",
-                "Strobe1_Unit2_B_Binding",
-                "Strobe1_Unit3_R_Binding",
-                "Strobe1_Unit3_G_Binding",
-                "Strobe1_Unit3_B_Binding",
-                "Strobe1_Unit4_R_Binding",
-                "Strobe1_Unit4_G_Binding",
-                "Strobe1_Unit4_B_Binding",
-                "Strobe1_Unit5_R_Binding",
-                "Strobe1_Unit5_G_Binding",
-                "Strobe1_Unit5_B_Binding",
-                "Strobe1_Unit6_R_Binding",
-                "Strobe1_Unit6_G_Binding",
-                "Strobe1_Unit6_B_Binding",
-                "Strobe1_PresetColor_Binding",
-                "Strobe1_AutoSound_Binding"
-            ]
-        },
-
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Dimmer_Binding",
-            "ChannelName": "Dimmer",
-            "BaseParameter": "Strobe2_Dimmer_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Strobe_Binding",
-            "ChannelName": "Strobe",
-            "BaseParameter": "Strobe2_Strobe_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit1_R_Binding",
-            "ChannelName": "Unit1_R",
-            "BaseParameter": "Strobe2_Unit1_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit1_G_Binding",
-            "ChannelName": "Unit1_G",
-            "BaseParameter": "Strobe2_Unit1_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit1_B_Binding",
-            "ChannelName": "Unit1_B",
-            "BaseParameter": "Strobe2_Unit1_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit2_R_Binding",
-            "ChannelName": "Unit2_R",
-            "BaseParameter": "Strobe2_Unit2_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit2_G_Binding",
-            "ChannelName": "Unit2_G",
-            "BaseParameter": "Strobe2_Unit2_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit2_B_Binding",
-            "ChannelName": "Unit2_B",
-            "BaseParameter": "Strobe2_Unit2_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit3_R_Binding",
-            "ChannelName": "Unit3_R",
-            "BaseParameter": "Strobe2_Unit3_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit3_G_Binding",
-            "ChannelName": "Unit3_G",
-            "BaseParameter": "Strobe2_Unit3_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit3_B_Binding",
-            "ChannelName": "Unit3_B",
-            "BaseParameter": "Strobe2_Unit3_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit4_R_Binding",
-            "ChannelName": "Unit4_R",
-            "BaseParameter": "Strobe2_Unit4_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit4_G_Binding",
-            "ChannelName": "Unit4_G",
-            "BaseParameter": "Strobe2_Unit4_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit4_B_Binding",
-            "ChannelName": "Unit4_B",
-            "BaseParameter": "Strobe2_Unit4_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit5_R_Binding",
-            "ChannelName": "Unit5_R",
-            "BaseParameter": "Strobe2_Unit5_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit5_G_Binding",
-            "ChannelName": "Unit5_G",
-            "BaseParameter": "Strobe2_Unit5_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit5_B_Binding",
-            "ChannelName": "Unit5_B",
-            "BaseParameter": "Strobe2_Unit5_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit6_R_Binding",
-            "ChannelName": "Unit6_R",
-            "BaseParameter": "Strobe2_Unit6_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit6_G_Binding",
-            "ChannelName": "Unit6_G",
-            "BaseParameter": "Strobe2_Unit6_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_Unit6_B_Binding",
-            "ChannelName": "Unit6_B",
-            "BaseParameter": "Strobe2_Unit6_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_PresetColor_Binding",
-            "ChannelName": "PresetColor",
-            "BaseParameter": "Strobe2_PresetColor_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe2_AutoSound_Binding",
-            "ChannelName": "AutoSound",
-            "BaseParameter": "Strobe2_AutoSound_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::Fixture",
-            "mID": "Fixture_Strobe2",
-            "FixtureType": "FixtureType_EuroliteStrobe540_22ch",
-            "Controller": "Universe0",
-            "StartChannel": 22,
-            "ChannelBindings": [
-                "Strobe2_Dimmer_Binding",
-                "Strobe2_Strobe_Binding",
-                "Strobe2_Unit1_R_Binding",
-                "Strobe2_Unit1_G_Binding",
-                "Strobe2_Unit1_B_Binding",
-                "Strobe2_Unit2_R_Binding",
-                "Strobe2_Unit2_G_Binding",
-                "Strobe2_Unit2_B_Binding",
-                "Strobe2_Unit3_R_Binding",
-                "Strobe2_Unit3_G_Binding",
-                "Strobe2_Unit3_B_Binding",
-                "Strobe2_Unit4_R_Binding",
-                "Strobe2_Unit4_G_Binding",
-                "Strobe2_Unit4_B_Binding",
-                "Strobe2_Unit5_R_Binding",
-                "Strobe2_Unit5_G_Binding",
-                "Strobe2_Unit5_B_Binding",
-                "Strobe2_Unit6_R_Binding",
-                "Strobe2_Unit6_G_Binding",
-                "Strobe2_Unit6_B_Binding",
-                "Strobe2_PresetColor_Binding",
-                "Strobe2_AutoSound_Binding"
-            ]
-        },
-
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Dimmer_Binding",
-            "ChannelName": "Dimmer",
-            "BaseParameter": "Strobe3_Dimmer_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Strobe_Binding",
-            "ChannelName": "Strobe",
-            "BaseParameter": "Strobe3_Strobe_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit1_R_Binding",
-            "ChannelName": "Unit1_R",
-            "BaseParameter": "Strobe3_Unit1_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit1_G_Binding",
-            "ChannelName": "Unit1_G",
-            "BaseParameter": "Strobe3_Unit1_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit1_B_Binding",
-            "ChannelName": "Unit1_B",
-            "BaseParameter": "Strobe3_Unit1_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit2_R_Binding",
-            "ChannelName": "Unit2_R",
-            "BaseParameter": "Strobe3_Unit2_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit2_G_Binding",
-            "ChannelName": "Unit2_G",
-            "BaseParameter": "Strobe3_Unit2_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit2_B_Binding",
-            "ChannelName": "Unit2_B",
-            "BaseParameter": "Strobe3_Unit2_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit3_R_Binding",
-            "ChannelName": "Unit3_R",
-            "BaseParameter": "Strobe3_Unit3_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit3_G_Binding",
-            "ChannelName": "Unit3_G",
-            "BaseParameter": "Strobe3_Unit3_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit3_B_Binding",
-            "ChannelName": "Unit3_B",
-            "BaseParameter": "Strobe3_Unit3_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit4_R_Binding",
-            "ChannelName": "Unit4_R",
-            "BaseParameter": "Strobe3_Unit4_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit4_G_Binding",
-            "ChannelName": "Unit4_G",
-            "BaseParameter": "Strobe3_Unit4_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit4_B_Binding",
-            "ChannelName": "Unit4_B",
-            "BaseParameter": "Strobe3_Unit4_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit5_R_Binding",
-            "ChannelName": "Unit5_R",
-            "BaseParameter": "Strobe3_Unit5_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit5_G_Binding",
-            "ChannelName": "Unit5_G",
-            "BaseParameter": "Strobe3_Unit5_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit5_B_Binding",
-            "ChannelName": "Unit5_B",
-            "BaseParameter": "Strobe3_Unit5_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit6_R_Binding",
-            "ChannelName": "Unit6_R",
-            "BaseParameter": "Strobe3_Unit6_R_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit6_G_Binding",
-            "ChannelName": "Unit6_G",
-            "BaseParameter": "Strobe3_Unit6_G_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_Unit6_B_Binding",
-            "ChannelName": "Unit6_B",
-            "BaseParameter": "Strobe3_Unit6_B_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_PresetColor_Binding",
-            "ChannelName": "PresetColor",
-            "BaseParameter": "Strobe3_PresetColor_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::FixtureChannelBinding",
-            "mID": "Strobe3_AutoSound_Binding",
-            "ChannelName": "AutoSound",
-            "BaseParameter": "Strobe3_AutoSound_Base",
-            "Overrides": []
-        },
-        {
-            "Type": "nap::Fixture",
-            "mID": "Fixture_Strobe3",
-            "FixtureType": "FixtureType_EuroliteStrobe540_22ch",
-            "Controller": "Universe0",
-            "StartChannel": 44,
-            "ChannelBindings": [
-                "Strobe3_Dimmer_Binding",
-                "Strobe3_Strobe_Binding",
-                "Strobe3_Unit1_R_Binding",
-                "Strobe3_Unit1_G_Binding",
-                "Strobe3_Unit1_B_Binding",
-                "Strobe3_Unit2_R_Binding",
-                "Strobe3_Unit2_G_Binding",
-                "Strobe3_Unit2_B_Binding",
-                "Strobe3_Unit3_R_Binding",
-                "Strobe3_Unit3_G_Binding",
-                "Strobe3_Unit3_B_Binding",
-                "Strobe3_Unit4_R_Binding",
-                "Strobe3_Unit4_G_Binding",
-                "Strobe3_Unit4_B_Binding",
-                "Strobe3_Unit5_R_Binding",
-                "Strobe3_Unit5_G_Binding",
-                "Strobe3_Unit5_B_Binding",
-                "Strobe3_Unit6_R_Binding",
-                "Strobe3_Unit6_G_Binding",
-                "Strobe3_Unit6_B_Binding",
-                "Strobe3_PresetColor_Binding",
-                "Strobe3_AutoSound_Binding"
-            ]
-        },
-
         {
             "Type": "nap::Entity",
-            "mID": "FixtureDriverEntity",
+            "mID": "Strobe1Entity",
             "Components": [
                 {
-                    "Type": "nap::FixtureDmxWriterComponent",
-                    "mID": "Strobe1_Writer",
-                    "Fixture": "Fixture_Strobe1"
+                    "Type": "lx::FixtureComponent",
+                    "mID": "Strobe1_Fixture",
+                    "DisplayName": "Strobe 1",
+                    "Controller": "Universe0",
+                    "StartChannel": 0
                 },
                 {
-                    "Type": "nap::FixtureDmxWriterComponent",
-                    "mID": "Strobe2_Writer",
-                    "Fixture": "Fixture_Strobe2"
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Dimmer",
+                    "Name": "Dimmer",
+                    "Offset": 0,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Dimmer_Map",
+                        "Role": "Dimmer",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe1_Dimmer_Base"
+                    }
                 },
                 {
-                    "Type": "nap::FixtureDmxWriterComponent",
-                    "mID": "Strobe3_Writer",
-                    "Fixture": "Fixture_Strobe3"
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Strobe",
+                    "Name": "Strobe",
+                    "Offset": 1,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Strobe_Map",
+                        "Role": "Strobe",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe1_Strobe_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit1_R",
+                    "Name": "Unit1_R",
+                    "Offset": 2,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit1_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe1_Unit1_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit1_G",
+                    "Name": "Unit1_G",
+                    "Offset": 3,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit1_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe1_Unit1_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit1_B",
+                    "Name": "Unit1_B",
+                    "Offset": 4,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit1_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe1_Unit1_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit2_R",
+                    "Name": "Unit2_R",
+                    "Offset": 5,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit2_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe1_Unit2_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit2_G",
+                    "Name": "Unit2_G",
+                    "Offset": 6,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit2_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe1_Unit2_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit2_B",
+                    "Name": "Unit2_B",
+                    "Offset": 7,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit2_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe1_Unit2_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit3_R",
+                    "Name": "Unit3_R",
+                    "Offset": 8,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit3_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe1_Unit3_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit3_G",
+                    "Name": "Unit3_G",
+                    "Offset": 9,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit3_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe1_Unit3_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit3_B",
+                    "Name": "Unit3_B",
+                    "Offset": 10,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit3_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe1_Unit3_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit4_R",
+                    "Name": "Unit4_R",
+                    "Offset": 11,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit4_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe1_Unit4_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit4_G",
+                    "Name": "Unit4_G",
+                    "Offset": 12,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit4_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe1_Unit4_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit4_B",
+                    "Name": "Unit4_B",
+                    "Offset": 13,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit4_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe1_Unit4_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit5_R",
+                    "Name": "Unit5_R",
+                    "Offset": 14,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit5_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe1_Unit5_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit5_G",
+                    "Name": "Unit5_G",
+                    "Offset": 15,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit5_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe1_Unit5_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit5_B",
+                    "Name": "Unit5_B",
+                    "Offset": 16,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit5_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe1_Unit5_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit6_R",
+                    "Name": "Unit6_R",
+                    "Offset": 17,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit6_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe1_Unit6_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit6_G",
+                    "Name": "Unit6_G",
+                    "Offset": 18,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit6_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe1_Unit6_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_Unit6_B",
+                    "Name": "Unit6_B",
+                    "Offset": 19,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_Unit6_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe1_Unit6_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_PresetColor",
+                    "Name": "PresetColor",
+                    "Offset": 20,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_PresetColor_Map",
+                        "Role": "ColorMacro",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe1_PresetColor_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe1_Ch_AutoSound",
+                    "Name": "AutoSound",
+                    "Offset": 21,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe1_Ch_AutoSound_Map",
+                        "Role": "SoundMode",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe1_AutoSound_Base"
+                    }
                 }
             ],
             "Children": []
         },
-
+        {
+            "Type": "nap::Entity",
+            "mID": "Strobe2Entity",
+            "Components": [
+                {
+                    "Type": "lx::FixtureComponent",
+                    "mID": "Strobe2_Fixture",
+                    "DisplayName": "Strobe 2",
+                    "Controller": "Universe0",
+                    "StartChannel": 22
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Dimmer",
+                    "Name": "Dimmer",
+                    "Offset": 0,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Dimmer_Map",
+                        "Role": "Dimmer",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe2_Dimmer_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Strobe",
+                    "Name": "Strobe",
+                    "Offset": 1,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Strobe_Map",
+                        "Role": "Strobe",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe2_Strobe_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit1_R",
+                    "Name": "Unit1_R",
+                    "Offset": 2,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit1_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe2_Unit1_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit1_G",
+                    "Name": "Unit1_G",
+                    "Offset": 3,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit1_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe2_Unit1_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit1_B",
+                    "Name": "Unit1_B",
+                    "Offset": 4,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit1_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe2_Unit1_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit2_R",
+                    "Name": "Unit2_R",
+                    "Offset": 5,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit2_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe2_Unit2_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit2_G",
+                    "Name": "Unit2_G",
+                    "Offset": 6,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit2_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe2_Unit2_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit2_B",
+                    "Name": "Unit2_B",
+                    "Offset": 7,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit2_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe2_Unit2_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit3_R",
+                    "Name": "Unit3_R",
+                    "Offset": 8,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit3_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe2_Unit3_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit3_G",
+                    "Name": "Unit3_G",
+                    "Offset": 9,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit3_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe2_Unit3_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit3_B",
+                    "Name": "Unit3_B",
+                    "Offset": 10,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit3_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe2_Unit3_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit4_R",
+                    "Name": "Unit4_R",
+                    "Offset": 11,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit4_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe2_Unit4_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit4_G",
+                    "Name": "Unit4_G",
+                    "Offset": 12,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit4_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe2_Unit4_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit4_B",
+                    "Name": "Unit4_B",
+                    "Offset": 13,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit4_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe2_Unit4_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit5_R",
+                    "Name": "Unit5_R",
+                    "Offset": 14,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit5_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe2_Unit5_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit5_G",
+                    "Name": "Unit5_G",
+                    "Offset": 15,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit5_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe2_Unit5_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit5_B",
+                    "Name": "Unit5_B",
+                    "Offset": 16,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit5_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe2_Unit5_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit6_R",
+                    "Name": "Unit6_R",
+                    "Offset": 17,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit6_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe2_Unit6_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit6_G",
+                    "Name": "Unit6_G",
+                    "Offset": 18,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit6_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe2_Unit6_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_Unit6_B",
+                    "Name": "Unit6_B",
+                    "Offset": 19,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_Unit6_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe2_Unit6_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_PresetColor",
+                    "Name": "PresetColor",
+                    "Offset": 20,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_PresetColor_Map",
+                        "Role": "ColorMacro",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe2_PresetColor_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe2_Ch_AutoSound",
+                    "Name": "AutoSound",
+                    "Offset": 21,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe2_Ch_AutoSound_Map",
+                        "Role": "SoundMode",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe2_AutoSound_Base"
+                    }
+                }
+            ],
+            "Children": []
+        },
+        {
+            "Type": "nap::Entity",
+            "mID": "Strobe3Entity",
+            "Components": [
+                {
+                    "Type": "lx::FixtureComponent",
+                    "mID": "Strobe3_Fixture",
+                    "DisplayName": "Strobe 3",
+                    "Controller": "Universe0",
+                    "StartChannel": 44
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Dimmer",
+                    "Name": "Dimmer",
+                    "Offset": 0,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Dimmer_Map",
+                        "Role": "Dimmer",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe3_Dimmer_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Strobe",
+                    "Name": "Strobe",
+                    "Offset": 1,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Strobe_Map",
+                        "Role": "Strobe",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe3_Strobe_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit1_R",
+                    "Name": "Unit1_R",
+                    "Offset": 2,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit1_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe3_Unit1_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit1_G",
+                    "Name": "Unit1_G",
+                    "Offset": 3,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit1_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe3_Unit1_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit1_B",
+                    "Name": "Unit1_B",
+                    "Offset": 4,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit1_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 1,
+                        "BaseParameter": "Strobe3_Unit1_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit2_R",
+                    "Name": "Unit2_R",
+                    "Offset": 5,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit2_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe3_Unit2_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit2_G",
+                    "Name": "Unit2_G",
+                    "Offset": 6,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit2_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe3_Unit2_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit2_B",
+                    "Name": "Unit2_B",
+                    "Offset": 7,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit2_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 2,
+                        "BaseParameter": "Strobe3_Unit2_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit3_R",
+                    "Name": "Unit3_R",
+                    "Offset": 8,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit3_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe3_Unit3_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit3_G",
+                    "Name": "Unit3_G",
+                    "Offset": 9,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit3_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe3_Unit3_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit3_B",
+                    "Name": "Unit3_B",
+                    "Offset": 10,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit3_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 3,
+                        "BaseParameter": "Strobe3_Unit3_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit4_R",
+                    "Name": "Unit4_R",
+                    "Offset": 11,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit4_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe3_Unit4_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit4_G",
+                    "Name": "Unit4_G",
+                    "Offset": 12,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit4_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe3_Unit4_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit4_B",
+                    "Name": "Unit4_B",
+                    "Offset": 13,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit4_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 4,
+                        "BaseParameter": "Strobe3_Unit4_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit5_R",
+                    "Name": "Unit5_R",
+                    "Offset": 14,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit5_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe3_Unit5_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit5_G",
+                    "Name": "Unit5_G",
+                    "Offset": 15,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit5_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe3_Unit5_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit5_B",
+                    "Name": "Unit5_B",
+                    "Offset": 16,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit5_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 5,
+                        "BaseParameter": "Strobe3_Unit5_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit6_R",
+                    "Name": "Unit6_R",
+                    "Offset": 17,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit6_R_Map",
+                        "Role": "Red",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe3_Unit6_R_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit6_G",
+                    "Name": "Unit6_G",
+                    "Offset": 18,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit6_G_Map",
+                        "Role": "Green",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe3_Unit6_G_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_Unit6_B",
+                    "Name": "Unit6_B",
+                    "Offset": 19,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_Unit6_B_Map",
+                        "Role": "Blue",
+                        "UnitIndex": 6,
+                        "BaseParameter": "Strobe3_Unit6_B_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_PresetColor",
+                    "Name": "PresetColor",
+                    "Offset": 20,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_PresetColor_Map",
+                        "Role": "ColorMacro",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe3_PresetColor_Base"
+                    }
+                },
+                {
+                    "Type": "lx::FixtureChannelComponent",
+                    "mID": "Strobe3_Ch_AutoSound",
+                    "Name": "AutoSound",
+                    "Offset": 21,
+                    "Width": "Value8",
+                    "Mapping": {
+                        "Type": "lx::FixtureChannelMapping",
+                        "mID": "Strobe3_Ch_AutoSound_Map",
+                        "Role": "SoundMode",
+                        "UnitIndex": 0,
+                        "BaseParameter": "Strobe3_AutoSound_Base"
+                    }
+                }
+            ],
+            "Children": []
+        },
+        {
+            "Type": "nap::ParameterGUI",
+            "mID": "FixtureParameterGUI",
+            "Serializable": false,
+            "Group": "Strobe1_Params"
+        },
+        {
+            "Type": "nap::ParameterGUI",
+            "mID": "FixtureParameterGUI2",
+            "Serializable": false,
+            "Group": "Strobe2_Params"
+        },
+        {
+            "Type": "nap::ParameterGUI",
+            "mID": "FixtureParameterGUI3",
+            "Serializable": false,
+            "Group": "Strobe3_Params"
+        },
         {
             "Type": "nap::Entity",
             "mID": "MidiMonitorEntity",
@@ -1483,26 +1699,6 @@
             ],
             "Children": []
         },
-
-        {
-            "Type": "nap::ParameterGUI",
-            "mID": "FixtureParameterGUI",
-            "Serializable": false,
-            "Group": "Strobe1_Params"
-        },
-        {
-            "Type": "nap::ParameterGUI",
-            "mID": "FixtureParameterGUI2",
-            "Serializable": false,
-            "Group": "Strobe2_Params"
-        },
-        {
-            "Type": "nap::ParameterGUI",
-            "mID": "FixtureParameterGUI3",
-            "Serializable": false,
-            "Group": "Strobe3_Params"
-        },
-
         {
             "Type": "nap::Scene",
             "mID": "Scene",
@@ -1516,7 +1712,15 @@
                     "InstanceProperties": []
                 },
                 {
-                    "Entity": "FixtureDriverEntity",
+                    "Entity": "Strobe1Entity",
+                    "InstanceProperties": []
+                },
+                {
+                    "Entity": "Strobe2Entity",
+                    "InstanceProperties": []
+                },
+                {
+                    "Entity": "Strobe3Entity",
                     "InstanceProperties": []
                 },
                 {
