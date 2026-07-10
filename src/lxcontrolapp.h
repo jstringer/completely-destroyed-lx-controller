@@ -17,6 +17,8 @@
 #include <lxcontrolservice.h>
 #include <midiport/midiinputport.h>
 #include <map>
+#include <set>
+#include <string>
 
 namespace nap
 {
@@ -42,6 +44,7 @@ namespace nap
 		void drawMainUI();
 		void drawFixturesTab();
 		void drawEffectsTab();
+		void drawTriggersTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
 
@@ -67,5 +70,11 @@ namespace nap
 		// Effects tab form state
 		char						mNewEffectName[128] = "";
 		std::map<lx::Effect*, int>	mModTargetIndex;	// per-effect selected target-parameter index
+
+		// Triggers tab form state
+		char						mNewTriggerName[128] = "";
+		int							mNewTriggerType = 0;	// 0=Controller,1=Enter,2=Exit
+		std::map<lx::Trigger*, int>					mBindEffectIdx;		// per-trigger add-binding effect selection
+		std::map<lx::Trigger*, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
 	};
 }

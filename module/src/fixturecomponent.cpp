@@ -70,4 +70,10 @@ namespace lx
 		for (auto* channel : mChannels)
 			mController->send(channel->resolveValue(), mStartChannel + channel->getOffset());
 	}
+
+
+	std::string FixtureComponentInstance::getEntityID() const
+	{
+		return getEntityInstance()->mID;
+	}
 }

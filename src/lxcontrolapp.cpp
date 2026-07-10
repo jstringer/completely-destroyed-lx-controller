@@ -18,6 +18,8 @@
 #include <adsrmodulator.h>
 #include <lfomodulator.h>
 #include <stepmodulator.h>
+#include <trigger.h>
+#include <fixturecomponent.h>
 
 RTTI_BEGIN_CLASS_NO_DEFAULT_CONSTRUCTOR(nap::lxcontrolApp)
 	RTTI_CONSTRUCTOR(nap::Core&)
@@ -180,6 +182,11 @@ namespace nap
 				drawEffectsTab();
 				ImGui::EndTabItem();
 			}
+			if (ImGui::BeginTabItem("Triggers"))
+			{
+				drawTriggersTab();
+				ImGui::EndTabItem();
+			}
 			if (ImGui::BeginTabItem("MIDI"))
 			{
 				drawMidiTab();
@@ -326,6 +333,111 @@ namespace nap
 					ImGui::PopID();
 				}
 			}
+			ImGui::PopID();
+		}
+	}
+
+
+	void lxcontrolApp::drawTriggersTab()
+	{
+		static const char* type_labels[] = { "Controller", "Enter", "Exit" };
+
+		ImGui::InputText("Name##trig", mNewTriggerName, sizeof(mNewTriggerName));
+		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
+		ImGui::Combo("Type", &mNewTriggerType, type_labels, 3);
+		ImGui::SameLine();
+		if (ImGui::Button("+ New Trigger") && std::strlen(mNewTriggerName) > 0)
+		{
+			nap::rtti::TypeInfo t = mNewTriggerType == 1 ? RTTI_OF(lx::EnterTrigger)
+				: mNewTriggerType == 2 ? RTTI_OF(lx::ExitTrigger)
+				: RTTI_OF(lx::ControllerTrigger);
+			mLxControlService->createTrigger(t, mNewTriggerName);
+			mNewTriggerName[0] = '\0';
+		}
+		ImGui::Separator();
+
+		const auto& effects = mLxControlService->getEffects();
+		const auto& fixtures = mLxControlService->getFixtures();
+
+		for (auto& trigger : mLxControlService->getTriggers())
+		{
+			ImGui::PushID(trigger.get());
+			const char* tn = trigger->get_type() == RTTI_OF(lx::EnterTrigger) ? "Enter"
+				: trigger->get_type() == RTTI_OF(lx::ExitTrigger) ? "Exit" : "Controller";
+			bool active = mLxControlService->isTriggerActive(*trigger.get());
+			ImGui::Text("%s [%s]%s", trigger->mName.c_str(), tn, active ? "  (active)" : "");
+			ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*trigger.get());
+			ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*trigger.get());
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Delete")) { mLxControlService->removeTrigger(trigger.get()); ImGui::PopID(); break; }
+
+			if (ImGui::TreeNode("Bindings"))
+			{
+				int bi = 0;
+				bool removed = false;
+				for (auto& b : trigger->mBindings)
+				{
+					ImGui::PushID(bi);
+					std::string fx;
+					for (auto& f : b.mFixtureNames) { fx += f; fx += " "; }
+					ImGui::BulletText("%s -> %s", b.mEffect != nullptr ? b.mEffect->mName.c_str() : "(none)", fx.c_str());
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Remove"))
+					{
+						auto bindings = trigger->mBindings;
+						bindings.erase(bindings.begin() + bi);
+						mLxControlService->setTriggerBindings(*trigger.get(), bindings);
+						removed = true;
+					}
+					ImGui::PopID();
+					if (removed) break;
+					bi++;
+				}
+
+				if (!removed)
+				{
+					if (!effects.empty())
+					{
+						int& eidx = mBindEffectIdx[trigger.get()];
+						std::vector<const char*> elabels;
+						for (auto& e : effects) elabels.emplace_back(e->mName.c_str());
+						eidx = nap::math::clamp(eidx, 0, static_cast<int>(elabels.size()) - 1);
+						ImGui::SetNextItemWidth(160);
+						ImGui::Combo("Effect", &eidx, elabels.data(), static_cast<int>(elabels.size()));
+
+						auto& sel = mBindFixtures[trigger.get()];
+						for (auto* f : fixtures)
+						{
+							ImGui::PushID(f);
+							std::string eid = f->getEntityID();
+							bool checked = sel.count(eid) > 0;
+							if (ImGui::Checkbox(f->getDisplayName().c_str(), &checked))
+							{
+								if (checked) sel.insert(eid); else sel.erase(eid);
+							}
+							ImGui::SameLine();
+							ImGui::PopID();
+						}
+						ImGui::NewLine();
+						if (ImGui::Button("+ Add Binding") && !sel.empty())
+						{
+							auto bindings = trigger->mBindings;
+							lx::EffectFixtureBinding nb;
+							nb.mEffect = effects[eidx].get();
+							for (auto& s : sel) nb.mFixtureNames.emplace_back(s);
+							bindings.emplace_back(nb);
+							mLxControlService->setTriggerBindings(*trigger.get(), bindings);
+							sel.clear();
+						}
+					}
+					else
+					{
+						ImGui::TextDisabled("Create an effect first");
+					}
+				}
+				ImGui::TreePop();
+			}
+			ImGui::Separator();
 			ImGui::PopID();
 		}
 	}

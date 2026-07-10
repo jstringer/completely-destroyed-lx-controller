@@ -17,6 +17,8 @@
 #include "midihotplugmonitor.h"
 #include "effect.h"
 #include "modulatoroutput.h"
+#include "trigger.h"
+#include <cstdint>
 
 namespace lx { class FixtureComponentInstance; }
 
@@ -59,6 +61,15 @@ namespace nap
 		void removeEffect(lx::Effect* effect);
 		const std::vector<rtti::ObjectPtr<lx::Effect>>& getEffects() const { return mEffects; }
 
+		// --- Triggers ---
+		lx::Trigger* createTrigger(rtti::TypeInfo type, const std::string& name);
+		void setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::EffectFixtureBinding>& bindings);
+		void removeTrigger(lx::Trigger* trigger);
+		const std::vector<rtti::ObjectPtr<lx::Trigger>>& getTriggers() const { return mTriggers; }
+		uint64_t fireTrigger(lx::Trigger& trigger);
+		void stopTrigger(lx::Trigger& trigger);
+		bool isTriggerActive(lx::Trigger& trigger) const;
+
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
 		bool hasLastMidiEvent() const { return mHasLastEvent; }
@@ -83,12 +94,22 @@ namespace nap
 			bool											mRemoved = false;
 		};
 
+		struct Activation
+		{
+			uint64_t					mId = 0;
+			lx::Trigger*				mTrigger = nullptr;
+			std::vector<lx::Effect*>	mEffects;
+			bool						mReleasing = false;
+		};
+
 		void onMidiEvent(const MidiEvent& event);
 		void save();
 		void rebuildFromLoadedContent();
 		std::string makeUniqueID(const std::string& base) const;
 		EffectEntry* findEntry(lx::Effect& effect);
 		bool buildModulatorGraph(ModulatorEntry& entry, const std::string& base, utility::ErrorState& errorState);
+		lx::FixtureComponentInstance* findFixture(const std::string& entityID) const;
+		void reapClaims(uint64_t activationId);
 
 		ResourceManager*					mResourceManager = nullptr;
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
@@ -98,6 +119,10 @@ namespace nap
 
 		std::vector<EffectEntry>				mEffectEntries;
 		std::vector<rtti::ObjectPtr<lx::Effect>>	mEffects;	// mirrors mEffectEntries for getEffects()
+
+		std::vector<rtti::ObjectPtr<lx::Trigger>>	mTriggers;
+		std::vector<Activation>					mActivations;
+		uint64_t								mNextActivationId = 1;
 
 		std::deque<std::string>			mMidiLog;
 		static constexpr size_t			sMaxMidiLogSize = 50;

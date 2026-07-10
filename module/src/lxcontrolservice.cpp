@@ -2,6 +2,8 @@
 #include "lxcontrolservice.h"
 #include "modulatortrack.h"
 #include "modulatoradapter.h"
+#include "fixturecomponent.h"
+#include "fixturechannelcomponent.h"
 
 // External Includes
 #include <nap/core.h>
@@ -77,6 +79,27 @@ namespace nap
 		{
 			if (!entry.mRemoved && entry.mEffect != nullptr)
 				entry.mEffect->update(deltaTime);
+		}
+
+		// Reap releasing activations whose effects have all finished (release-linger): their claims
+		// stay until then, so a stopped ADSR rings out before the channel reverts.
+		for (auto it = mActivations.begin(); it != mActivations.end(); )
+		{
+			bool finished = it->mReleasing;
+			for (auto* e : it->mEffects)
+			{
+				if (finished && !e->isFinished())
+					finished = false;
+			}
+			if (finished)
+			{
+				reapClaims(it->mId);
+				it = mActivations.erase(it);
+			}
+			else
+			{
+				++it;
+			}
 		}
 
 		// MIDI hot-plug reconnect
@@ -304,6 +327,22 @@ namespace nap
 
 	void lxcontrolService::removeEffect(lx::Effect* effect)
 	{
+		// Delete-path guard: reap any activation that references this effect so no stale claim pins a
+		// channel to a frozen value.
+		for (auto it = mActivations.begin(); it != mActivations.end(); )
+		{
+			bool references = std::find(it->mEffects.begin(), it->mEffects.end(), effect) != it->mEffects.end();
+			if (references)
+			{
+				reapClaims(it->mId);
+				it = mActivations.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
 		for (auto& entry : mEffectEntries)
 		{
 			if (entry.mEffect.get() != effect)
@@ -322,6 +361,134 @@ namespace nap
 	}
 
 
+	lx::FixtureComponentInstance* lxcontrolService::findFixture(const std::string& entityID) const
+	{
+		for (auto* fixture : mFixtures)
+		{
+			if (fixture->getEntityID() == entityID)
+				return fixture;
+		}
+		return nullptr;
+	}
+
+
+	void lxcontrolService::reapClaims(uint64_t activationId)
+	{
+		for (auto* fixture : mFixtures)
+		{
+			for (auto* channel : fixture->getChannels())
+				channel->removeClaims(activationId);
+		}
+	}
+
+
+	lx::Trigger* lxcontrolService::createTrigger(rtti::TypeInfo type, const std::string& name)
+	{
+		auto obj = mResourceManager->createObject(type);
+		auto* trigger = rtti_cast<lx::Trigger>(obj.get());
+		if (trigger == nullptr)
+		{
+			Logger::error("createTrigger: type %s is not a Trigger", type.get_name().data());
+			return nullptr;
+		}
+		trigger->mID = makeUniqueID("Trigger_" + name);
+		trigger->mName = name;
+		utility::ErrorState err;
+		if (!trigger->init(err))
+		{
+			Logger::error("createTrigger: %s", err.toString().c_str());
+			return nullptr;
+		}
+		mTriggers.emplace_back(trigger);
+		save();
+		return trigger;
+	}
+
+
+	void lxcontrolService::setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::EffectFixtureBinding>& bindings)
+	{
+		trigger.mBindings = bindings;
+		save();
+	}
+
+
+	void lxcontrolService::removeTrigger(lx::Trigger* trigger)
+	{
+		if (trigger != nullptr)
+			stopTrigger(*trigger);
+		mTriggers.erase(std::remove_if(mTriggers.begin(), mTriggers.end(),
+			[trigger](const rtti::ObjectPtr<lx::Trigger>& t) { return t.get() == trigger; }), mTriggers.end());
+		save();
+	}
+
+
+	uint64_t lxcontrolService::fireTrigger(lx::Trigger& trigger)
+	{
+		// Retrigger: stop-then-replace any existing activation of this trigger.
+		stopTrigger(trigger);
+
+		Activation activation;
+		activation.mId = mNextActivationId++;
+		activation.mTrigger = &trigger;
+
+		for (auto& binding : trigger.mBindings)
+		{
+			lx::Effect* effect = binding.mEffect.get();
+			if (effect == nullptr)
+				continue;
+			activation.mEffects.emplace_back(effect);
+
+			for (auto& fixture_name : binding.mFixtureNames)
+			{
+				lx::FixtureComponentInstance* fixture = findFixture(fixture_name);
+				if (fixture == nullptr)
+					continue;
+
+				for (auto* channel : fixture->getChannels())
+				{
+					for (auto& param : effect->mParameters)
+					{
+						int count = param->getComponentCount();
+						for (int c = 0; c < count; ++c)
+						{
+							if (param->getComponentRole(c) == channel->getRole() && param->appliesToUnit(channel->getUnitIndex()))
+								channel->pushClaim(activation.mId, param.get(), c);
+						}
+					}
+				}
+			}
+			effect->trigger();
+		}
+
+		mActivations.emplace_back(activation);
+		return activation.mId;
+	}
+
+
+	void lxcontrolService::stopTrigger(lx::Trigger& trigger)
+	{
+		for (auto& activation : mActivations)
+		{
+			if (activation.mTrigger != &trigger || activation.mReleasing)
+				continue;
+			for (auto* effect : activation.mEffects)
+				effect->stop();
+			activation.mReleasing = true;
+		}
+	}
+
+
+	bool lxcontrolService::isTriggerActive(lx::Trigger& trigger) const
+	{
+		for (auto& activation : mActivations)
+		{
+			if (activation.mTrigger == &trigger)
+				return true;
+		}
+		return false;
+	}
+
+
 	void lxcontrolService::save()
 	{
 		// Persist only authored data (effects + params + modulators). The per-modulator player graph is
@@ -337,6 +504,9 @@ namespace nap
 			for (auto& me : entry.mModulators)
 				root_objects.emplace_back(me.mModulator.get());
 		}
+
+		for (auto& trigger : mTriggers)
+			root_objects.emplace_back(trigger.get());
 
 		rtti::JSONWriter writer;
 		utility::ErrorState error;
@@ -372,6 +542,9 @@ namespace nap
 			mEffectEntries.emplace_back(entry);
 			mEffects.emplace_back(effect);
 		}
+
+		for (auto& trigger : mResourceManager->getObjects<lx::Trigger>())
+			mTriggers.emplace_back(trigger);
 	}
 
 

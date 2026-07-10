@@ -50,6 +50,9 @@ namespace lx
 		int getStartChannel() const					{ return mStartChannel; }
 		const std::vector<FixtureChannelComponentInstance*>& getChannels() const { return mChannels; }
 
+		/** @return the mID of the entity instance this fixture lives on (stable across runs; used to bind triggers). */
+		std::string getEntityID() const;
+
 	private:
 		std::string								mDisplayName;
 		int										mStartChannel = 0;
