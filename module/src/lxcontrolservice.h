@@ -20,6 +20,7 @@
 #include "trigger.h"
 #include "controller.h"
 #include "midibinding.h"
+#include "program.h"
 #include <cstdint>
 
 namespace lx { class FixtureComponentInstance; }
@@ -80,6 +81,15 @@ namespace nap
 		const std::vector<rtti::ObjectPtr<lx::Controller>>& getControllers() const { return mControllers; }
 		const std::vector<rtti::ObjectPtr<lx::MidiBinding>>& getBindings() const { return mBindings; }
 
+		// --- Programs ---
+		lx::Program* createProgram(const std::string& name);
+		void setProgramTriggers(lx::Program& program, const std::vector<rtti::ObjectPtr<lx::Trigger>>& triggers);
+		void removeProgram(lx::Program* program);
+		void loadProgram(lx::Program* program);
+		void unloadProgram();
+		lx::Program* getActiveProgram() const { return mActiveProgram; }
+		const std::vector<rtti::ObjectPtr<lx::Program>>& getPrograms() const { return mPrograms; }
+
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
 		bool hasLastMidiEvent() const { return mHasLastEvent; }
@@ -133,6 +143,8 @@ namespace nap
 		std::vector<rtti::ObjectPtr<lx::Trigger>>	mTriggers;
 		std::vector<rtti::ObjectPtr<lx::Controller>>	mControllers;
 		std::vector<rtti::ObjectPtr<lx::MidiBinding>>	mBindings;
+		std::vector<rtti::ObjectPtr<lx::Program>>	mPrograms;
+		lx::Program*							mActiveProgram = nullptr;	// runtime, not persisted
 		std::vector<Activation>					mActivations;
 		uint64_t								mNextActivationId = 1;
 

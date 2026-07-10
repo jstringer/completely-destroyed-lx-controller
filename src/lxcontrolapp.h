@@ -45,6 +45,7 @@ namespace nap
 		void drawFixturesTab();
 		void drawEffectsTab();
 		void drawTriggersTab();
+		void drawProgramsTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
 
@@ -83,5 +84,8 @@ namespace nap
 		int							mNewControllerMode = 0;	// 0=Momentary,1=Toggle,2=FireOnly
 		lx::Controller*				mLearningController = nullptr;	// controller awaiting a learned MIDI event
 		int							mLearnStartCounter = 0;
+
+		// Programs tab form state
+		char						mNewProgramName[128] = "";
 	};
 }

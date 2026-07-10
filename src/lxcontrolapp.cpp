@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <mathutils.h>
 #include <cstring>
+#include <algorithm>
 
 // lx effect/modulator types (for RTTI_OF dispatch + casts)
 #include <channelrole.h>
@@ -21,6 +22,7 @@
 #include <trigger.h>
 #include <controller.h>
 #include <midibinding.h>
+#include <program.h>
 #include <fixturecomponent.h>
 #include <midievent.h>
 
@@ -173,6 +175,15 @@ namespace nap
 	void lxcontrolApp::drawMainUI()
 	{
 		ImGui::Begin("lxcontrol");
+
+		// Active-program banner (shown on every tab)
+		lx::Program* active = mLxControlService->getActiveProgram();
+		if (active != nullptr)
+			ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Program: %s", active->mName.c_str());
+		else
+			ImGui::TextDisabled("Program: (none loaded - output is dark)");
+		ImGui::Separator();
+
 		if (ImGui::BeginTabBar("MainTabs"))
 		{
 			if (ImGui::BeginTabItem("Fixtures"))
@@ -188,6 +199,11 @@ namespace nap
 			if (ImGui::BeginTabItem("Triggers"))
 			{
 				drawTriggersTab();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Programs"))
+			{
+				drawProgramsTab();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("MIDI"))
@@ -437,6 +453,64 @@ namespace nap
 					{
 						ImGui::TextDisabled("Create an effect first");
 					}
+				}
+				ImGui::TreePop();
+			}
+			ImGui::Separator();
+			ImGui::PopID();
+		}
+	}
+
+
+	void lxcontrolApp::drawProgramsTab()
+	{
+		ImGui::InputText("Name##prog", mNewProgramName, sizeof(mNewProgramName));
+		ImGui::SameLine();
+		if (ImGui::Button("+ New Program") && std::strlen(mNewProgramName) > 0)
+		{
+			mLxControlService->createProgram(mNewProgramName);
+			mNewProgramName[0] = '\0';
+		}
+		ImGui::Separator();
+
+		const auto& triggers = mLxControlService->getTriggers();
+		lx::Program* active = mLxControlService->getActiveProgram();
+
+		for (auto& prog : mLxControlService->getPrograms())
+		{
+			ImGui::PushID(prog.get());
+			bool is_active = (active == prog.get());
+			ImGui::Text("%s%s", prog->mName.c_str(), is_active ? "  (active)" : "");
+			ImGui::SameLine();
+			if (is_active) { if (ImGui::SmallButton("Unload")) mLxControlService->unloadProgram(); }
+			else { if (ImGui::SmallButton("Load")) mLxControlService->loadProgram(prog.get()); }
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Delete")) { mLxControlService->removeProgram(prog.get()); ImGui::PopID(); break; }
+
+			if (ImGui::TreeNode("Triggers"))
+			{
+				for (auto& t : triggers)
+				{
+					bool member = false;
+					for (auto& pt : prog->mTriggers)
+						if (pt.get() == t.get()) { member = true; break; }
+
+					ImGui::PushID(t.get());
+					if (ImGui::Checkbox(t->mName.c_str(), &member))
+					{
+						auto list = prog->mTriggers;
+						if (member)
+						{
+							list.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
+						}
+						else
+						{
+							list.erase(std::remove_if(list.begin(), list.end(),
+								[&t](const nap::ResourcePtr<lx::Trigger>& x) { return x.get() == t.get(); }), list.end());
+						}
+						mLxControlService->setProgramTriggers(*prog.get(), list);
+					}
+					ImGui::PopID();
 				}
 				ImGui::TreePop();
 			}

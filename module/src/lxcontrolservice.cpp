@@ -558,6 +558,88 @@ namespace nap
 	}
 
 
+	lx::Program* lxcontrolService::createProgram(const std::string& name)
+	{
+		auto program = mResourceManager->createObject<lx::Program>();
+		program->mID = makeUniqueID("Program_" + name);
+		program->mName = name;
+		utility::ErrorState err;
+		if (!program->init(err))
+		{
+			Logger::error("createProgram: %s", err.toString().c_str());
+			return nullptr;
+		}
+		mPrograms.emplace_back(program);
+		save();
+		return program.get();
+	}
+
+
+	void lxcontrolService::setProgramTriggers(lx::Program& program, const std::vector<rtti::ObjectPtr<lx::Trigger>>& triggers)
+	{
+		program.mTriggers.clear();
+		for (auto& t : triggers)
+			program.mTriggers.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
+		save();
+	}
+
+
+	void lxcontrolService::removeProgram(lx::Program* program)
+	{
+		if (mActiveProgram == program)
+			unloadProgram();
+		mPrograms.erase(std::remove_if(mPrograms.begin(), mPrograms.end(),
+			[program](const rtti::ObjectPtr<lx::Program>& p) { return p.get() == program; }), mPrograms.end());
+		save();
+	}
+
+
+	void lxcontrolService::loadProgram(lx::Program* program)
+	{
+		// Unload the outgoing program: fire its ExitTriggers (transient look, rings out) and stop the rest.
+		if (mActiveProgram != nullptr)
+		{
+			for (auto& t : mActiveProgram->mTriggers)
+			{
+				if (t == nullptr) continue;
+				if (rtti_cast<lx::ExitTrigger>(t.get()) != nullptr)
+					fireTrigger(*t);
+				else
+					stopTrigger(*t);
+			}
+		}
+
+		mActiveProgram = program;
+
+		// Load the incoming program: fire its EnterTriggers. ControllerTriggers respond via onMidiEvent
+		// only while this program is active (see the gate there).
+		if (program != nullptr)
+		{
+			for (auto& t : program->mTriggers)
+			{
+				if (t != nullptr && rtti_cast<lx::EnterTrigger>(t.get()) != nullptr)
+					fireTrigger(*t);
+			}
+		}
+	}
+
+
+	void lxcontrolService::unloadProgram()
+	{
+		if (mActiveProgram == nullptr)
+			return;
+		for (auto& t : mActiveProgram->mTriggers)
+		{
+			if (t == nullptr) continue;
+			if (rtti_cast<lx::ExitTrigger>(t.get()) != nullptr)
+				fireTrigger(*t);
+			else
+				stopTrigger(*t);
+		}
+		mActiveProgram = nullptr;
+	}
+
+
 	void lxcontrolService::save()
 	{
 		// Persist only authored data (effects + params + modulators). The per-modulator player graph is
@@ -580,6 +662,8 @@ namespace nap
 			root_objects.emplace_back(controller.get());
 		for (auto& binding : mBindings)
 			root_objects.emplace_back(binding.get());
+		for (auto& program : mPrograms)
+			root_objects.emplace_back(program.get());
 
 		rtti::JSONWriter writer;
 		utility::ErrorState error;
@@ -622,6 +706,8 @@ namespace nap
 			mControllers.emplace_back(controller);
 		for (auto& binding : mResourceManager->getObjects<lx::MidiBinding>())
 			mBindings.emplace_back(binding);
+		for (auto& program : mResourceManager->getObjects<lx::Program>())
+			mPrograms.emplace_back(program);
 	}
 
 
@@ -659,6 +745,17 @@ namespace nap
 			if (controller == nullptr || controller->mTrigger == nullptr)
 				continue;
 			lx::Trigger* trig = controller->mTrigger.get();
+
+			// Program-scoped: a controller only responds while its trigger belongs to the active program.
+			if (mActiveProgram == nullptr)
+				continue;
+			bool in_program = false;
+			for (auto& pt : mActiveProgram->mTriggers)
+			{
+				if (pt.get() == trig) { in_program = true; break; }
+			}
+			if (!in_program)
+				continue;
 
 			switch (controller->mMode)
 			{
