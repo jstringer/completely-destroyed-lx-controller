@@ -34,6 +34,7 @@ namespace nap
 		lxcontrolService(ServiceConfiguration* configuration) : Service(configuration) { }
 
 		virtual void getDependentServices(std::vector<rtti::TypeInfo>& dependencies) override;
+		virtual void registerObjectCreators(rtti::Factory& factory) override;
 		virtual bool init(utility::ErrorState& errorState) override;
 		virtual void update(double deltaTime) override;
 		virtual void shutdown() override;
@@ -57,6 +58,11 @@ namespace nap
 
 	private:
 		void onMidiEvent(const MidiEvent& event);
+
+		// ponytail: startup self-check for the inferred default-track-creator + adapter-factory chain
+		// (PLAN §Risks #1). Constructs a throwaway modulator player headless and logs its auto-created
+		// track. Remove once Phase 2 is fully wired and confirmed.
+		void verifyModulatorSubstrate();
 
 		ResourceManager*					mResourceManager = nullptr;
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
