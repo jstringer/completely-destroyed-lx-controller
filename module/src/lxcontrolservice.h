@@ -7,11 +7,16 @@
 #include <midievent.h>
 #include <midiinputcomponent.h>
 #include <midiport/midiinputport.h>
+#include <sequenceplayer.h>
+#include <sequenceplayerclock.h>
+#include <parameternumeric.h>
 #include <deque>
 #include <vector>
 
 // Local Includes
 #include "midihotplugmonitor.h"
+#include "effect.h"
+#include "modulatoroutput.h"
 
 namespace lx { class FixtureComponentInstance; }
 
@@ -22,10 +27,10 @@ namespace nap
 	/**
 	 * Runtime authority for the lxcontrol app.
 	 *
-	 * Phase 1 surface: owns the fixture registry (fixtures self-register from their
-	 * lx::FixtureComponentInstance::init), the wildcard MIDI-listener subscription, MIDI hot-plug
-	 * reconnect, and the MIDI log / learn snapshot. Effects, Triggers, Controllers and Programs are
-	 * added in later phases.
+	 * Owns the fixture registry, the wildcard MIDI-listener subscription + hot-plug reconnect + learn
+	 * snapshot, and (Phase 2) the live-authored Effects: their EffectParameters and Modulators, each
+	 * modulator backed by its own SequencePlayer + clock + custom ModulatorOutput/Adapter/Track.
+	 * Persists everything to data/user_content.json.
 	 */
 	class NAPAPI lxcontrolService : public Service
 	{
@@ -39,16 +44,20 @@ namespace nap
 		virtual void update(double deltaTime) override;
 		virtual void shutdown() override;
 
-		/**
-		 * Called once from lxcontrolApp::init(), after objects.json has loaded. Connects to the
-		 * wildcard MIDI listener and remembers the MIDI port for hot-plug reconnect.
-		 */
+		/** Connects to the wildcard MIDI listener, remembers the port, and loads any authored content. */
 		bool setup(MidiInputComponentInstance& midiSource, ResourcePtr<MidiInputPort> midiPort, utility::ErrorState& errorState);
 
 		// --- Fixture registry (fixtures self-register from their component init) ---
 		void registerFixture(lx::FixtureComponentInstance* fixture);
 		void unregisterFixture(lx::FixtureComponentInstance* fixture);
 		const std::vector<lx::FixtureComponentInstance*>& getFixtures() const { return mFixtures; }
+
+		// --- Effects ---
+		lx::Effect* createEffect(const std::string& name);
+		lx::EffectParameter* addEffectParameter(lx::Effect& effect, rtti::TypeInfo type);
+		lx::Modulator* addModulator(lx::Effect& effect, rtti::TypeInfo type, lx::EffectParameter* target);
+		void removeEffect(lx::Effect* effect);
+		const std::vector<rtti::ObjectPtr<lx::Effect>>& getEffects() const { return mEffects; }
 
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
@@ -57,18 +66,38 @@ namespace nap
 		int getMidiEventCounter() const { return mMidiEventCounter; }
 
 	private:
-		void onMidiEvent(const MidiEvent& event);
+		struct ModulatorEntry
+		{
+			rtti::ObjectPtr<lx::Modulator>			mModulator;
+			rtti::ObjectPtr<SequencePlayer>			mPlayer;
+			rtti::ObjectPtr<SequencePlayerClock>		mClock;
+			rtti::ObjectPtr<lx::ModulatorOutput>		mOutput;
+			rtti::ObjectPtr<ParameterFloat>			mSink;
+		};
 
-		// ponytail: startup self-check for the inferred default-track-creator + adapter-factory chain
-		// (PLAN §Risks #1). Constructs a throwaway modulator player headless and logs its auto-created
-		// track. Remove once Phase 2 is fully wired and confirmed.
-		void verifyModulatorSubstrate();
+		struct EffectEntry
+		{
+			rtti::ObjectPtr<lx::Effect>						mEffect;
+			std::vector<ModulatorEntry>						mModulators;
+			std::vector<rtti::ObjectPtr<lx::EffectParameter>>	mParams;
+			bool											mRemoved = false;
+		};
+
+		void onMidiEvent(const MidiEvent& event);
+		void save();
+		void rebuildFromLoadedContent();
+		std::string makeUniqueID(const std::string& base) const;
+		EffectEntry* findEntry(lx::Effect& effect);
+		bool buildModulatorGraph(ModulatorEntry& entry, const std::string& base, utility::ErrorState& errorState);
 
 		ResourceManager*					mResourceManager = nullptr;
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
 
 		ResourcePtr<MidiInputPort>			mMidiPort;
 		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;
+
+		std::vector<EffectEntry>				mEffectEntries;
+		std::vector<rtti::ObjectPtr<lx::Effect>>	mEffects;	// mirrors mEffectEntries for getEffects()
 
 		std::deque<std::string>			mMidiLog;
 		static constexpr size_t			sMaxMidiLogSize = 50;

@@ -10,6 +10,14 @@
 #include <parameternumeric.h>
 #include <imgui/imgui.h>
 #include <mathutils.h>
+#include <cstring>
+
+// lx effect/modulator types (for RTTI_OF dispatch + casts)
+#include <channelrole.h>
+#include <effectparameter.h>
+#include <adsrmodulator.h>
+#include <lfomodulator.h>
+#include <stepmodulator.h>
 
 RTTI_BEGIN_CLASS_NO_DEFAULT_CONSTRUCTOR(nap::lxcontrolApp)
 	RTTI_CONSTRUCTOR(nap::Core&)
@@ -167,6 +175,11 @@ namespace nap
 				drawFixturesTab();
 				ImGui::EndTabItem();
 			}
+			if (ImGui::BeginTabItem("Effects"))
+			{
+				drawEffectsTab();
+				ImGui::EndTabItem();
+			}
 			if (ImGui::BeginTabItem("MIDI"))
 			{
 				drawMidiTab();
@@ -194,6 +207,126 @@ namespace nap
 			ImGui::Separator();
 			drawFixtureParamGroup(*fixture_groups[i]);
 			ImGui::EndChild();
+		}
+	}
+
+
+	void lxcontrolApp::drawEffectsTab()
+	{
+		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
+		static const char* shape_labels[] = { "Sine", "Ramp", "Triangle", "Square", "Pulse", "Gaussian" };
+
+		ImGui::InputText("Name", mNewEffectName, sizeof(mNewEffectName));
+		ImGui::SameLine();
+		if (ImGui::Button("+ New Effect") && std::strlen(mNewEffectName) > 0)
+		{
+			mLxControlService->createEffect(mNewEffectName);
+			mNewEffectName[0] = '\0';
+		}
+		ImGui::Separator();
+
+		for (auto& effect : mLxControlService->getEffects())
+		{
+			ImGui::PushID(effect.get());
+			bool open = ImGui::CollapsingHeader(effect->mName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Delete"))
+			{
+				mLxControlService->removeEffect(effect.get());
+				ImGui::PopID();
+				break;
+			}
+
+			if (open)
+			{
+				// --- Parameters ---
+				if (ImGui::Button("Add Float"))		mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::FloatParameter));
+				ImGui::SameLine();
+				if (ImGui::Button("Add Color"))		mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::ColorParameter));
+				ImGui::SameLine();
+				if (ImGui::Button("Add Toggle"))	mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::ToggleParameter));
+
+				for (auto& p : effect->mParameters)
+				{
+					ImGui::PushID(p.get());
+					if (auto* fp = rtti_cast<lx::FloatParameter>(p.get()))
+					{
+						int role = static_cast<int>(fp->mRole);
+						ImGui::SetNextItemWidth(120);
+						if (ImGui::Combo("Role", &role, role_labels, 8)) fp->mRole = static_cast<lx::EChannelRole>(role);
+						ImGui::SameLine(); ImGui::SetNextItemWidth(140); ImGui::SliderFloat("Base", &fp->mValue, 0.0f, 1.0f);
+					}
+					else if (auto* cp = rtti_cast<lx::ColorParameter>(p.get()))
+					{
+						float col[3] = { cp->mRed, cp->mGreen, cp->mBlue };
+						if (ImGui::ColorEdit3("Color", col)) { cp->mRed = col[0]; cp->mGreen = col[1]; cp->mBlue = col[2]; }
+					}
+					else if (auto* tp = rtti_cast<lx::ToggleParameter>(p.get()))
+					{
+						int role = static_cast<int>(tp->mRole);
+						ImGui::SetNextItemWidth(120);
+						if (ImGui::Combo("Role", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
+						ImGui::SameLine(); ImGui::Checkbox("On", &tp->mValue);
+					}
+					ImGui::PopID();
+				}
+
+				ImGui::Separator();
+
+				// --- Modulators ---
+				int& tgt = mModTargetIndex[effect.get()];
+				std::vector<const char*> plabels;
+				for (auto& p : effect->mParameters) plabels.emplace_back(p->mName.c_str());
+				if (!plabels.empty())
+				{
+					tgt = nap::math::clamp(tgt, 0, static_cast<int>(plabels.size()) - 1);
+					ImGui::SetNextItemWidth(140);
+					ImGui::Combo("Target", &tgt, plabels.data(), static_cast<int>(plabels.size()));
+				}
+				auto add_mod = [&](nap::rtti::TypeInfo type)
+				{
+					if (effect->mParameters.empty()) return;
+					int i = nap::math::clamp(tgt, 0, static_cast<int>(effect->mParameters.size()) - 1);
+					mLxControlService->addModulator(*effect.get(), type, effect->mParameters[i].get());
+				};
+				ImGui::SameLine(); if (ImGui::Button("Add ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
+				ImGui::SameLine(); if (ImGui::Button("Add LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
+				ImGui::SameLine(); if (ImGui::Button("Add Step")) add_mod(RTTI_OF(lx::StepModulator));
+
+				for (auto& m : effect->mModulators)
+				{
+					ImGui::PushID(m.get());
+					ImGui::ProgressBar(m->value(), ImVec2(120, 0));
+					ImGui::SameLine();
+					ImGui::Text("-> %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
+					ImGui::SameLine(); if (ImGui::SmallButton("Trigger")) m->onTrigger();
+					ImGui::SameLine(); if (ImGui::SmallButton("Stop")) m->onStop();
+
+					if (auto* adsr = rtti_cast<lx::AdsrModulator>(m.get()))
+					{
+						ImGui::SetNextItemWidth(80); ImGui::DragFloat("A", &adsr->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(80); ImGui::DragFloat("D", &adsr->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(80); ImGui::DragFloat("S", &adsr->mSustain, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(80); ImGui::DragFloat("R", &adsr->mRelease, 0.01f, 0.0f, 10.0f);
+					}
+					else if (auto* lfo = rtti_cast<lx::LfoModulator>(m.get()))
+					{
+						int shape = static_cast<int>(lfo->mShape);
+						ImGui::SetNextItemWidth(110);
+						if (ImGui::Combo("Shape", &shape, shape_labels, 6)) lfo->mShape = static_cast<lx::ELfoShape>(shape);
+						ImGui::SameLine(); ImGui::SetNextItemWidth(100); ImGui::DragFloat("Hz", &lfo->mFrequency, 0.05f, 0.0f, 30.0f);
+					}
+					else if (auto* step = rtti_cast<lx::StepModulator>(m.get()))
+					{
+						ImGui::SetNextItemWidth(100); ImGui::DragFloat("Rate", &step->mRate, 0.1f, 0.0f, 30.0f);
+					}
+					ImGui::DragFloat("Min", &m->mMin, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
+					ImGui::DragFloat("Max", &m->mMax, 0.01f, 0.0f, 1.0f);
+					ImGui::Separator();
+					ImGui::PopID();
+				}
+			}
+			ImGui::PopID();
 		}
 	}
 

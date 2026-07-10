@@ -16,6 +16,7 @@
 #include <parametergroup.h>
 #include <lxcontrolservice.h>
 #include <midiport/midiinputport.h>
+#include <map>
 
 namespace nap
 {
@@ -40,6 +41,7 @@ namespace nap
 	private:
 		void drawMainUI();
 		void drawFixturesTab();
+		void drawEffectsTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
 
@@ -61,5 +63,9 @@ namespace nap
 		// The ports our statically-declared MidiInputPort has opened; lxcontrolService restarts this
 		// port when devices connect/disconnect (hot-plug), so this reflects live state.
 		ObjectPtr<MidiInputPort>	mMidiPort;
+
+		// Effects tab form state
+		char						mNewEffectName[128] = "";
+		std::map<lx::Effect*, int>	mModTargetIndex;	// per-effect selected target-parameter index
 	};
 }
