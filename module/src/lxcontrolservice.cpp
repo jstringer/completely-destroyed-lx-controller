@@ -489,6 +489,75 @@ namespace nap
 	}
 
 
+	lx::Controller* lxcontrolService::createController(const std::string& name, lx::Trigger* trigger, lx::EControllerMode mode)
+	{
+		auto controller = mResourceManager->createObject<lx::Controller>();
+		controller->mID = makeUniqueID("Controller_" + name);
+		controller->mName = name;
+		controller->mTrigger = trigger;
+		controller->mMode = mode;
+		utility::ErrorState err;
+		if (!controller->init(err))
+		{
+			Logger::error("createController: %s", err.toString().c_str());
+			return nullptr;
+		}
+		mControllers.emplace_back(controller);
+		save();
+		return controller.get();
+	}
+
+
+	lx::MidiBinding* lxcontrolService::createBinding(const MidiEvent& learnedEvent, lx::Controller& controller)
+	{
+		auto binding = mResourceManager->createObject<lx::MidiBinding>();
+		binding->mID = makeUniqueID("Binding_" + std::to_string(mBindings.size() + 1));
+
+		// Device-agnostic by default: message type + number only (no port/channel).
+		binding->mNumbers = { static_cast<int>(learnedEvent.getNumber()) };
+		switch (learnedEvent.getType())
+		{
+		// A note binding matches both on and off so Momentary controllers can release; Toggle/FireOnly
+		// ignore off-events, so this is harmless for them.
+		case MidiEvent::Type::noteOn:
+		case MidiEvent::Type::noteOff:			binding->mNoteOn = true; binding->mNoteOff = true;	break;
+		case MidiEvent::Type::afterTouch:		binding->mAftertouch = true;		break;
+		case MidiEvent::Type::controlChange:	binding->mControlChange = true;		break;
+		case MidiEvent::Type::programChange:	binding->mProgramChange = true;		break;
+		case MidiEvent::Type::channelPressure:	binding->mChannelPressure = true;	break;
+		case MidiEvent::Type::pitchBend:		binding->mPitchBend = true;			break;
+		default:								break;
+		}
+		binding->mController = &controller;
+
+		utility::ErrorState err;
+		if (!binding->init(err))
+		{
+			Logger::error("createBinding: %s", err.toString().c_str());
+			return nullptr;
+		}
+		mBindings.emplace_back(binding);
+		save();
+		return binding.get();
+	}
+
+
+	void lxcontrolService::removeController(lx::Controller* controller)
+	{
+		mControllers.erase(std::remove_if(mControllers.begin(), mControllers.end(),
+			[controller](const rtti::ObjectPtr<lx::Controller>& c) { return c.get() == controller; }), mControllers.end());
+		save();
+	}
+
+
+	void lxcontrolService::removeBinding(lx::MidiBinding* binding)
+	{
+		mBindings.erase(std::remove_if(mBindings.begin(), mBindings.end(),
+			[binding](const rtti::ObjectPtr<lx::MidiBinding>& b) { return b.get() == binding; }), mBindings.end());
+		save();
+	}
+
+
 	void lxcontrolService::save()
 	{
 		// Persist only authored data (effects + params + modulators). The per-modulator player graph is
@@ -507,6 +576,10 @@ namespace nap
 
 		for (auto& trigger : mTriggers)
 			root_objects.emplace_back(trigger.get());
+		for (auto& controller : mControllers)
+			root_objects.emplace_back(controller.get());
+		for (auto& binding : mBindings)
+			root_objects.emplace_back(binding.get());
 
 		rtti::JSONWriter writer;
 		utility::ErrorState error;
@@ -545,6 +618,10 @@ namespace nap
 
 		for (auto& trigger : mResourceManager->getObjects<lx::Trigger>())
 			mTriggers.emplace_back(trigger);
+		for (auto& controller : mResourceManager->getObjects<lx::Controller>())
+			mControllers.emplace_back(controller);
+		for (auto& binding : mResourceManager->getObjects<lx::MidiBinding>())
+			mBindings.emplace_back(binding);
 	}
 
 
@@ -561,5 +638,45 @@ namespace nap
 		mLastEventPort = event.getPort();
 		mHasLastEvent = true;
 		mMidiEventCounter++;
+
+		// Dispatch to controllers via matching bindings.
+		// ponytail: armed unconditionally here; Phase 5 gates by active-program membership.
+		bool on_event = false;
+		bool off_event = false;
+		switch (event.getType())
+		{
+		case MidiEvent::Type::noteOn:			on_event = true;	break;
+		case MidiEvent::Type::noteOff:			off_event = true;	break;
+		case MidiEvent::Type::controlChange:	(event.getValue() >= 64 ? on_event : off_event) = true;	break;
+		default:								on_event = true;	break;
+		}
+
+		for (auto& binding : mBindings)
+		{
+			if (!binding->matches(event))
+				continue;
+			lx::Controller* controller = binding->mController.get();
+			if (controller == nullptr || controller->mTrigger == nullptr)
+				continue;
+			lx::Trigger* trig = controller->mTrigger.get();
+
+			switch (controller->mMode)
+			{
+			case lx::EControllerMode::Momentary:
+				if (on_event && !controller->mHeld)		{ controller->mHeld = true;  fireTrigger(*trig); }
+				else if (off_event && controller->mHeld)	{ controller->mHeld = false; stopTrigger(*trig); }
+				break;
+			case lx::EControllerMode::Toggle:
+				if (on_event)
+				{
+					controller->mLatched = !controller->mLatched;
+					if (controller->mLatched) fireTrigger(*trig); else stopTrigger(*trig);
+				}
+				break;
+			case lx::EControllerMode::FireOnly:
+				if (on_event) fireTrigger(*trig);
+				break;
+			}
+		}
 	}
 }

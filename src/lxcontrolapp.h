@@ -76,5 +76,12 @@ namespace nap
 		int							mNewTriggerType = 0;	// 0=Controller,1=Enter,2=Exit
 		std::map<lx::Trigger*, int>					mBindEffectIdx;		// per-trigger add-binding effect selection
 		std::map<lx::Trigger*, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
+
+		// MIDI tab form state
+		char						mNewControllerName[128] = "";
+		int							mNewControllerTriggerIdx = 0;
+		int							mNewControllerMode = 0;	// 0=Momentary,1=Toggle,2=FireOnly
+		lx::Controller*				mLearningController = nullptr;	// controller awaiting a learned MIDI event
+		int							mLearnStartCounter = 0;
 	};
 }

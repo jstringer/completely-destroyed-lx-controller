@@ -18,6 +18,8 @@
 #include "effect.h"
 #include "modulatoroutput.h"
 #include "trigger.h"
+#include "controller.h"
+#include "midibinding.h"
 #include <cstdint>
 
 namespace lx { class FixtureComponentInstance; }
@@ -70,6 +72,14 @@ namespace nap
 		void stopTrigger(lx::Trigger& trigger);
 		bool isTriggerActive(lx::Trigger& trigger) const;
 
+		// --- Controllers + MIDI bindings ---
+		lx::Controller* createController(const std::string& name, lx::Trigger* trigger, lx::EControllerMode mode);
+		lx::MidiBinding* createBinding(const MidiEvent& learnedEvent, lx::Controller& controller);
+		void removeController(lx::Controller* controller);
+		void removeBinding(lx::MidiBinding* binding);
+		const std::vector<rtti::ObjectPtr<lx::Controller>>& getControllers() const { return mControllers; }
+		const std::vector<rtti::ObjectPtr<lx::MidiBinding>>& getBindings() const { return mBindings; }
+
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
 		bool hasLastMidiEvent() const { return mHasLastEvent; }
@@ -121,6 +131,8 @@ namespace nap
 		std::vector<rtti::ObjectPtr<lx::Effect>>	mEffects;	// mirrors mEffectEntries for getEffects()
 
 		std::vector<rtti::ObjectPtr<lx::Trigger>>	mTriggers;
+		std::vector<rtti::ObjectPtr<lx::Controller>>	mControllers;
+		std::vector<rtti::ObjectPtr<lx::MidiBinding>>	mBindings;
 		std::vector<Activation>					mActivations;
 		uint64_t								mNextActivationId = 1;
 

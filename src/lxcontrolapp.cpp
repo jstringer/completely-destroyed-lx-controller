@@ -19,7 +19,10 @@
 #include <lfomodulator.h>
 #include <stepmodulator.h>
 #include <trigger.h>
+#include <controller.h>
+#include <midibinding.h>
 #include <fixturecomponent.h>
+#include <midievent.h>
 
 RTTI_BEGIN_CLASS_NO_DEFAULT_CONSTRUCTOR(nap::lxcontrolApp)
 	RTTI_CONSTRUCTOR(nap::Core&)
@@ -454,10 +457,79 @@ namespace nap
 
 		ImGui::Separator();
 		ImGui::Text("Incoming messages:");
-		ImGui::BeginChild("MidiLog", ImVec2(0, 240), true);
+		ImGui::BeginChild("MidiLog", ImVec2(0, 120), true);
 		for (const auto& line : mLxControlService->getMidiLog())
 			ImGui::TextUnformatted(line.c_str());
 		ImGui::EndChild();
+
+		ImGui::Separator();
+		ImGui::Text("Controllers:");
+
+		static const char* mode_labels[] = { "Momentary", "Toggle", "FireOnly" };
+		const auto& triggers = mLxControlService->getTriggers();
+
+		ImGui::InputText("Name##ctrl", mNewControllerName, sizeof(mNewControllerName));
+		ImGui::SameLine(); ImGui::SetNextItemWidth(110);
+		ImGui::Combo("Mode##ctrl", &mNewControllerMode, mode_labels, 3);
+		if (!triggers.empty())
+		{
+			std::vector<const char*> tlabels;
+			for (auto& t : triggers) tlabels.emplace_back(t->mName.c_str());
+			mNewControllerTriggerIdx = nap::math::clamp(mNewControllerTriggerIdx, 0, static_cast<int>(tlabels.size()) - 1);
+			ImGui::SameLine(); ImGui::SetNextItemWidth(140);
+			ImGui::Combo("Trigger##ctrl", &mNewControllerTriggerIdx, tlabels.data(), static_cast<int>(tlabels.size()));
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("+ New Controller") && std::strlen(mNewControllerName) > 0 && !triggers.empty())
+		{
+			mLxControlService->createController(mNewControllerName,
+				triggers[mNewControllerTriggerIdx].get(), static_cast<lx::EControllerMode>(mNewControllerMode));
+			mNewControllerName[0] = '\0';
+		}
+
+		ImGui::Separator();
+		for (auto& c : mLxControlService->getControllers())
+		{
+			ImGui::PushID(c.get());
+			int mode = static_cast<int>(c->mMode);
+			ImGui::Text("%s", c->mName.c_str());
+			ImGui::SameLine(); ImGui::TextDisabled("-> %s", c->mTrigger != nullptr ? c->mTrigger->mName.c_str() : "(none)");
+			ImGui::SameLine(); ImGui::SetNextItemWidth(110);
+			if (ImGui::Combo("##mode", &mode, mode_labels, 3)) c->mMode = static_cast<lx::EControllerMode>(mode);
+
+			ImGui::SameLine();
+			if (mLearningController == c.get())
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "learning...");
+				if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
+				{
+					MidiEvent ev = mLxControlService->getLastMidiEvent();
+					mLxControlService->createBinding(ev, *c.get());
+					mLearningController = nullptr;
+				}
+			}
+			else if (ImGui::SmallButton("Learn"))
+			{
+				mLearningController = c.get();
+				mLearnStartCounter = mLxControlService->getMidiEventCounter();
+			}
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Delete")) { mLxControlService->removeController(c.get()); ImGui::PopID(); break; }
+
+			for (auto& b : mLxControlService->getBindings())
+			{
+				if (b->mController.get() != c.get())
+					continue;
+				ImGui::PushID(b.get());
+				std::string nums;
+				for (int n : b->mNumbers) { nums += std::to_string(n); nums += " "; }
+				ImGui::BulletText("num: %s", nums.c_str());
+				ImGui::SameLine();
+				if (ImGui::SmallButton("X")) mLxControlService->removeBinding(b.get());
+				ImGui::PopID();
+			}
+			ImGui::PopID();
+		}
 	}
 
 
