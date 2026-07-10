@@ -15,7 +15,7 @@ namespace lx
 	{
 		RTTI_ENABLE(Modulator)
 	public:
-		float evaluate(double time) override;
+		float evaluate() const override;
 		void onTrigger() override;
 		void onStop() override;
 

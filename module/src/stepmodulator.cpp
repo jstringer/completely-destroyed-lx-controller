@@ -17,7 +17,7 @@ RTTI_END_CLASS
 
 namespace lx
 {
-	float StepModulator::evaluate(double time)
+	float StepModulator::evaluate() const
 	{
 		if (mSteps.empty())
 			return 0.0f;
@@ -31,7 +31,7 @@ namespace lx
 		}
 
 		// Clock mode
-		double pos = time * mRate;
+		double pos = mElapsed * mRate;
 		double base = std::floor(pos);
 		int idx = static_cast<int>(base);
 		if (mLoop)

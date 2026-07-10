@@ -1,7 +1,6 @@
 #include "modulator.h"
 #include "effectparameter.h"
 
-#include <sequenceplayer.h>
 #include <mathutils.h>
 
 RTTI_BEGIN_ENUM(lx::EModulatorBlend)
@@ -36,6 +35,7 @@ namespace lx
 
 	void Modulator::onTrigger()
 	{
+		// Subtypes reset mElapsed if they need to (ADSR always; LFO only if Retrigger).
 		mHeld = true;
 		mReleasing = false;
 	}
@@ -44,10 +44,18 @@ namespace lx
 	void Modulator::onStop()
 	{
 		// Capture the value being released FROM while still "held", then flip to releasing.
-		mReleaseStartTime = mPlayer != nullptr ? mPlayer->getPlayerTime() : 0.0;
-		mReleaseFrom = evaluate(mReleaseStartTime);
+		mReleaseFrom = evaluate();
+		mReleaseElapsed = 0.0;
 		mHeld = false;
 		mReleasing = true;
+	}
+
+
+	void Modulator::advance(double deltaTime)
+	{
+		mElapsed += deltaTime;
+		if (mReleasing)
+			mReleaseElapsed += deltaTime;
 	}
 
 

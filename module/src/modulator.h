@@ -30,9 +30,12 @@ namespace lx
 
 		virtual void onTrigger();
 		virtual void onStop();
-		/** @return the raw 0..1 modulator value at the given (player) time. Called on the clock thread. */
-		virtual float evaluate(double time)		{ return 0.0f; }
+		/** @return the raw 0..1 modulator value at the current elapsed time (mElapsed / mReleaseElapsed). */
+		virtual float evaluate() const			{ return 0.0f; }
 		virtual bool isFinished() const			{ return !mHeld && !mReleasing; }
+
+		/** Advances the modulator's own monotonic clock. Called every frame from Effect::update (main thread). */
+		void advance(double deltaTime);
 
 		/** @return the sink value mapped to [Min,Max]. Read on the main thread. */
 		float value() const;
@@ -53,7 +56,8 @@ namespace lx
 	protected:
 		bool	mHeld = false;
 		bool	mReleasing = false;
-		double	mReleaseStartTime = 0.0;
+		double	mElapsed = 0.0;			///< monotonic seconds since creation/(re)trigger; the modulator's own clock
+		double	mReleaseElapsed = 0.0;	///< seconds since onStop()
 		float	mReleaseFrom = 0.0f;
 	};
 }

@@ -9,6 +9,7 @@
 #include <midiport/midiinputport.h>
 #include <sequenceplayer.h>
 #include <sequenceplayerclock.h>
+#include <sequenceeditor.h>
 #include <parameternumeric.h>
 #include <deque>
 #include <vector>
@@ -104,6 +105,7 @@ namespace nap
 			rtti::ObjectPtr<SequencePlayerClock>		mClock;
 			rtti::ObjectPtr<lx::ModulatorOutput>		mOutput;
 			rtti::ObjectPtr<ParameterFloat>			mSink;
+			rtti::ObjectPtr<SequenceEditor>			mEditor;	// sets a looping duration so the player keeps ticking
 		};
 
 		struct EffectEntry

@@ -279,8 +279,21 @@ namespace nap
 			return false;
 		entry.mPlayer = player;
 
+		// The empty default sequence has duration 0, so a non-looping player stops immediately and never
+		// ticks the adapter again. Give it a real duration and loop it so it keeps ticking forever; the
+		// modulator's value comes from its own elapsed clock (Modulator::advance), not the player time.
+		auto editor = mResourceManager->createObject<SequenceEditor>();
+		editor->mID = makeUniqueID(base + "_Editor");
+		editor->mSequencePlayer = player;
+		if (!editor->init(err))
+			return false;
+		editor->changeSequenceDuration(3600.0);
+		entry.mEditor = editor;
+
 		mod->mPlayer = player.get();
 		mod->mSink = sink.get();
+		player->setIsLooping(true);
+		player->setPlayerTime(0.0);
 		player->setIsPlaying(true);
 		return true;
 	}

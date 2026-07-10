@@ -17,6 +17,10 @@ Format below; newest last within each section.
 
 ---
 
+## Post-run fixes (manual verification findings)
+
+- **Modulators output only their first value then freeze** (reported after manual testing). Root cause: each modulator's `SequencePlayer` runs an *empty* default sequence (duration 0), so a non-looping player reaches "the end" immediately, stops, and never ticks the adapter again — and its player time never advances. Fix (commit after Phase 5): (1) in `buildModulatorGraph`, give the player a real duration via a `SequenceEditor::changeSequenceDuration(3600)` and `setIsLooping(true)` so it keeps ticking forever (the player is now purely a heartbeat); (2) drive `evaluate()` from a modulator-owned monotonic clock `mElapsed` (advanced every frame in `Effect::update` via `Modulator::advance(dt)`) instead of the bounded/looping player time — this also fixes ADSR, which would otherwise misbehave when player time wrapped. Verified over multiple frames: a 1 Hz sine LFO's value traces a smooth sine (0.63→1.00→0.77…) with player time advancing. This is the Route-2 fragility flagged pre-implementation — the player-as-clock needed a heartbeat + an independent time source.
+
 ## Decisions (guessed by first principles + ponytail, kept moving)
 
 - [Phase 1] Service kept as `nap::lxcontrolService` (NOT migrated to `namespace lx`). Rationale: it's a pre-existing class; migrating churns the app `getService<>`, its RTTI, and the module descriptor (`naplxcontrol.cpp` `NAP_SERVICE_MODULE`). New resource/component classes ARE `lx::`. Revisit if a full `lx` migration of the service is wanted.

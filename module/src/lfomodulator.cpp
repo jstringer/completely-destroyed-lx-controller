@@ -1,6 +1,5 @@
 #include "lfomodulator.h"
 
-#include <sequenceplayer.h>
 #include <cmath>
 
 RTTI_BEGIN_ENUM(lx::ELfoShape)
@@ -25,10 +24,10 @@ namespace lx
 {
 	// ponytail: shapes computed directly (std::sin etc.) rather than math::waveform, to avoid any
 	// range/convention mismatch — all outputs are explicitly 0..1.
-	float LfoModulator::evaluate(double time)
+	float LfoModulator::evaluate() const
 	{
 		constexpr float two_pi = 6.28318530718f;
-		double raw = time * mFrequency + mPhaseOffset;
+		double raw = mElapsed * mFrequency + mPhaseOffset;
 		float phase = static_cast<float>(raw - std::floor(raw));	// 0..1
 
 		switch (mShape)
@@ -51,8 +50,8 @@ namespace lx
 	void LfoModulator::onTrigger()
 	{
 		Modulator::onTrigger();
-		if (mRetrigger && mPlayer != nullptr)
-			mPlayer->setPlayerTime(0.0);
+		if (mRetrigger)
+			mElapsed = 0.0;	// restart the waveform from PhaseOffset
 	}
 
 

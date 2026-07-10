@@ -14,8 +14,9 @@ namespace lx
 
 	void ModulatorAdapter::tick(double time)
 	{
-		// Clock/player thread: compute the modulator value procedurally, store it under lock.
-		float value = mOutput.mModulator != nullptr ? mOutput.mModulator->evaluate(time) : 0.0f;
+		// Clock/player thread: compute the modulator value from its own elapsed clock (advanced on the
+		// main thread in Effect::update), store it under lock. The player time is only a heartbeat here.
+		float value = mOutput.mModulator != nullptr ? mOutput.mModulator->evaluate() : 0.0f;
 		std::unique_lock<std::mutex> lock(mMutex);
 		mStoredValue = value;
 	}

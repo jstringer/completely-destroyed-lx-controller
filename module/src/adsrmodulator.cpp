@@ -1,6 +1,5 @@
 #include "adsrmodulator.h"
 
-#include <sequenceplayer.h>
 #include <mathutils.h>
 
 RTTI_BEGIN_CLASS(lx::AdsrModulator)
@@ -13,23 +12,23 @@ RTTI_END_CLASS
 
 namespace lx
 {
-	float AdsrModulator::evaluate(double time)
+	float AdsrModulator::evaluate() const
 	{
 		if (mReleasing)
 		{
-			double rel = time - mReleaseStartTime;
-			if (mRelease <= 0.0f || rel >= mRelease)
+			if (mRelease <= 0.0f || mReleaseElapsed >= mRelease)
 				return 0.0f;
-			return mReleaseFrom * (1.0f - static_cast<float>(rel / mRelease));
+			return mReleaseFrom * (1.0f - static_cast<float>(mReleaseElapsed / mRelease));
 		}
 
 		if (!mHeld)
 			return 0.0f;
 
-		if (time < mAttack)
-			return mAttack > 0.0f ? static_cast<float>(time / mAttack) : 1.0f;
+		double t = mElapsed;
+		if (t < mAttack)
+			return mAttack > 0.0f ? static_cast<float>(t / mAttack) : 1.0f;
 
-		double decay_t = time - mAttack;
+		double decay_t = t - mAttack;
 		if (decay_t < mDecay)
 			return mDecay > 0.0f ? nap::math::lerp(1.0f, mSustain, static_cast<float>(decay_t / mDecay)) : mSustain;
 
@@ -40,18 +39,14 @@ namespace lx
 	void AdsrModulator::onTrigger()
 	{
 		Modulator::onTrigger();
-		if (mPlayer != nullptr)
-			mPlayer->setPlayerTime(0.0);
+		mElapsed = 0.0;	// envelope restarts from attack
 	}
 
 
 	bool AdsrModulator::isFinished() const
 	{
 		if (mReleasing)
-		{
-			double now = mPlayer != nullptr ? mPlayer->getPlayerTime() : 0.0;
-			return (now - mReleaseStartTime) >= mRelease;
-		}
+			return mReleaseElapsed >= mRelease;
 		return !mHeld;
 	}
 }
