@@ -9,24 +9,22 @@ namespace lx
 	enum class EStepAdvance : int { Clock, Trigger };
 
 	/**
-	 * Step sequencer. In Clock mode it advances with the player clock (index = floor(time * Rate)); in
-	 * Trigger mode each onTrigger() advances one step. Glide lerps between adjacent steps.
+	 * Step sequencer as a curve: each step value is held for 1/Rate seconds. No glide = stepped edges
+	 * (~10ms ramp, like Square); Glide = linear ramps between step values. Loop repeats the pattern.
+	 * Ceiling: Trigger-advance mode is not yet a per-trigger seek — it currently plays like Clock mode.
 	 */
 	class NAPAPI StepModulator : public Modulator
 	{
 		RTTI_ENABLE(Modulator)
 	public:
-		float evaluate() const override;
+		void generateCurve(nap::lxcontrolService& svc) override;
 		void onTrigger() override;
 		void onStop() override;
 
 		std::vector<float>	mSteps;						///< Property: 'Steps' values 0..1
-		float				mRate = 2.0f;				///< Property: 'Rate' steps/sec (Clock mode)
+		float				mRate = 2.0f;				///< Property: 'Rate' steps/sec
 		EStepAdvance		mAdvance = EStepAdvance::Clock;	///< Property: 'Advance'
 		bool				mLoop = true;				///< Property: 'Loop'
 		bool				mGlide = false;				///< Property: 'Glide'
-
-	private:
-		int	mStepIndex = 0;	///< Trigger-mode current step (non-serialized)
 	};
 }

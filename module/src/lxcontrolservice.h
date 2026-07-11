@@ -10,6 +10,7 @@
 #include <sequenceplayer.h>
 #include <sequenceplayerclock.h>
 #include <sequenceeditor.h>
+#include <sequenceplayercurveoutput.h>
 #include <parameternumeric.h>
 #include <mathutils.h>
 #include <deque>
@@ -18,7 +19,6 @@
 // Local Includes
 #include "midihotplugmonitor.h"
 #include "effect.h"
-#include "modulatoroutput.h"
 #include "trigger.h"
 #include "controller.h"
 #include "midibinding.h"
@@ -48,7 +48,7 @@ namespace nap
 	 *
 	 * Owns the fixture registry, the wildcard MIDI-listener subscription + hot-plug reconnect + learn
 	 * snapshot, and (Phase 2) the live-authored Effects: their EffectParameters and Modulators, each
-	 * modulator backed by its own SequencePlayer + clock + custom ModulatorOutput/Adapter/Track.
+	 * modulator backed by its own SequencePlayer + clock + stock SequencePlayerCurveOutput (curve engine).
 	 * Persists everything to data/user_content.json.
 	 */
 	class NAPAPI lxcontrolService : public Service
@@ -122,12 +122,12 @@ namespace nap
 	private:
 		struct ModulatorEntry
 		{
-			rtti::ObjectPtr<lx::Modulator>			mModulator;
-			rtti::ObjectPtr<SequencePlayer>			mPlayer;
-			rtti::ObjectPtr<SequencePlayerClock>		mClock;
-			rtti::ObjectPtr<lx::ModulatorOutput>		mOutput;
-			rtti::ObjectPtr<ParameterFloat>			mSink;
-			rtti::ObjectPtr<SequenceEditor>			mEditor;	// sets a looping duration so the player keeps ticking
+			rtti::ObjectPtr<lx::Modulator>				mModulator;
+			rtti::ObjectPtr<SequencePlayer>				mPlayer;
+			rtti::ObjectPtr<SequencePlayerClock>			mClock;
+			rtti::ObjectPtr<SequencePlayerCurveOutput>	mOutput;	// stock curve output -> sink parameter
+			rtti::ObjectPtr<ParameterFloat>				mSink;
+			rtti::ObjectPtr<SequenceEditor>				mEditor;	// runtime curve authoring + duration
 		};
 
 		struct EffectEntry

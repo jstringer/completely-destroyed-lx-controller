@@ -4,23 +4,29 @@
 #include <nap/resource.h>
 #include <nap/resourceptr.h>
 #include <parameternumeric.h>
+#include <string>
 
 // Local Includes
 #include "effectparameter.h"
 
-namespace nap { class SequencePlayer; }
+namespace nap
+{
+	class SequencePlayer;
+	class SequenceEditor;
+	class lxcontrolService;
+}
 
 namespace lx
 {
 	enum class EModulatorBlend : int { Replace, Multiply, Add };
-	enum class EModulatorClock : int { Standard, Independent };
 
 	/**
-	 * Base class for a modulator: owns (wired by lxcontrolService) a SequencePlayer + clock used as a
-	 * timebase, a custom ModulatorOutput + a 0..1 sink ParameterFloat. Subtypes implement evaluate(),
-	 * called from the adapter on the clock thread; the result is thread-hopped into the sink, and
-	 * value() reads it back and maps it to [Min,Max]. Blended into the target EffectParameter by
-	 * Effect::update().
+	 * Base class for a modulator: a shape that drives a 0..1 value over time and blends it into a target
+	 * EffectParameter. The value comes from a real napsequence curve track (authored by generateCurve()
+	 * via lxcontrolService::authorFloatCurve) that the stock SequencePlayerCurveAdapter samples off the
+	 * SequencePlayer's own time into a sink ParameterFloat. Gate/trigger events map onto the player
+	 * transport (setIsPlaying/setPlayerTime/setIsPaused/setIsLooping/setPlaybackSpeed) in onTrigger()/
+	 * onStop()/update(). value() reads the sink back and maps it to [Min,Max]; Effect::update() blends it.
 	 */
 	class NAPAPI Modulator : public nap::Resource
 	{
@@ -28,14 +34,17 @@ namespace lx
 	public:
 		virtual bool init(nap::utility::ErrorState& errorState) override;
 
-		virtual void onTrigger();
-		virtual void onStop();
-		/** @return the raw 0..1 modulator value at the current elapsed time (mElapsed / mReleaseElapsed). */
-		virtual float evaluate() const			{ return 0.0f; }
-		virtual bool isFinished() const			{ return !mHeld && !mReleasing; }
+		/** Authors this shape's curve into mTrackID (via svc.authorFloatCurve). Sets mDuration. */
+		virtual void generateCurve(nap::lxcontrolService& svc) {}
 
-		/** Advances the modulator's own monotonic clock. Called every frame from Effect::update (main thread). */
-		void advance(double deltaTime);
+		/** Gate on / (re)trigger: drives the player transport. Base clears the released flag. */
+		virtual void onTrigger();
+		/** Gate off: drives the player transport. Base sets the released flag. */
+		virtual void onStop();
+		/** Per-frame transport housekeeping on the main thread (sustain pause, one-shot end-stop). */
+		virtual void update(double deltaTime) {}
+		/** @return true once this modulator has stopped contributing (drives release-linger / claim reap). */
+		virtual bool isFinished() const;
 
 		/** @return the sink value mapped to [Min,Max]. Read on the main thread. */
 		float value() const;
@@ -46,18 +55,15 @@ namespace lx
 		float								mMin = 0.0f;				///< Property: 'Min'
 		float								mMax = 1.0f;				///< Property: 'Max'
 		EModulatorBlend						mBlend = EModulatorBlend::Replace;	///< Property: 'Blend'
-		EModulatorClock						mClock = EModulatorClock::Standard;	///< Property: 'Clock'
-		float								mClockFrequency = 1000.0f;	///< Property: 'ClockFrequency' (Independent clock, Hz)
 
-		// Runtime, wired by lxcontrolService (non-serialized here; the objects themselves are serialized)
+		// Runtime, wired by lxcontrolService::buildModulatorGraph (non-serialized; the objects are).
 		nap::SequencePlayer*	mPlayer = nullptr;
 		nap::ParameterFloat*	mSink = nullptr;
+		nap::SequenceEditor*	mEditor = nullptr;
+		std::string				mTrackID;
+		double					mDuration = 1.0;	///< total curve duration in seconds (set by generateCurve)
 
 	protected:
-		bool	mHeld = false;
-		bool	mReleasing = false;
-		double	mElapsed = 0.0;			///< monotonic seconds since creation/(re)trigger; the modulator's own clock
-		double	mReleaseElapsed = 0.0;	///< seconds since onStop()
-		float	mReleaseFrom = 0.0f;
+		bool	mReleased = false;	///< gate released (onStop seen); reset by onTrigger
 	};
 }

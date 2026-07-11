@@ -29,7 +29,7 @@ namespace lx
 
 		for (auto& modulator : mModulators)
 		{
-			modulator->advance(deltaTime);	// advance the modulator's own monotonic clock every frame
+			modulator->update(deltaTime);	// per-frame transport housekeeping (sustain pause, end-stop)
 
 			EffectParameter* target = modulator->mTarget.get();
 			if (target == nullptr)

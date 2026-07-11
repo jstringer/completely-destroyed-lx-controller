@@ -1,7 +1,5 @@
 // Local Includes
 #include "lxcontrolservice.h"
-#include "modulatortrack.h"
-#include "modulatoradapter.h"
 #include "fixturecomponent.h"
 #include "fixturechannelcomponent.h"
 
@@ -37,38 +35,14 @@ namespace nap
 
 	void lxcontrolService::registerObjectCreators(rtti::Factory& factory)
 	{
-		// ModulatorOutput's ctor needs a SequenceService&, so it requires a custom ObjectCreator.
-		auto* seq = getCore().getService<SequenceService>();
-		if (seq != nullptr)
-			factory.addObjectCreator(std::make_unique<lx::ModulatorOutputObjectCreator>(*seq));
+		// Modulators now use the stock SequencePlayerCurveOutput (registered by napsequence itself),
+		// so lxcontrol no longer contributes any custom object creators.
 	}
 
 
 	bool lxcontrolService::init(nap::utility::ErrorState& errorState)
 	{
 		mResourceManager = getCore().getResourceManager();
-
-		// Register the custom modulator adapter (keyed by ModulatorTrack) and the default-track-creator
-		// (keyed by ModulatorOutput) so an empty modulator player auto-gets a ModulatorTrack on init
-		// and a ModulatorAdapter on start. Must happen before any modulator player starts.
-		auto* seq = getCore().getService<SequenceService>();
-		if (seq != nullptr)
-		{
-			seq->registerAdapterFactoryFunc(RTTI_OF(lx::ModulatorTrack),
-				[](const SequenceTrack& track, SequencePlayerOutput& output, const SequencePlayer& player) -> std::unique_ptr<SequencePlayerAdapter>
-				{
-					auto& mod_output = static_cast<lx::ModulatorOutput&>(output);
-					return std::make_unique<lx::ModulatorAdapter>(mod_output);
-				});
-
-			seq->registerDefaultTrackCreatorForOutput(RTTI_OF(lx::ModulatorOutput),
-				[](const SequencePlayerOutput* output) -> std::unique_ptr<SequenceTrack>
-				{
-					auto track = std::make_unique<lx::ModulatorTrack>();
-					track->mAssignedOutputID = output->mID;
-					return track;
-				});
-		}
 		return true;
 	}
 
@@ -247,13 +221,14 @@ namespace nap
 	{
 		lx::Modulator* mod = entry.mModulator.get();
 
-		// ponytail: StandardClock only in Phase 2 (proven via createObject); IndependentClock deferred.
+		// StandardClock: modulator playback + curve (re)authoring both run on the main thread, so no locking.
 		auto clock = mResourceManager->createObject<SequencePlayerStandardClock>();
 		clock->mID = makeUniqueID(base + "_Clock");
 		if (!clock->init(err))
 			return false;
 		entry.mClock = clock;
 
+		// Sink parameter the stock curve adapter writes into; Modulator::value() reads it back.
 		auto sink = mResourceManager->createObject<ParameterFloat>();
 		sink->mID = makeUniqueID(base + "_Sink");
 		sink->mMinimum = 0.0f; sink->mMaximum = 1.0f; sink->mValue = 0.0f;
@@ -261,17 +236,17 @@ namespace nap
 			return false;
 		entry.mSink = sink;
 
-		auto output = mResourceManager->createObject<lx::ModulatorOutput>();
+		auto output = mResourceManager->createObject<SequencePlayerCurveOutput>();
 		output->mID = makeUniqueID(base + "_Output");
 		output->mParameter = sink;
-		output->mModulator = mod;
+		output->mUseMainThread = true;
 		if (!output->init(err))
 			return false;
 		entry.mOutput = output;
 
 		auto player = mResourceManager->createObject<SequencePlayer>();
 		player->mID = makeUniqueID(base + "_Player");
-		player->mSequenceFileName = base + ".json";	// non-existent -> empty sequence + default ModulatorTrack
+		player->mSequenceFileName = base + "_seq.json";	// non-existent -> empty sequence + auto curve track
 		player->mCreateEmptySequenceOnLoadFail = true;
 		player->mClock = entry.mClock;
 		player->mOutputs.emplace_back(rtti::ObjectPtr<SequencePlayerOutput>(output.get()));
@@ -281,22 +256,44 @@ namespace nap
 			return false;
 		entry.mPlayer = player;
 
-		// The empty default sequence has duration 0, so a non-looping player stops immediately and never
-		// ticks the adapter again. Give it a real duration and loop it so it keeps ticking forever; the
-		// modulator's value comes from its own elapsed clock (Modulator::advance), not the player time.
 		auto editor = mResourceManager->createObject<SequenceEditor>();
 		editor->mID = makeUniqueID(base + "_Editor");
 		editor->mSequencePlayer = player;
 		if (!editor->init(err))
 			return false;
-		editor->changeSequenceDuration(3600.0);
 		entry.mEditor = editor;
 
+		// napsequence auto-creates one curve track bound to the curve output on empty-sequence load;
+		// reuse it, else create one explicitly.
+		std::string track_id;
+		auto& ctrl = editor->getController<SequenceControllerCurve>();
+		if (!player->getSequenceConst().mTracks.empty())
+		{
+			track_id = player->getSequenceConst().mTracks.back()->mID;
+		}
+		else
+		{
+			ctrl.addNewCurveTrack<float>();
+			if (player->getSequenceConst().mTracks.empty())
+			{
+				err.fail("buildModulatorGraph: could not create a curve track");
+				return false;
+			}
+			track_id = player->getSequenceConst().mTracks.back()->mID;
+			ctrl.assignNewOutputID(track_id, output->mID);
+		}
+		ctrl.changeMinMaxCurveTrack<float>(track_id, 0.0f, 1.0f);
+
+		// Wire runtime handles, then let the shape author its curve (sets mDuration + sequence duration).
 		mod->mPlayer = player.get();
 		mod->mSink = sink.get();
-		player->setIsLooping(true);
+		mod->mEditor = editor.get();
+		mod->mTrackID = track_id;
+		mod->generateCurve(*this);
+
+		// Built idle: value holds at the curve's start until a trigger drives the transport.
 		player->setPlayerTime(0.0);
-		player->setIsPlaying(true);
+		player->setIsPlaying(false);
 		return true;
 	}
 

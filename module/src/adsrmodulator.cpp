@@ -1,6 +1,8 @@
 #include "adsrmodulator.h"
+#include "lxcontrolservice.h"
 
-#include <mathutils.h>
+#include <sequenceplayer.h>
+#include <algorithm>
 
 RTTI_BEGIN_CLASS(lx::AdsrModulator)
 	RTTI_PROPERTY("Attack",		&lx::AdsrModulator::mAttack,	nap::rtti::EPropertyMetaData::Default)
@@ -12,41 +14,74 @@ RTTI_END_CLASS
 
 namespace lx
 {
-	float AdsrModulator::evaluate() const
+	// Minimum phase length so segments never collapse to zero duration (insertSegment needs t strictly increasing).
+	static constexpr double sMinPhase = 0.001;
+
+	void AdsrModulator::generateCurve(nap::lxcontrolService& svc)
 	{
-		if (mReleasing)
-		{
-			if (mRelease <= 0.0f || mReleaseElapsed >= mRelease)
-				return 0.0f;
-			return mReleaseFrom * (1.0f - static_cast<float>(mReleaseElapsed / mRelease));
-		}
+		const double a = std::max<double>(mAttack, sMinPhase);
+		const double d = std::max<double>(mDecay, sMinPhase);
+		const double r = std::max<double>(mRelease, sMinPhase);
+		mSustainTime = a + d;
+		mDuration = a + d + r;
 
-		if (!mHeld)
-			return 0.0f;
-
-		double t = mElapsed;
-		if (t < mAttack)
-			return mAttack > 0.0f ? static_cast<float>(t / mAttack) : 1.0f;
-
-		double decay_t = t - mAttack;
-		if (decay_t < mDecay)
-			return mDecay > 0.0f ? nap::math::lerp(1.0f, mSustain, static_cast<float>(decay_t / mDecay)) : mSustain;
-
-		return mSustain;
+		const std::vector<lx::Key> keys = {
+			{ 0.0,          0.0f,             nap::math::ECurveInterp::Linear },
+			{ a,            1.0f,             nap::math::ECurveInterp::Linear },
+			{ a + d,        mSustain,         nap::math::ECurveInterp::Linear },
+			{ a + d + r,    0.0f,             nap::math::ECurveInterp::Linear }
+		};
+		svc.authorFloatCurve(*mEditor, mTrackID, keys);
 	}
 
 
 	void AdsrModulator::onTrigger()
 	{
 		Modulator::onTrigger();
-		mElapsed = 0.0;	// envelope restarts from attack
+		if (mPlayer == nullptr)
+			return;
+		mPlayer->setPlayerTime(0.0);
+		mPlayer->setIsPaused(false);
+		mPlayer->setIsLooping(mLoop);
+		mPlayer->setIsPlaying(true);
+	}
+
+
+	void AdsrModulator::update(double deltaTime)
+	{
+		if (mPlayer == nullptr)
+			return;
+
+		// Hold sustain: pause exactly at the decay->sustain boundary (non-loop only).
+		if (!mReleased && !mLoop && mPlayer->getIsPlaying() && !mPlayer->getIsPaused() &&
+			mPlayer->getPlayerTime() >= mSustainTime)
+		{
+			mPlayer->setIsPaused(true);
+		}
+
+		// Release finished (played out to the end): stop.
+		if (mReleased && mPlayer->getIsPlaying() && mPlayer->getPlayerTime() >= mDuration)
+			mPlayer->setIsPlaying(false);
+	}
+
+
+	void AdsrModulator::onStop()
+	{
+		Modulator::onStop();
+		if (mPlayer == nullptr)
+			return;
+		// Release from the sustain point out to zero.
+		mPlayer->setIsLooping(false);
+		mPlayer->setPlayerTime(mSustainTime);
+		mPlayer->setIsPaused(false);
+		mPlayer->setIsPlaying(true);
 	}
 
 
 	bool AdsrModulator::isFinished() const
 	{
-		if (mReleasing)
-			return mReleaseElapsed >= mRelease;
-		return !mHeld;
+		if (mPlayer == nullptr)
+			return true;
+		return mReleased && !mPlayer->getIsPlaying();
 	}
 }
