@@ -17,6 +17,7 @@
 #include <channelrole.h>
 #include <effectparameter.h>
 #include <adsrmodulator.h>
+#include <admodulator.h>
 #include <lfomodulator.h>
 #include <stepmodulator.h>
 #include <trigger.h>
@@ -316,38 +317,78 @@ namespace nap
 					mLxControlService->addModulator(*effect.get(), type, effect->mParameters[i].get());
 				};
 				ImGui::SameLine(); if (ImGui::Button("Add ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
+				ImGui::SameLine(); if (ImGui::Button("Add AD"))   add_mod(RTTI_OF(lx::AdModulator));
 				ImGui::SameLine(); if (ImGui::Button("Add LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
 				ImGui::SameLine(); if (ImGui::Button("Add Step")) add_mod(RTTI_OF(lx::StepModulator));
+
+				static const char* blend_labels[]    = { "Replace", "Multiply", "Add" };
+				static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
+				static const char* ad_mode_labels[]  = { "OneShot", "LoopWhileSustained" };
 
 				for (auto& m : effect->mModulators)
 				{
 					ImGui::PushID(m.get());
+
+					// Live shape plot: raw 0..1 sink value over recent frames.
+					auto& hist = mModHistory[m.get()];
+					hist.push_back(m->mSink != nullptr ? m->mSink->mValue : 0.0f);
+					if (hist.size() > 120) hist.erase(hist.begin());	// ponytail: O(n) shift, n=120, negligible
+					ImGui::PlotLines("##plot", hist.data(), static_cast<int>(hist.size()), 0, nullptr, 0.0f, 1.0f, ImVec2(160, 40));
+
 					ImGui::ProgressBar(m->value(), ImVec2(120, 0));
 					ImGui::SameLine();
 					ImGui::Text("-> %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
 					ImGui::SameLine(); if (ImGui::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (ImGui::SmallButton("Stop")) m->onStop();
 
+					// Editing a shape parameter re-authors the curve (main thread -> safe with StandardClock).
+					auto regen = [&]() { m->generateCurve(*mLxControlService); };
+
 					if (auto* adsr = rtti_cast<lx::AdsrModulator>(m.get()))
 					{
-						ImGui::SetNextItemWidth(80); ImGui::DragFloat("A", &adsr->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(80); ImGui::DragFloat("D", &adsr->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(80); ImGui::DragFloat("S", &adsr->mSustain, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(80); ImGui::DragFloat("R", &adsr->mRelease, 0.01f, 0.0f, 10.0f);
+						bool ch = false;
+						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("A", &adsr->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("D", &adsr->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("S", &adsr->mSustain, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("R", &adsr->mRelease, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ImGui::Checkbox("Loop", &adsr->mLoop);
+						if (ch) regen();
+					}
+					else if (auto* ad = rtti_cast<lx::AdModulator>(m.get()))
+					{
+						bool ch = false;
+						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("A", &ad->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("D", &ad->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						int mode = static_cast<int>(ad->mMode);
+						ImGui::SetNextItemWidth(150);
+						if (ImGui::Combo("Mode##ad", &mode, ad_mode_labels, 2)) ad->mMode = static_cast<lx::EAdMode>(mode);
+						if (ch) regen();
 					}
 					else if (auto* lfo = rtti_cast<lx::LfoModulator>(m.get()))
 					{
 						int shape = static_cast<int>(lfo->mShape);
 						ImGui::SetNextItemWidth(110);
-						if (ImGui::Combo("Shape", &shape, shape_labels, 6)) lfo->mShape = static_cast<lx::ELfoShape>(shape);
-						ImGui::SameLine(); ImGui::SetNextItemWidth(100); ImGui::DragFloat("Hz", &lfo->mFrequency, 0.05f, 0.0f, 30.0f);
+						if (ImGui::Combo("Shape", &shape, shape_labels, 6)) { lfo->mShape = static_cast<lx::ELfoShape>(shape); regen(); }
+						ImGui::SameLine(); ImGui::SetNextItemWidth(80);
+						if (ImGui::DragFloat("Hz", &lfo->mFrequency, 0.05f, 0.0f, 30.0f) && lfo->mPlayer != nullptr)
+							lfo->mPlayer->setPlaybackSpeed(lfo->mFrequency);
+						int mode = static_cast<int>(lfo->mMode);
+						ImGui::SameLine(); ImGui::SetNextItemWidth(120);
+						if (ImGui::Combo("Mode##lfo", &mode, lfo_mode_labels, 3)) lfo->mMode = static_cast<lx::ELfoMode>(mode);
 					}
 					else if (auto* step = rtti_cast<lx::StepModulator>(m.get()))
 					{
-						ImGui::SetNextItemWidth(100); ImGui::DragFloat("Rate", &step->mRate, 0.1f, 0.0f, 30.0f);
+						bool ch = false;
+						ImGui::SetNextItemWidth(80); ch |= ImGui::DragFloat("Rate", &step->mRate, 0.1f, 0.1f, 30.0f); ImGui::SameLine();
+						ch |= ImGui::Checkbox("Glide", &step->mGlide);
+						if (ch) regen();
 					}
-					ImGui::DragFloat("Min", &m->mMin, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
-					ImGui::DragFloat("Max", &m->mMax, 0.01f, 0.0f, 1.0f);
+
+					int blend = static_cast<int>(m->mBlend);
+					ImGui::SetNextItemWidth(100);
+					if (ImGui::Combo("Blend", &blend, blend_labels, 3)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
+					ImGui::SameLine(); ImGui::SetNextItemWidth(80); ImGui::DragFloat("Min", &m->mMin, 0.01f, 0.0f, 1.0f);
+					ImGui::SameLine(); ImGui::SetNextItemWidth(80); ImGui::DragFloat("Max", &m->mMax, 0.01f, 0.0f, 1.0f);
 					ImGui::Separator();
 					ImGui::PopID();
 				}

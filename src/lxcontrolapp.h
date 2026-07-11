@@ -19,6 +19,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace nap
 {
@@ -71,6 +72,7 @@ namespace nap
 		// Effects tab form state
 		char						mNewEffectName[128] = "";
 		std::map<lx::Effect*, int>	mModTargetIndex;	// per-effect selected target-parameter index
+		std::map<lx::Modulator*, std::vector<float>>	mModHistory;	// per-modulator live value ring for the shape plot
 
 		// Triggers tab form state
 		char						mNewTriggerName[128] = "";

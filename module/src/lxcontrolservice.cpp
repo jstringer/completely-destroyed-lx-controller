@@ -141,16 +141,24 @@ namespace nap
 
 	std::string lxcontrolService::makeUniqueID(const std::string& base) const
 	{
-		if (mResourceManager->findObject(base) == nullptr)
-			return base;
-		int suffix = 2;
-		while (true)
+		// Check both the ResourceManager AND our own issued-id set: createObject registers an object under
+		// its original id, but we reassign mID afterwards, so findObject can't see runtime-renamed objects
+		// (which is how two modulators on one effect used to collide and break user_content.json reload).
+		auto taken = [this](const std::string& id)
 		{
-			std::string candidate = base + "_" + std::to_string(suffix);
-			if (mResourceManager->findObject(candidate) == nullptr)
-				return candidate;
-			suffix++;
+			return mResourceManager->findObject(id) != nullptr || mIssuedIDs.count(id) > 0;
+		};
+
+		std::string result = base;
+		if (taken(result))
+		{
+			int suffix = 2;
+			while (taken(base + "_" + std::to_string(suffix)))
+				suffix++;
+			result = base + "_" + std::to_string(suffix);
 		}
+		mIssuedIDs.insert(result);
+		return result;
 	}
 
 

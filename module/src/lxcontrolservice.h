@@ -15,6 +15,7 @@
 #include <mathutils.h>
 #include <deque>
 #include <vector>
+#include <unordered_set>
 
 // Local Includes
 #include "midihotplugmonitor.h"
@@ -156,6 +157,7 @@ namespace nap
 		void reapClaims(uint64_t activationId);
 
 		ResourceManager*					mResourceManager = nullptr;
+		mutable std::unordered_set<std::string>	mIssuedIDs;	// every id makeUniqueID has handed out (createObject renames don't re-index the ResourceManager)
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
 
 		ResourcePtr<MidiInputPort>			mMidiPort;
