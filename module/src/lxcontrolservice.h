@@ -11,6 +11,7 @@
 #include <sequenceplayerclock.h>
 #include <sequenceeditor.h>
 #include <parameternumeric.h>
+#include <mathutils.h>
 #include <deque>
 #include <vector>
 
@@ -24,7 +25,19 @@
 #include "program.h"
 #include <cstdint>
 
-namespace lx { class FixtureComponentInstance; }
+namespace lx
+{
+	class FixtureComponentInstance;
+
+	/** One keyframe for lxcontrolService::authorFloatCurve: absolute time (seconds), value 0..1, and the
+	 *  interpolation used to reach this point from the previous one. */
+	struct Key
+	{
+		double					mTime = 0.0;
+		float					mValue = 0.0f;
+		nap::math::ECurveInterp	mInterp = nap::math::ECurveInterp::Linear;
+	};
+}
 
 namespace nap
 {
@@ -64,6 +77,15 @@ namespace nap
 		lx::Modulator* addModulator(lx::Effect& effect, rtti::TypeInfo type, lx::EffectParameter* target);
 		void removeEffect(lx::Effect* effect);
 		const std::vector<rtti::ObjectPtr<lx::Effect>>& getEffects() const { return mEffects; }
+
+		/**
+		 * Authors a float curve track at runtime from a keyframe list, via the editor's SequenceControllerCurve.
+		 * Clears any existing (auto-created) segments, lays one contiguous segment per interval [t_i, t_{i+1}],
+		 * sets values (0..1) + per-point interpolation, and sets the sequence duration to the last key time.
+		 * Main-thread only (StandardClock keeps authoring and playback from racing). This is the shared engine
+		 * used by every modulator shape's generateCurve().
+		 */
+		void authorFloatCurve(SequenceEditor& editor, const std::string& trackID, const std::vector<lx::Key>& keys);
 
 		// --- Triggers ---
 		lx::Trigger* createTrigger(rtti::TypeInfo type, const std::string& name);

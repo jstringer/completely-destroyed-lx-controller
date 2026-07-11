@@ -14,6 +14,8 @@
 #include <rtti/writer.h>
 #include <sequenceservice.h>
 #include <sequence.h>
+#include <sequencecontrollercurve.h>
+#include <sequenceplayercurveoutput.h>
 #include <utility/fileutils.h>
 #include <algorithm>
 #include <fstream>
@@ -788,5 +790,61 @@ namespace nap
 				break;
 			}
 		}
+	}
+
+
+	void lxcontrolService::authorFloatCurve(SequenceEditor& editor, const std::string& trackID,
+		const std::vector<lx::Key>& keys)
+	{
+		if (keys.size() < 2)
+			return;
+
+		auto& ctrl = editor.getController<SequenceControllerCurve>();
+		SequencePlayer* player = editor.mSequencePlayer.get();
+		if (player == nullptr)
+			return;
+
+		// Find the track and clear any existing (auto-created) segments so authoring is deterministic.
+		const SequenceTrack* track = nullptr;
+		for (const auto& t : player->getSequenceConst().mTracks)
+		{
+			if (t->mID == trackID) { track = t.get(); break; }
+		}
+		if (track == nullptr)
+		{
+			Logger::error("authorFloatCurve: track %s not found", trackID.c_str());
+			return;
+		}
+
+		std::vector<std::string> existing;
+		for (const auto& s : track->mSegments)
+			existing.emplace_back(s->mID);
+		for (const auto& sid : existing)
+			ctrl.deleteSegment(trackID, sid);
+
+		// One contiguous segment per interval [t_i, t_{i+1}]. insertSegment on an empty track creates
+		// [0, t]; subsequent inserts at increasing times append. It returns the new segment pointer.
+		std::vector<std::string> seg_ids;
+		for (size_t i = 1; i < keys.size(); ++i)
+		{
+			const SequenceTrackSegment* seg = ctrl.insertSegment(trackID, keys[i].mTime);
+			if (seg == nullptr)
+			{
+				Logger::error("authorFloatCurve: insertSegment at %.3f failed", keys[i].mTime);
+				return;
+			}
+			seg_ids.emplace_back(seg->mID);
+		}
+
+		// Values (0..1) + interpolation. updateCurveSegments forces each segment's start = previous end,
+		// so set the first segment's BEGIN and every segment's END.
+		ctrl.changeCurveSegmentValue(trackID, seg_ids.front(), keys.front().mValue, 0, sequencecurveenums::BEGIN);
+		for (size_t i = 1; i < keys.size(); ++i)
+		{
+			ctrl.changeCurveSegmentValue(trackID, seg_ids[i - 1], keys[i].mValue, 0, sequencecurveenums::END);
+			ctrl.changeCurveType(trackID, seg_ids[i - 1], keys[i].mInterp, 0);
+		}
+
+		editor.changeSequenceDuration(keys.back().mTime);
 	}
 }
