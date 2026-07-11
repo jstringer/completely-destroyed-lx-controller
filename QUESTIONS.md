@@ -78,3 +78,44 @@ Format below; newest last within each section.
 ## Open questions for the operator
 
 <!-- - [Phase N] <genuine design question that needs your call; a default was chosen to keep moving — see Decisions>. -->
+
+---
+
+# Modulator → Curve-Backed Engine Migration (2026-07-10, run 2)
+
+Design: `docs/superpowers/specs/2026-07-10-parametric-sequence-shapes-design.md`.
+Plan: `docs/superpowers/plans/2026-07-10-modulator-curve-migration.md`.
+Goal: replace the segment-less procedural modulator engine (own monotonic clock + player-as-heartbeat) with a stock napsequence curve engine (player time is the timebase), keeping the Target/Blend/gate integration spirit.
+
+## Decisions (migration)
+
+- [M-setup] Folded plan Task 1 (throwaway spike) + Task 2 (authorFloatCurve helper) into ONE boot self-check `verifyCurveSubstrate()` — the same idiom run 1 used (`verifyModulatorSubstrate`): write the real helper, prove it by logging the sink ramp at boot, then delete the self-check. One build cycle instead of two. Ponytail.
+- [M-setup] Plan Tasks 8 & 10 wrote `git add -A`; overridden to explicit-path staging per IMPLEMENTATION.md git protocol (never `git add -A`).
+- [M-Task1+2] **Curve substrate PROVEN** via the boot self-check (log: `sink` traced the player's own time exactly on a 1s 0→1 ramp, zero load errors). Facts learned that shape later tasks:
+  - A stock `SequencePlayerCurveOutput` on an empty-sequence player (`CreateEmptySequenceOnLoadFail=true`) **auto-creates exactly one curve track already bound to the output** (napsequence registers a default-track-creator for `SequencePlayerCurveOutput`). → `buildModulatorGraph` reuses `mTracks.back()`; no `addNewCurveTrack`/`assignNewOutputID` needed (kept as a fallback for the empty case).
+  - `authorFloatCurve` recipe that works: find track → delete existing segments → `insertSegment(trackID, t_i)` per interval (returns the new segment ptr; empty-track first insert makes `[0,t]`, rest append) → `changeCurveSegmentValue(BEGIN/END)` + `changeCurveType` → `changeSequenceDuration(last t)`.
+  - **No heartbeat / no monotonic clock needed**: a real-duration curve keeps the player ticking and its time IS the timebase — the exact thing the old engine worked around. Confirmed root-cause fix.
+- [M-Task3-8] Collapsed the plan's 6-commit shim sequence into: **(A) one coherent engine-swap commit** — refactor base `Modulator` (drop `evaluate()`/`advance()`/`mElapsed`; add `generateCurve()`/`update()`/curve handles; `value()` unchanged), migrate ADSR+LFO+Step to curves, rewrite `buildModulatorGraph` (stock `SequencePlayerCurveOutput`, reuse the auto-created track), `Effect::update` `advance`→`update`, and **delete** `ModulatorTrack/Adapter/Output` + their registrations (required together — the base and subtypes and the custom adapter are compile-coupled, and a half-migrated tree with a `usesCurve` shim outputs 0 anyway, so it isn't more "working"). Then (B) add AD, (C) GUI, (D) persistence. Rationale: fewer commits, each compiles+boots; the shim's intermediate states aren't meaningfully safer.
+- [M-Task3-8] `generateCurve(nap::lxcontrolService&)` calls back into `svc.authorFloatCurve(*mEditor, mTrackID, keys)`; `modulator.h` forward-declares `nap::lxcontrolService` (reference param only), subtypes include the service in their `.cpp`. Kept `authorFloatCurve` as a service method (already committed) rather than a free function — minimal churn.
+- [M-Task-D] **Behavioral engine self-check PASSED** (headless, sampled by the ADSR's player time since the app runs uncapped ~thousands of fps): ADSR traced attack→decay→**sustain held by pause** (player time frozen at A+D=0.40)→release 0.5→0 over R→stop; LFO 2Hz sine oscillated 0↔1 repeatedly; AD OneShot spiked then decayed to 0 by A+D=0.30 and stopped. All correct, zero errors. Curve engine verified end-to-end.
+- [M-Task-D] **Fixed a pre-existing persistence bug** surfaced by the 3-modulators-on-one-effect test: `makeUniqueID` only checked `ResourceManager::findObject`, but `createObject` indexes objects under their original id while we reassign `mID` afterwards — so multiple modulators on one effect all got id `<effect>_Mod`, producing duplicate ids that failed `user_content.json` reload (it renamed to `.bak` and continued empty). Root-caused at the chokepoint: `makeUniqueID` now also tracks a `mIssuedIDs` set. Latent before because prior tests used one modulator/effect; the curve engine makes multi-modulator effects (ADSR+LFO on one param) common. VERIFIED: fresh create→save→reload of an effect with ADSR+LFO+AD now round-trips clean.
+
+## Migration run summary
+
+Completed the modulator→curve migration on `refactor/v0.2` in 3 pushed commits, each built clean (only benign LNK4099 PDB warnings) and boot-clean (zero ResourceManager load errors):
+- `85ac853` — `authorFloatCurve` runtime curve helper + `lx::Key` (substrate proven via a since-removed boot self-check).
+- `dfb5eb5` — engine swap: base `Modulator` + ADSR/LFO/Step on a stock `SequencePlayerCurveOutput` curve graph (player time is the timebase); deleted `ModulatorTrack/Adapter/Output` + registrations; `Effect::update` `advance`→`update`.
+- `fe2adae` — `lx::AdModulator` + Effects GUI (AD button, Blend/Mode combos, live shape plot, regen-on-edit) + `makeUniqueID` duplicate-id fix.
+
+Removed the framework-fighting scaffolding entirely (segment-less `ModulatorTrack`, hand-rolled `mElapsed` monotonic clock, the 3600s player-heartbeat). Kept the integration spirit: Target/Component, Min/Max, Blend, trigger→release-linger→`reapClaims`, and the "only serialize the Modulator, rebuild the graph on load" persistence. `Modulator::value()` unchanged.
+
+## Manual verification needed (migration — GUI / hardware, could not auto-verify)
+
+- **GUI interaction** (Effects tab): Add ADSR/AD/LFO/Step, edit A/D/S/R/shape/Hz/Rate and see the curve re-author + the live plot track; Blend and Mode combos change behavior; Trigger/Stop gate the modulator. Auto-verified only headlessly via the `addModulator` path + a value trace; the actual clicks are untested.
+- **DMX output**: a triggered modulator drives real Art-Net on the bound fixture's role-matched channels (claim path unchanged; only the modulator value source changed). Watch the physical Eurolite strobes.
+- **Feel/timing on hardware**: ADSR sustain-hold + release-linger, LFO rate/shape at speed, AD one-shot vs loop-while-sustained, LFO retrigger phase reset. Headless traces confirmed the value math; hardware feel is unverified.
+- **Ceilings to sanity-check** (see design spec §9 / code comments): Sine & Gaussian LFO are bezier approximations; Square/Pulse/Step edges are a ~10ms ramp (napsequence curves are continuous — `ECurveInterp::Stepped` exists and could make these exact later); ADSR release always starts from the sustain level; Step Trigger-advance mode currently plays like Clock mode.
+
+## Open questions for the operator (migration)
+
+- **`CLAUDE.md` is stale** relative to the v0.2 code in general (it still describes the pre-v0.2 EffectLayer/Preset/PresetManager architecture and the Presets/Effects/MIDI tab layout). Not touched by this migration; worth a dedicated CLAUDE.md refresh pass covering the whole v0.2 refactor (fixtures ECS, effects/modulators/triggers/controllers/programs, and now the curve-backed modulator engine).
