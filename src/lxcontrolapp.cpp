@@ -425,14 +425,14 @@ namespace nap
 			{
 				if (!effects.empty())
 				{
-					int& eidx = mBindEffectIdx[&trigger];
+					int& eidx = mBindEffectIdx[trigger.mID];
 					std::vector<const char*> elabels;
 					for (auto& e : effects) elabels.emplace_back(e->mName.c_str());
 					eidx = nap::math::clamp(eidx, 0, static_cast<int>(elabels.size()) - 1);
 					ImGui::SetNextItemWidth(160);
 					ImGui::Combo("Effect", &eidx, elabels.data(), static_cast<int>(elabels.size()));
 
-					auto& sel = mBindFixtures[&trigger];
+					auto& sel = mBindFixtures[trigger.mID];
 					for (auto* f : fixtures)
 					{
 						ImGui::PushID(f);
@@ -469,8 +469,6 @@ namespace nap
 
 	void lxcontrolApp::drawProgramsTab()
 	{
-		static const char* type_labels[] = { "Controller", "Enter", "Exit" };
-
 		ImGui::InputText("Name##prog", mNewProgramName, sizeof(mNewProgramName));
 		ImGui::SameLine();
 		if (ImGui::Button("+ New Program") && std::strlen(mNewProgramName) > 0)
@@ -492,7 +490,11 @@ namespace nap
 
 		for (auto& prog : mLxControlService->getPrograms())
 		{
-			ImGui::PushID(prog.get());
+			// Keyed by mID, not the raw pointer: any mapping/binding/lifecycle edit below rewrites
+			// user_content.json, which the ResourceManager's directory watch hot-reloads next frame,
+			// recreating changed Programs/Triggers/Controllers at a new address. mID survives that;
+			// a pointer-based ID would orphan this tree's open/closed state and it'd appear to collapse.
+			ImGui::PushID(prog->mID.c_str());
 			bool is_active = (active == prog.get());
 			ImGui::Text("%s%s", prog->mName.c_str(), is_active ? "  (active)" : "");
 			ImGui::SameLine();
@@ -501,48 +503,13 @@ namespace nap
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Delete")) { mLxControlService->removeProgram(prog.get()); ImGui::PopID(); break; }
 
-			// --- Controller Mappings: per-Control, which Trigger fires while this Program is active ---
+			// --- Controller Mappings: manage each ControllerTrigger (fire/stop/delete + bindings) and
+			// pick which Controller(s) fire it while this Program is active ---
 			if (ImGui::TreeNode("Controller Mappings"))
-			{
-				if (controllers.empty())
-				{
-					ImGui::TextDisabled("Create a Controller in the MIDI tab first");
-				}
-				else
-				{
-					std::vector<const char*> mapping_labels;
-					mapping_labels.emplace_back("(none)");
-					for (auto* ct : controller_triggers) mapping_labels.emplace_back(ct->mName.c_str());
-
-					for (auto& c : controllers)
-					{
-						ImGui::PushID(c.get());
-						auto key = std::make_pair(prog.get(), c.get());
-						lx::Trigger* mapped = mLxControlService->getControllerMapping(*prog.get(), *c.get());
-						int cur = 0;
-						for (size_t i = 0; i < controller_triggers.size(); ++i)
-							if (controller_triggers[i] == mapped) { cur = static_cast<int>(i) + 1; break; }
-						int& idx = mControllerMappingComboIdx[key];
-						idx = cur;
-
-						ImGui::SetNextItemWidth(160);
-						if (ImGui::Combo(c->mName.c_str(), &idx, mapping_labels.data(), static_cast<int>(mapping_labels.size())))
-						{
-							lx::Trigger* new_trig = idx > 0 ? controller_triggers[idx - 1] : nullptr;
-							mLxControlService->setControllerMapping(*prog.get(), *c.get(), new_trig);
-						}
-						ImGui::PopID();
-					}
-				}
-				ImGui::TreePop();
-			}
-
-			// --- Controller Triggers: the reusable ControllerTrigger objects, editable from this Program's section ---
-			if (ImGui::TreeNode("Controller Triggers"))
 			{
 				for (auto* t : controller_triggers)
 				{
-					ImGui::PushID(t);
+					ImGui::PushID(t->mID.c_str());
 
 					bool active_t = mLxControlService->isTriggerActive(*t);
 					ImGui::BulletText("%s%s", t->mName.c_str(), active_t ? " (active)" : "");
@@ -558,8 +525,32 @@ namespace nap
 
 					drawTriggerBindingsEditor(*t);
 
+					if (controllers.empty())
+					{
+						ImGui::TextDisabled("Create a Controller in the MIDI tab first");
+					}
+					else if (ImGui::TreeNode("Mapped Controllers"))
+					{
+						for (auto& c : controllers)
+						{
+							ImGui::PushID(c->mID.c_str());
+							bool mapped = mLxControlService->getControllerMapping(*prog.get(), *c.get()) == t;
+							if (ImGui::Checkbox(c->mName.c_str(), &mapped))
+							{
+								if (mapped)	mLxControlService->setControllerMapping(*prog.get(), *c.get(), t);
+								else		mLxControlService->clearControllerMapping(*prog.get(), *c.get());
+							}
+							ImGui::PopID();
+						}
+						ImGui::TreePop();
+					}
+
+					ImGui::Separator();
 					ImGui::PopID();
 				}
+
+				drawTriggerCreationForm(*prog.get());
+
 				ImGui::TreePop();
 			}
 
@@ -571,7 +562,7 @@ namespace nap
 					if (t->get_type() != RTTI_OF(lx::EnterTrigger) && t->get_type() != RTTI_OF(lx::ExitTrigger))
 						continue;
 
-					ImGui::PushID(t.get());
+					ImGui::PushID(t->mID.c_str());
 
 					bool member = false;
 					for (auto& pt : prog->mLifecycleTriggers)
@@ -610,34 +601,40 @@ namespace nap
 				}
 
 				ImGui::Separator();
-
-				auto& form = mNewTriggerFormByProgram[prog.get()];
-				ImGui::InputText("Name##newtrig", form.mName, sizeof(form.mName));
-				ImGui::SameLine(); ImGui::SetNextItemWidth(120);
-				ImGui::Combo("Type##newtrig", &form.mType, type_labels, 3);
-				ImGui::SameLine();
-				if (ImGui::Button("+ New Trigger") && std::strlen(form.mName) > 0)
-				{
-					nap::rtti::TypeInfo type = form.mType == 1 ? RTTI_OF(lx::EnterTrigger)
-						: form.mType == 2 ? RTTI_OF(lx::ExitTrigger)
-						: RTTI_OF(lx::ControllerTrigger);
-					auto* new_trig = mLxControlService->createTrigger(type, form.mName);
-					// Enter/Exit triggers still auto-join this Program's lifecycle list (one-step
-					// workflow, unchanged); ControllerTriggers are created unassigned - map them via
-					// the Controller Mappings combos above.
-					if (form.mType == 1 || form.mType == 2)
-					{
-						auto list = prog->mLifecycleTriggers;
-						list.emplace_back(nap::ResourcePtr<lx::Trigger>(new_trig));
-						mLxControlService->setProgramLifecycleTriggers(*prog.get(), list);
-					}
-					form.mName[0] = '\0';
-				}
+				drawTriggerCreationForm(*prog.get());
 
 				ImGui::TreePop();
 			}
 			ImGui::Separator();
 			ImGui::PopID();
+		}
+	}
+
+
+	void lxcontrolApp::drawTriggerCreationForm(lx::Program& program)
+	{
+		static const char* type_labels[] = { "Controller", "Enter", "Exit" };
+
+		auto& form = mNewTriggerFormByProgram[program.mID];
+		ImGui::InputText("Name##newtrig", form.mName, sizeof(form.mName));
+		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
+		ImGui::Combo("Type##newtrig", &form.mType, type_labels, 3);
+		ImGui::SameLine();
+		if (ImGui::Button("+ New Trigger") && std::strlen(form.mName) > 0)
+		{
+			nap::rtti::TypeInfo type = form.mType == 1 ? RTTI_OF(lx::EnterTrigger)
+				: form.mType == 2 ? RTTI_OF(lx::ExitTrigger)
+				: RTTI_OF(lx::ControllerTrigger);
+			auto* new_trig = mLxControlService->createTrigger(type, form.mName);
+			// Enter/Exit triggers auto-join this Program's lifecycle list (one-step workflow);
+			// ControllerTriggers are created unassigned - map them via the Controller Mappings menu.
+			if (form.mType == 1 || form.mType == 2)
+			{
+				auto list = program.mLifecycleTriggers;
+				list.emplace_back(nap::ResourcePtr<lx::Trigger>(new_trig));
+				mLxControlService->setProgramLifecycleTriggers(program, list);
+			}
+			form.mName[0] = '\0';
 		}
 	}
 

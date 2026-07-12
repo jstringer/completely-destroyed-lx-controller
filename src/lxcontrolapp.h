@@ -20,7 +20,6 @@
 #include <set>
 #include <string>
 #include <vector>
-#include <utility>
 
 namespace nap
 {
@@ -47,6 +46,7 @@ namespace nap
 		void drawFixturesTab();
 		void drawEffectsTab();
 		void drawTriggerBindingsEditor(lx::Trigger& trigger);
+		void drawTriggerCreationForm(lx::Program& program);
 		void drawProgramsTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
@@ -75,9 +75,13 @@ namespace nap
 		std::map<lx::Effect*, int>	mModTargetIndex;	// per-effect selected target-parameter index
 		std::map<lx::Modulator*, std::vector<float>>	mModHistory;	// per-modulator live value ring for the shape plot
 
-		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's viewed from)
-		std::map<lx::Trigger*, int>					mBindEffectIdx;		// per-trigger add-binding effect selection
-		std::map<lx::Trigger*, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
+		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's
+		// viewed from). Keyed by mID rather than pointer: editing bindings rewrites user_content.json, which
+		// nap::ResourceManager's directory watch hot-reloads, recreating the changed Trigger/Program at a new
+		// address - a pointer-keyed map (or ImGui PushID) would silently orphan its entry / reset tree state
+		// on the very next frame.
+		std::map<std::string, int>					mBindEffectIdx;		// per-trigger add-binding effect selection
+		std::map<std::string, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
 
 		// Trigger creation form state, one per Program section (a user may have several Program sections open at once)
 		struct NewTriggerForm
@@ -85,7 +89,7 @@ namespace nap
 			char	mName[128] = "";
 			int		mType = 0;	// 0=Controller,1=Enter,2=Exit
 		};
-		std::map<lx::Program*, NewTriggerForm> mNewTriggerFormByProgram;
+		std::map<std::string, NewTriggerForm> mNewTriggerFormByProgram;	// keyed by Program::mID, see note above
 
 		// MIDI tab form state
 		char						mNewControllerName[128] = "";
@@ -95,9 +99,5 @@ namespace nap
 
 		// Programs tab form state
 		char						mNewProgramName[128] = "";
-
-		// Per-Program Controller Mappings combo state: selected Trigger index ("(none)" + every
-		// ControllerTrigger's name) for each (Program, Controller) pair.
-		std::map<std::pair<lx::Program*, lx::Controller*>, int>	mControllerMappingComboIdx;
 	};
 }
