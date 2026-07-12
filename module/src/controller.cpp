@@ -8,6 +8,5 @@ RTTI_END_ENUM
 
 RTTI_BEGIN_CLASS(lx::Controller)
 	RTTI_PROPERTY("Name",		&lx::Controller::mName,		nap::rtti::EPropertyMetaData::Required)
-	RTTI_PROPERTY("Trigger",	&lx::Controller::mTrigger,	nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Mode",		&lx::Controller::mMode,		nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS

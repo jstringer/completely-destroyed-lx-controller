@@ -20,6 +20,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <utility>
 
 namespace nap
 {
@@ -88,12 +89,15 @@ namespace nap
 
 		// MIDI tab form state
 		char						mNewControllerName[128] = "";
-		int							mNewControllerTriggerIdx = 0;
 		int							mNewControllerMode = 0;	// 0=Momentary,1=Toggle,2=FireOnly
 		lx::Controller*				mLearningController = nullptr;	// controller awaiting a learned MIDI event
 		int							mLearnStartCounter = 0;
 
 		// Programs tab form state
 		char						mNewProgramName[128] = "";
+
+		// Per-Program Controller Mappings combo state: selected Trigger index ("(none)" + every
+		// ControllerTrigger's name) for each (Program, Controller) pair.
+		std::map<std::pair<lx::Program*, lx::Controller*>, int>	mControllerMappingComboIdx;
 	};
 }
