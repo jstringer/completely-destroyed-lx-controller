@@ -507,6 +507,16 @@ namespace nap
 			// pick which Controller(s) fire it while this Program is active ---
 			if (ImGui::TreeNode("Controller Mappings"))
 			{
+				// Controllers already mapped to ANY Trigger in this Program. A Controller may only
+				// drive one Trigger per Program - setControllerMapping enforces this by clearing any
+				// existing mapping for that Controller first (lxcontrolservice.cpp) - so this list has
+				// at most one entry per Controller. Used below to scope each row's Combo and to decide
+				// whether "+ Add Controller binding" has anything left to offer.
+				std::vector<lx::Controller*> mapped_in_program;
+				for (auto& m : prog->mControllerMappings)
+					if (m->mController != nullptr)
+						mapped_in_program.emplace_back(m->mController.get());
+
 				for (auto* t : controller_triggers)
 				{
 					ImGui::PushID(t->mID.c_str());
@@ -525,24 +535,97 @@ namespace nap
 
 					drawTriggerBindingsEditor(*t);
 
+					// --- Controller bindings for this Trigger: one flat row per bound Controller
+					// (Combo to retarget + Remove), plus an Add button. Replaces the old "Mapped
+					// Controllers" nested checkbox tree (Program -> Trigger -> checkbox-per-Controller).
 					if (controllers.empty())
 					{
 						ImGui::TextDisabled("Create a Controller in the MIDI tab first");
 					}
-					else if (ImGui::TreeNode("Mapped Controllers"))
+					else
 					{
-						for (auto& c : controllers)
+						// Rows = this Program's ControllerMappings targeting this Trigger. PushID'd by
+						// the mapping's own mID, not loop index (row order isn't stable across a
+						// retarget/remove) and not the Controller pointer (this tab hot-reloads from
+						// JSON and reallocates objects next frame).
+						std::vector<lx::ControllerMapping*> rows;
+						for (auto& m : prog->mControllerMappings)
+							if (m->mTrigger.get() == t)
+								rows.emplace_back(m.get());
+
+						bool mutated = false;
+						for (auto* row : rows)
 						{
-							ImGui::PushID(c->mID.c_str());
-							bool mapped = mLxControlService->getControllerMapping(*prog.get(), *c.get()) == t;
-							if (ImGui::Checkbox(c->mName.c_str(), &mapped))
+							ImGui::PushID(row->mID.c_str());
+							lx::Controller* cur = row->mController.get();
+
+							// This row's choices = Controllers unmapped anywhere in this Program, plus
+							// its own current Controller (so it stays visible/selected even though
+							// every other row treats it as "taken").
+							std::vector<lx::Controller*> avail;
+							std::vector<const char*> avail_labels;
+							int cur_idx = 0;
+							for (auto& c : controllers)
 							{
-								if (mapped)	mLxControlService->setControllerMapping(*prog.get(), *c.get(), t);
-								else		mLxControlService->clearControllerMapping(*prog.get(), *c.get());
+								bool taken = std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) != mapped_in_program.end();
+								if (taken && c.get() != cur)
+									continue;
+								if (c.get() == cur)
+									cur_idx = static_cast<int>(avail.size());
+								avail.emplace_back(c.get());
+								avail_labels.emplace_back(c->mName.c_str());
 							}
+
+							ImGui::SetNextItemWidth(160);
+							if (ImGui::Combo("Controller", &cur_idx, avail_labels.data(), static_cast<int>(avail_labels.size())))
+							{
+								lx::Controller* picked = avail[cur_idx];
+								if (picked != cur && cur != nullptr)
+								{
+									// Re-target this slot: vacate the old Controller, then bind the new
+									// one to the same Trigger. Clearing `cur` is required in addition to
+									// setControllerMapping on `picked` - otherwise `cur` is left as an
+									// orphaned extra binding to `t`.
+									mLxControlService->clearControllerMapping(*prog.get(), *cur);
+									mLxControlService->setControllerMapping(*prog.get(), *picked, t);
+									mutated = true;
+								}
+							}
+
+							ImGui::SameLine();
+							if (ImGui::SmallButton("Remove##ctrlmap") && cur != nullptr)
+							{
+								mLxControlService->clearControllerMapping(*prog.get(), *cur);
+								mutated = true;
+							}
+
 							ImGui::PopID();
+							if (mutated) break;	// rows / mapped_in_program are now stale; next frame recomputes
 						}
-						ImGui::TreePop();
+
+						if (!mutated)
+						{
+							lx::Controller* next_avail = nullptr;
+							for (auto& c : controllers)
+							{
+								if (std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) == mapped_in_program.end())
+								{
+									next_avail = c.get();
+									break;
+								}
+							}
+
+							// Vendored ImGui is 1.76, predates BeginDisabled/EndDisabled (1.83), so
+							// gray manually and gate the click on can_add.
+							bool can_add = (next_avail != nullptr);
+							if (!can_add) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+							bool add_clicked = ImGui::Button("+ Add Controller binding");
+							if (!can_add) ImGui::PopStyleVar();
+							if (!can_add && ImGui::IsItemHovered())
+								ImGui::SetTooltip("Every Controller is already mapped to a Trigger in this Program");
+							if (add_clicked && can_add)
+								mLxControlService->setControllerMapping(*prog.get(), *next_avail, t);
+						}
 					}
 
 					ImGui::Separator();
