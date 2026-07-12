@@ -45,7 +45,7 @@ namespace nap
 		void drawMainUI();
 		void drawFixturesTab();
 		void drawEffectsTab();
-		void drawTriggersTab();
+		void drawTriggerBindingsEditor(lx::Trigger& trigger);
 		void drawProgramsTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
@@ -74,11 +74,17 @@ namespace nap
 		std::map<lx::Effect*, int>	mModTargetIndex;	// per-effect selected target-parameter index
 		std::map<lx::Modulator*, std::vector<float>>	mModHistory;	// per-modulator live value ring for the shape plot
 
-		// Triggers tab form state
-		char						mNewTriggerName[128] = "";
-		int							mNewTriggerType = 0;	// 0=Controller,1=Enter,2=Exit
+		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's viewed from)
 		std::map<lx::Trigger*, int>					mBindEffectIdx;		// per-trigger add-binding effect selection
 		std::map<lx::Trigger*, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
+
+		// Trigger creation form state, one per Program section (a user may have several Program sections open at once)
+		struct NewTriggerForm
+		{
+			char	mName[128] = "";
+			int		mType = 0;	// 0=Controller,1=Enter,2=Exit
+		};
+		std::map<lx::Program*, NewTriggerForm> mNewTriggerFormByProgram;
 
 		// MIDI tab form state
 		char						mNewControllerName[128] = "";
