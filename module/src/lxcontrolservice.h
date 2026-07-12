@@ -16,12 +16,14 @@
 #include <deque>
 #include <vector>
 #include <unordered_set>
+#include <functional>
 
 // Local Includes
 #include "midihotplugmonitor.h"
 #include "effect.h"
 #include "trigger.h"
 #include "controller.h"
+#include "controllermapping.h"
 #include "midibinding.h"
 #include "program.h"
 #include <cstdint>
@@ -98,7 +100,7 @@ namespace nap
 		bool isTriggerActive(lx::Trigger& trigger) const;
 
 		// --- Controllers + MIDI bindings ---
-		lx::Controller* createController(const std::string& name, lx::Trigger* trigger, lx::EControllerMode mode);
+		lx::Controller* createController(const std::string& name, lx::EControllerMode mode);
 		lx::MidiBinding* createBinding(const MidiEvent& learnedEvent, lx::Controller& controller);
 		void removeController(lx::Controller* controller);
 		void removeBinding(lx::MidiBinding* binding);
@@ -107,12 +109,17 @@ namespace nap
 
 		// --- Programs ---
 		lx::Program* createProgram(const std::string& name);
-		void setProgramTriggers(lx::Program& program, const std::vector<rtti::ObjectPtr<lx::Trigger>>& triggers);
+		void setProgramLifecycleTriggers(lx::Program& program, const std::vector<rtti::ObjectPtr<lx::Trigger>>& triggers);
 		void removeProgram(lx::Program* program);
 		void loadProgram(lx::Program* program);
 		void unloadProgram();
 		lx::Program* getActiveProgram() const { return mActiveProgram; }
 		const std::vector<rtti::ObjectPtr<lx::Program>>& getPrograms() const { return mPrograms; }
+
+		// --- Controller mappings (per-Program: which Trigger a Control fires) ---
+		lx::ControllerMapping* setControllerMapping(lx::Program& program, lx::Controller& controller, lx::Trigger* trigger);
+		void clearControllerMapping(lx::Program& program, lx::Controller& controller);
+		lx::Trigger* getControllerMapping(const lx::Program& program, const lx::Controller& controller) const;
 
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
@@ -155,6 +162,10 @@ namespace nap
 		bool buildModulatorGraph(ModulatorEntry& entry, const std::string& base, utility::ErrorState& errorState);
 		lx::FixtureComponentInstance* findFixture(const std::string& entityID) const;
 		void reapClaims(uint64_t activationId);
+		// Shared erase: drops any ControllerMapping matching the given predicate from both the service's
+		// flat cache and every Program's mControllerMappings list. Used by clearControllerMapping,
+		// removeController, and removeTrigger.
+		void eraseControllerMappingsIf(const std::function<bool(const lx::ControllerMapping&)>& pred);
 
 		ResourceManager*					mResourceManager = nullptr;
 		mutable std::unordered_set<std::string>	mIssuedIDs;	// every id makeUniqueID has handed out (createObject renames don't re-index the ResourceManager)
@@ -170,6 +181,7 @@ namespace nap
 		std::vector<rtti::ObjectPtr<lx::Controller>>	mControllers;
 		std::vector<rtti::ObjectPtr<lx::MidiBinding>>	mBindings;
 		std::vector<rtti::ObjectPtr<lx::Program>>	mPrograms;
+		std::vector<rtti::ObjectPtr<lx::ControllerMapping>>	mControllerMappings;
 		lx::Program*							mActiveProgram = nullptr;	// runtime, not persisted
 		std::vector<Activation>					mActivations;
 		uint64_t								mNextActivationId = 1;

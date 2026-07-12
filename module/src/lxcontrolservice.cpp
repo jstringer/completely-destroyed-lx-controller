@@ -438,6 +438,17 @@ namespace nap
 			stopTrigger(*trigger);
 		mTriggers.erase(std::remove_if(mTriggers.begin(), mTriggers.end(),
 			[trigger](const rtti::ObjectPtr<lx::Trigger>& t) { return t.get() == trigger; }), mTriggers.end());
+
+		// Scrub any now-dangling ControllerMapping referencing this trigger, and drop it from every
+		// Program's lifecycle-trigger list too (a latent bug pre-dating this refactor: removeTrigger
+		// never scrubbed Program::mTriggers either).
+		eraseControllerMappingsIf([trigger](const lx::ControllerMapping& m) { return m.mTrigger.get() == trigger; });
+		for (auto& program : mPrograms)
+		{
+			auto& list = program->mLifecycleTriggers;
+			list.erase(std::remove_if(list.begin(), list.end(),
+				[trigger](const nap::ResourcePtr<lx::Trigger>& t) { return t.get() == trigger; }), list.end());
+		}
 		save();
 	}
 
@@ -509,12 +520,11 @@ namespace nap
 	}
 
 
-	lx::Controller* lxcontrolService::createController(const std::string& name, lx::Trigger* trigger, lx::EControllerMode mode)
+	lx::Controller* lxcontrolService::createController(const std::string& name, lx::EControllerMode mode)
 	{
 		auto controller = mResourceManager->createObject<lx::Controller>();
 		controller->mID = makeUniqueID("Controller_" + name);
 		controller->mName = name;
-		controller->mTrigger = trigger;
 		controller->mMode = mode;
 		utility::ErrorState err;
 		if (!controller->init(err))
@@ -566,6 +576,9 @@ namespace nap
 	{
 		mControllers.erase(std::remove_if(mControllers.begin(), mControllers.end(),
 			[controller](const rtti::ObjectPtr<lx::Controller>& c) { return c.get() == controller; }), mControllers.end());
+
+		// Scrub any now-dangling ControllerMapping referencing this controller.
+		eraseControllerMappingsIf([controller](const lx::ControllerMapping& m) { return m.mController.get() == controller; });
 		save();
 	}
 
@@ -595,11 +608,11 @@ namespace nap
 	}
 
 
-	void lxcontrolService::setProgramTriggers(lx::Program& program, const std::vector<rtti::ObjectPtr<lx::Trigger>>& triggers)
+	void lxcontrolService::setProgramLifecycleTriggers(lx::Program& program, const std::vector<rtti::ObjectPtr<lx::Trigger>>& triggers)
 	{
-		program.mTriggers.clear();
+		program.mLifecycleTriggers.clear();
 		for (auto& t : triggers)
-			program.mTriggers.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
+			program.mLifecycleTriggers.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
 		save();
 	}
 
@@ -608,9 +621,79 @@ namespace nap
 	{
 		if (mActiveProgram == program)
 			unloadProgram();
+
+		// Drop every ControllerMapping this program owned from the service's flat cache too.
+		eraseControllerMappingsIf([program](const lx::ControllerMapping& m)
+		{
+			for (auto& pm : program->mControllerMappings)
+				if (pm.get() == &m) return true;
+			return false;
+		});
+
 		mPrograms.erase(std::remove_if(mPrograms.begin(), mPrograms.end(),
 			[program](const rtti::ObjectPtr<lx::Program>& p) { return p.get() == program; }), mPrograms.end());
 		save();
+	}
+
+
+	void lxcontrolService::eraseControllerMappingsIf(const std::function<bool(const lx::ControllerMapping&)>& pred)
+	{
+		mControllerMappings.erase(std::remove_if(mControllerMappings.begin(), mControllerMappings.end(),
+			[&pred](const rtti::ObjectPtr<lx::ControllerMapping>& m) { return pred(*m); }), mControllerMappings.end());
+		for (auto& program : mPrograms)
+		{
+			auto& list = program->mControllerMappings;
+			list.erase(std::remove_if(list.begin(), list.end(),
+				[&pred](const nap::ResourcePtr<lx::ControllerMapping>& m) { return pred(*m); }), list.end());
+		}
+	}
+
+
+	lx::ControllerMapping* lxcontrolService::setControllerMapping(lx::Program& program, lx::Controller& controller, lx::Trigger* trigger)
+	{
+		// Replace any existing mapping for this (Program, Controller) pair first (also saves).
+		clearControllerMapping(program, controller);
+		if (trigger == nullptr)
+			return nullptr;
+
+		auto mapping = mResourceManager->createObject<lx::ControllerMapping>();
+		mapping->mID = makeUniqueID(program.mID + "_" + controller.mID + "_Mapping");
+		mapping->mController = &controller;
+		mapping->mTrigger = trigger;
+		utility::ErrorState err;
+		if (!mapping->init(err))
+		{
+			Logger::error("setControllerMapping: %s", err.toString().c_str());
+			return nullptr;
+		}
+		mControllerMappings.emplace_back(mapping);
+		program.mControllerMappings.emplace_back(nap::ResourcePtr<lx::ControllerMapping>(mapping.get()));
+		save();
+		return mapping.get();
+	}
+
+
+	void lxcontrolService::clearControllerMapping(lx::Program& program, lx::Controller& controller)
+	{
+		eraseControllerMappingsIf([&program, &controller](const lx::ControllerMapping& m)
+		{
+			if (m.mController.get() != &controller) return false;
+			for (auto& pm : program.mControllerMappings)
+				if (pm.get() == &m) return true;
+			return false;
+		});
+		save();
+	}
+
+
+	lx::Trigger* lxcontrolService::getControllerMapping(const lx::Program& program, const lx::Controller& controller) const
+	{
+		for (auto& pm : program.mControllerMappings)
+		{
+			if (pm != nullptr && pm->mController.get() == &controller)
+				return pm->mTrigger.get();
+		}
+		return nullptr;
 	}
 
 
@@ -619,7 +702,7 @@ namespace nap
 		// Unload the outgoing program: fire its ExitTriggers (transient look, rings out) and stop the rest.
 		if (mActiveProgram != nullptr)
 		{
-			for (auto& t : mActiveProgram->mTriggers)
+			for (auto& t : mActiveProgram->mLifecycleTriggers)
 			{
 				if (t == nullptr) continue;
 				if (rtti_cast<lx::ExitTrigger>(t.get()) != nullptr)
@@ -635,7 +718,7 @@ namespace nap
 		// only while this program is active (see the gate there).
 		if (program != nullptr)
 		{
-			for (auto& t : program->mTriggers)
+			for (auto& t : program->mLifecycleTriggers)
 			{
 				if (t != nullptr && rtti_cast<lx::EnterTrigger>(t.get()) != nullptr)
 					fireTrigger(*t);
@@ -648,7 +731,7 @@ namespace nap
 	{
 		if (mActiveProgram == nullptr)
 			return;
-		for (auto& t : mActiveProgram->mTriggers)
+		for (auto& t : mActiveProgram->mLifecycleTriggers)
 		{
 			if (t == nullptr) continue;
 			if (rtti_cast<lx::ExitTrigger>(t.get()) != nullptr)
@@ -684,6 +767,8 @@ namespace nap
 			root_objects.emplace_back(binding.get());
 		for (auto& program : mPrograms)
 			root_objects.emplace_back(program.get());
+		for (auto& mapping : mControllerMappings)
+			root_objects.emplace_back(mapping.get());
 
 		rtti::JSONWriter writer;
 		utility::ErrorState error;
@@ -728,6 +813,8 @@ namespace nap
 			mBindings.emplace_back(binding);
 		for (auto& program : mResourceManager->getObjects<lx::Program>())
 			mPrograms.emplace_back(program);
+		for (auto& mapping : mResourceManager->getObjects<lx::ControllerMapping>())
+			mControllerMappings.emplace_back(mapping);
 	}
 
 
@@ -745,8 +832,9 @@ namespace nap
 		mHasLastEvent = true;
 		mMidiEventCounter++;
 
-		// Dispatch to controllers via matching bindings.
-		// ponytail: armed unconditionally here; Phase 5 gates by active-program membership.
+		// Dispatch to controllers via matching bindings. Which Trigger a Controller fires (if any) is
+		// resolved per active-Program via getControllerMapping() — a direct lookup into that Program's
+		// mControllerMappings, replacing the old fixed controller->mTrigger link.
 		bool on_event = false;
 		bool off_event = false;
 		switch (event.getType())
@@ -762,19 +850,13 @@ namespace nap
 			if (!binding->matches(event))
 				continue;
 			lx::Controller* controller = binding->mController.get();
-			if (controller == nullptr || controller->mTrigger == nullptr)
+			if (controller == nullptr || mActiveProgram == nullptr)
 				continue;
-			lx::Trigger* trig = controller->mTrigger.get();
 
-			// Program-scoped: a controller only responds while its trigger belongs to the active program.
-			if (mActiveProgram == nullptr)
-				continue;
-			bool in_program = false;
-			for (auto& pt : mActiveProgram->mTriggers)
-			{
-				if (pt.get() == trig) { in_program = true; break; }
-			}
-			if (!in_program)
+			// Program-scoped: a controller only responds to whatever Trigger the active Program maps
+			// it to; no mapping in this Program means this Control does nothing here.
+			lx::Trigger* trig = getControllerMapping(*mActiveProgram, *controller);
+			if (trig == nullptr)
 				continue;
 
 			switch (controller->mMode)
