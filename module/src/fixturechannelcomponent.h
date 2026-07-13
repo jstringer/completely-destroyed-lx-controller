@@ -50,8 +50,10 @@ namespace lx
 		 */
 		float resolveValue() const;
 
-		/** Adds/replaces the claim for the given activation. Claims stay sorted ascending by id (latest last). */
-		void pushClaim(uint64_t activationId, const EffectParameter* param, int component);
+		/** Adds/replaces the claim for the given activation. Claims stay sorted ascending by id (latest last).
+		 *  `slot` selects which fixture slot of `param` this claim reads (see Effect::mTargetMode); 0 for
+		 *  Single-mode effects. */
+		void pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot = 0);
 		/** Removes any claim for the given activation. */
 		void removeClaims(uint64_t activationId);
 
@@ -67,6 +69,7 @@ namespace lx
 			uint64_t				mActivationId = 0;
 			const EffectParameter*	mParam = nullptr;
 			int						mComponent = 0;
+			int						mSlot = 0;
 		};
 
 		std::string				mName;

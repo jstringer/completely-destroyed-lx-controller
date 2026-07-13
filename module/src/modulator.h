@@ -49,6 +49,13 @@ namespace lx
 		/** @return the sink value mapped to [Min,Max]. Read on the main thread. */
 		float value() const;
 
+		/** @return this modulator's value for fixture slot `slot` (see Effect::mTargetMode). Base:
+		 *  broadcasts the same value() to every slot; multi-fixture types (Chase, Noise) override. */
+		virtual float valueForSlot(int slot) const	{ return value(); }
+		/** Tells this modulator how many fixture slots it's driving (Effect::mFixtureCount, or 1 for
+		 *  Single mode). Base: no-op; multi-fixture types cache it for use in valueForSlot(). */
+		virtual void setSlotCount(int count)			{ }
+
 		std::string							mName;						///< Property: 'Name'
 		nap::ResourcePtr<EffectParameter>	mTarget;					///< Property: 'Target'
 		int									mTargetComponent = -1;		///< Property: 'TargetComponent' -1 = all

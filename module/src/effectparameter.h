@@ -33,16 +33,24 @@ namespace lx
 		/** @return true if this parameter targets the given fixture unit (empty Units = all units). */
 		bool appliesToUnit(int unit) const;
 
-		float getComponentValue(int c) const;
-		void setComponentValue(int c, float value);
+		/** Slot-0 convenience wrappers (Single-mode effects; every existing caller keeps working). */
+		float getComponentValue(int c) const					{ return getComponentValue(0, c); }
+		void setComponentValue(int c, float value)				{ setComponentValue(0, c, value); }
 
-		/** Copies each component's authored base value into mCurrentValues (called each frame before modulation). */
-		void resetToBase();
+		/** @return component c's current (post-modulation) value for fixture slot `slot`. */
+		float getComponentValue(int slot, int c) const;
+		/** Sets component c's current value for fixture slot `slot`, clamped 0..1. Grows storage as needed. */
+		void setComponentValue(int slot, int c, float value);
+
+		/** Copies each component's authored base value into every one of `slots` fixture slots
+		 *  (called each frame before modulation; `slots` = 1 for Single-mode effects). */
+		void resetToBase(int slots = 1);
 
 		std::string			mName;			///< Property: 'Name'
 		std::vector<int>	mUnits;			///< Property: 'Units' empty = all units
 
-		std::vector<float>	mCurrentValues;	///< Runtime post-modulation output, non-serialized
+		/** Runtime post-modulation output, non-serialized. Flattened [slot * getComponentCount() + c]. */
+		std::vector<float>	mCurrentValues;
 	};
 
 

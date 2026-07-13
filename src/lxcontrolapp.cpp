@@ -20,6 +20,8 @@
 #include <admodulator.h>
 #include <lfomodulator.h>
 #include <stepmodulator.h>
+#include <chasemodulator.h>
+#include <noisemodulator.h>
 #include <trigger.h>
 #include <controller.h>
 #include <midibinding.h>
@@ -261,6 +263,25 @@ namespace nap
 
 			if (open)
 			{
+				// --- Target mode: how many independent fixture slots this effect computes ---
+				static const char* target_mode_labels[] = { "Single Fixture", "Multiple Fixtures" };
+				int mode = static_cast<int>(effect->mTargetMode);
+				int fixture_count = effect->mFixtureCount;
+				bool mode_changed = false;
+				ImGui::SetNextItemWidth(160);
+				mode_changed |= ImGui::Combo("Target", &mode, target_mode_labels, 2);
+				if (mode == static_cast<int>(lx::EEffectTargetMode::Multiple))
+				{
+					ImGui::SameLine();
+					ImGui::SetNextItemWidth(80);
+					mode_changed |= ImGui::InputInt("Fixture Count", &fixture_count);
+					fixture_count = nap::math::clamp(fixture_count, 1, 32);
+				}
+				if (mode_changed)
+					mLxControlService->setEffectTargetMode(*effect.get(), static_cast<lx::EEffectTargetMode>(mode), fixture_count);
+
+				ImGui::Separator();
+
 				// --- Parameters ---
 				if (ImGui::Button("Add Float"))		mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::FloatParameter));
 				ImGui::SameLine();
@@ -315,6 +336,8 @@ namespace nap
 				ImGui::SameLine(); if (ImGui::Button("Add AD"))   add_mod(RTTI_OF(lx::AdModulator));
 				ImGui::SameLine(); if (ImGui::Button("Add LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
 				ImGui::SameLine(); if (ImGui::Button("Add Step")) add_mod(RTTI_OF(lx::StepModulator));
+				ImGui::SameLine(); if (ImGui::Button("Add Chase")) add_mod(RTTI_OF(lx::ChaseModulator));
+				ImGui::SameLine(); if (ImGui::Button("Add Noise")) add_mod(RTTI_OF(lx::NoiseModulator));
 
 				static const char* blend_labels[]    = { "Replace", "Multiply", "Add" };
 				static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
@@ -324,13 +347,30 @@ namespace nap
 				{
 					ImGui::PushID(m.get());
 
-					// Live shape plot: raw 0..1 sink value over recent frames.
-					auto& hist = mModHistory[m.get()];
-					hist.push_back(m->mSink != nullptr ? m->mSink->mValue : 0.0f);
-					if (hist.size() > 120) hist.erase(hist.begin());	// ponytail: O(n) shift, n=120, negligible
-					ImGui::PlotLines("##plot", hist.data(), static_cast<int>(hist.size()), 0, nullptr, 0.0f, 1.0f, ImVec2(160, 40));
-
-					ImGui::ProgressBar(m->value(), ImVec2(120, 0));
+					// Chase/Noise drive a distinct value per fixture slot -- a single scalar plot/bar
+					// doesn't represent that, so show one mini progress bar per slot instead.
+					bool is_slot_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
+					if (is_slot_mod)
+					{
+						int slots = effect->mTargetMode == lx::EEffectTargetMode::Multiple ?
+							nap::math::clamp(effect->mFixtureCount, 1, 32) : 1;
+						for (int s = 0; s < slots; ++s)
+						{
+							ImGui::PushID(s);
+							ImGui::ProgressBar(m->valueForSlot(s), ImVec2(50, 0));
+							ImGui::PopID();
+							if (s + 1 < slots) ImGui::SameLine();
+						}
+					}
+					else
+					{
+						// Live shape plot: raw 0..1 sink value over recent frames.
+						auto& hist = mModHistory[m.get()];
+						hist.push_back(m->mSink != nullptr ? m->mSink->mValue : 0.0f);
+						if (hist.size() > 120) hist.erase(hist.begin());	// ponytail: O(n) shift, n=120, negligible
+						ImGui::PlotLines("##plot", hist.data(), static_cast<int>(hist.size()), 0, nullptr, 0.0f, 1.0f, ImVec2(160, 40));
+						ImGui::ProgressBar(m->value(), ImVec2(120, 0));
+					}
 					ImGui::SameLine();
 					ImGui::Text("-> %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
 					ImGui::SameLine(); if (ImGui::SmallButton("Trigger")) m->onTrigger();
@@ -377,6 +417,17 @@ namespace nap
 						ImGui::SetNextItemWidth(80); ch |= ImGui::DragFloat("Rate", &step->mRate, 0.1f, 0.1f, 30.0f); ImGui::SameLine();
 						ch |= ImGui::Checkbox("Glide", &step->mGlide);
 						if (ch) regen();
+					}
+					else if (auto* chase = rtti_cast<lx::ChaseModulator>(m.get()))
+					{
+						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &chase->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(80); ImGui::SliderFloat("PulseWidth", &chase->mPulseWidth, 0.01f, 1.0f); ImGui::SameLine();
+						ImGui::Checkbox("Glide", &chase->mGlide);
+					}
+					else if (auto* noise = rtti_cast<lx::NoiseModulator>(m.get()))
+					{
+						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
+						ImGui::SetNextItemWidth(100); ImGui::SliderFloat("Smoothing", &noise->mSmoothing, 0.0f, 1.0f);
 					}
 
 					int blend = static_cast<int>(m->mBlend);
@@ -433,6 +484,18 @@ namespace nap
 					ImGui::Combo("Effect", &eidx, elabels.data(), static_cast<int>(elabels.size()));
 
 					auto& sel = mBindFixtures[trigger.mID];
+					if (effects[eidx]->mTargetMode == lx::EEffectTargetMode::Multiple)
+					{
+						int needed = effects[eidx]->mFixtureCount;
+						ImGui::SameLine();
+						if (static_cast<int>(sel.size()) == needed)
+							ImGui::TextDisabled("needs %d fixtures, %d selected", needed, static_cast<int>(sel.size()));
+						else if (static_cast<int>(sel.size()) > needed)
+							ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "needs %d fixtures, %d selected -- will repeat", needed, static_cast<int>(sel.size()));
+						else
+							ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "needs %d fixtures, %d selected -- some slots stay at base", needed, static_cast<int>(sel.size()));
+					}
+
 					for (auto* f : fixtures)
 					{
 						ImGui::PushID(f);

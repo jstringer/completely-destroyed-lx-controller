@@ -78,6 +78,9 @@ namespace nap
 		lx::Effect* createEffect(const std::string& name);
 		lx::EffectParameter* addEffectParameter(lx::Effect& effect, rtti::TypeInfo type);
 		lx::Modulator* addModulator(lx::Effect& effect, rtti::TypeInfo type, lx::EffectParameter* target);
+		/** Sets how many fixtures this effect targets and re-propagates the slot count to every modulator
+		 *  it owns (a no-op for modulator types that don't use slots, e.g. ADSR/AD/LFO/Step). */
+		void setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode, int fixtureCount);
 		void removeEffect(lx::Effect* effect);
 		const std::vector<rtti::ObjectPtr<lx::Effect>>& getEffects() const { return mEffects; }
 

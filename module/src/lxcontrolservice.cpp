@@ -337,11 +337,29 @@ namespace nap
 			Logger::error("addModulator: build graph failed: %s", err.toString().c_str());
 			return nullptr;
 		}
+		mod->setSlotCount(effect.mTargetMode == lx::EEffectTargetMode::Multiple ? std::max(1, effect.mFixtureCount) : 1);
 
 		effect.mModulators.emplace_back(mod);
 		effect_entry->mModulators.emplace_back(mod_entry);
 		save();
 		return mod;
+	}
+
+
+	void lxcontrolService::setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode, int fixtureCount)
+	{
+		effect.mTargetMode = mode;
+		effect.mFixtureCount = std::max(1, fixtureCount);
+
+		int slot_count = mode == lx::EEffectTargetMode::Multiple ? effect.mFixtureCount : 1;
+		EffectEntry* entry = findEntry(effect);
+		if (entry != nullptr)
+		{
+			for (auto& me : entry->mModulators)
+				if (me.mModulator != nullptr)
+					me.mModulator->setSlotCount(slot_count);
+		}
+		save();
 	}
 
 
@@ -469,11 +487,23 @@ namespace nap
 				continue;
 			activation.mEffects.emplace_back(effect);
 
-			for (auto& fixture_name : binding.mFixtureNames)
+			// Iterate fixtures in physical rig order (by DMX StartChannel), not binding.mFixtureNames' own
+			// order (whatever the checkbox UI happened to accumulate) and not mFixtures' raw registration
+			// order (which reflects component init order, not necessarily objects.json declaration order),
+			// so slot assignment for Multiple-mode effects (Chase order, Noise decorrelation) matches the
+			// rig's physical layout.
+			std::vector<lx::FixtureComponentInstance*> ordered_fixtures = mFixtures;
+			std::sort(ordered_fixtures.begin(), ordered_fixtures.end(),
+				[](lx::FixtureComponentInstance* a, lx::FixtureComponentInstance* b) { return a->getStartChannel() < b->getStartChannel(); });
+
+			int slot_index = 0;
+			for (auto* fixture : ordered_fixtures)
 			{
-				lx::FixtureComponentInstance* fixture = findFixture(fixture_name);
-				if (fixture == nullptr)
+				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) == binding.mFixtureNames.end())
 					continue;
+
+				int slot = (effect->mTargetMode == lx::EEffectTargetMode::Multiple)
+					? slot_index % std::max(1, effect->mFixtureCount) : 0;
 
 				for (auto* channel : fixture->getChannels())
 				{
@@ -483,10 +513,11 @@ namespace nap
 						for (int c = 0; c < count; ++c)
 						{
 							if (param->getComponentRole(c) == channel->getRole() && param->appliesToUnit(channel->getUnitIndex()))
-								channel->pushClaim(activation.mId, param.get(), c);
+								channel->pushClaim(activation.mId, param.get(), c, slot);
 						}
 					}
 				}
+				++slot_index;
 			}
 			effect->trigger();
 		}
@@ -792,12 +823,16 @@ namespace nap
 			for (auto& p : effect->mParameters)
 				entry.mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(p.get()));
 
+			int slot_count = effect->mTargetMode == lx::EEffectTargetMode::Multiple ? std::max(1, effect->mFixtureCount) : 1;
 			for (auto& m : effect->mModulators)
 			{
 				ModulatorEntry me;
 				me.mModulator = rtti::ObjectPtr<lx::Modulator>(m.get());
 				if (!buildModulatorGraph(me, makeUniqueID(m->mID + "_rt"), err))
 					Logger::error("rebuild: modulator graph failed for %s: %s", m->mID.c_str(), err.toString().c_str());
+				// mSlotCount is non-serialized runtime state on Chase/Noise-style modulators; re-propagate
+				// it from the effect's (serialized) TargetMode/FixtureCount, else it silently resets to 1.
+				m->setSlotCount(slot_count);
 				entry.mModulators.emplace_back(me);
 			}
 
