@@ -50,6 +50,13 @@ namespace nap
 		void drawProgramsTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
+		/** Best-effort label for a Multiple-mode effect's fixture slot in the modulator preview: finds any
+		 *  Trigger binding targeting this effect and resolves which physically-ordered fixture landed in
+		 *  `slot` (mirrors lxcontrolService::fireTrigger's own assignment). Falls back to "Slot N" if no
+		 *  binding is found, or if the effect is bound by more than one Trigger with different fixture
+		 *  sets (a known shared-Effect-state limitation -- see QUESTIONS.md) the first match wins, so this
+		 *  is a preview aid, not a runtime guarantee. */
+		std::string describeEffectSlot(lx::Effect* effect, int slot);
 
 		ResourceManager*			mResourceManager = nullptr;		///< Manages all the loaded data
 		RenderService*				mRenderService = nullptr;		///< Render Service that handles render calls
@@ -70,10 +77,14 @@ namespace nap
 		// port when devices connect/disconnect (hot-plug), so this reflects live state.
 		ObjectPtr<MidiInputPort>	mMidiPort;
 
-		// Effects tab form state
+		// Effects tab form state. Keyed by mID rather than pointer: several service calls (addModulator,
+		// addEffectParameter, setEffectTargetMode, ...) call save(), which rewrites user_content.json and
+		// gets hot-reloaded by nap::ResourceManager's directory watch, recreating Effects/Modulators at a
+		// new address next frame -- a pointer-keyed map would silently orphan its entry (plot history
+		// resets, selection resets) on the very next such edit. Same reasoning as mBindEffectIdx/mBindFixtures below.
 		char						mNewEffectName[128] = "";
-		std::map<lx::Effect*, int>	mModTargetIndex;	// per-effect selected target-parameter index
-		std::map<lx::Modulator*, std::vector<float>>	mModHistory;	// per-modulator live value ring for the shape plot
+		std::map<std::string, int>	mModTargetIndex;	// per-effect (by mID) selected target-parameter index
+		std::map<std::string, std::vector<float>>	mModHistory;	// per-modulator (by mID) live value ring for the shape plot
 
 		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's
 		// viewed from). Keyed by mID rather than pointer: editing bindings rewrites user_content.json, which

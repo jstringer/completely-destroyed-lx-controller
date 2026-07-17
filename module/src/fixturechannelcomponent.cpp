@@ -39,18 +39,18 @@ namespace lx
 		if (!mClaims.empty())
 		{
 			const ChannelClaim& top = mClaims.back();
-			return nap::math::clamp(top.mParam->getComponentValue(top.mComponent), 0.0f, 1.0f);
+			return nap::math::clamp(top.mParam->getComponentValue(top.mSlot, top.mComponent), 0.0f, 1.0f);
 		}
 		return nap::math::clamp(mBaseParameter->mValue, 0.0f, 1.0f);
 	}
 
 
-	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const EffectParameter* param, int component)
+	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot)
 	{
 		removeClaims(activationId);
 		// Activation ids are monotonically increasing, so a new claim is always the latest -> append
 		// keeps the vector sorted ascending by id.
-		mClaims.push_back({ activationId, param, component });
+		mClaims.push_back({ activationId, param, component, slot });
 	}
 
 

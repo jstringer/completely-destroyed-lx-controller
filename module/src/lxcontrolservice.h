@@ -73,11 +73,23 @@ namespace nap
 		void registerFixture(lx::FixtureComponentInstance* fixture);
 		void unregisterFixture(lx::FixtureComponentInstance* fixture);
 		const std::vector<lx::FixtureComponentInstance*>& getFixtures() const { return mFixtures; }
+		/** @return all registered fixtures sorted by physical DMX StartChannel (rig order) -- the same
+		 *  order fireTrigger uses to assign Chase/Noise fixture slots. Fixture-picking UI should iterate
+		 *  this (not getFixtures()'s raw registration order) so what's shown while authoring matches what
+		 *  actually happens at fire time. */
+		std::vector<lx::FixtureComponentInstance*> getFixturesPhysicalOrder() const;
 
 		// --- Effects ---
 		lx::Effect* createEffect(const std::string& name);
 		lx::EffectParameter* addEffectParameter(lx::Effect& effect, rtti::TypeInfo type);
 		lx::Modulator* addModulator(lx::Effect& effect, rtti::TypeInfo type, lx::EffectParameter* target);
+		/** Sets whether this effect computes one shared value (Single) or a distinct value per bound
+		 *  fixture (Multiple), and re-propagates the currently-known fixture count to every modulator it
+		 *  owns (a no-op for modulator types that don't use slots, e.g. ADSR/AD/LFO/Step). The fixture
+		 *  COUNT itself is no longer authored here -- it's derived automatically from each Trigger
+		 *  binding's actual selected fixtures at fire time (see fireTrigger/syncEffectFixtureCount), so it
+		 *  can never drift out of sync with what's actually bound. */
+		void setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode);
 		void removeEffect(lx::Effect* effect);
 		const std::vector<rtti::ObjectPtr<lx::Effect>>& getEffects() const { return mEffects; }
 
@@ -155,10 +167,22 @@ namespace nap
 		};
 
 		void onMidiEvent(const MidiEvent& event);
+		/** Re-wires mPlayer/mSink/mEditor on every already-tracked Modulator after NAP hot-reloads
+		 *  user_content.json (see mResourcesReloadedSlot connect site in setup() for why this is needed). */
+		void onResourcesReloaded();
+		/** (Re)builds one modulator's runtime player/sink/editor graph and re-propagates its slot count +
+		 *  Noise seed bookkeeping. Shared by rebuildFromLoadedContent (initial load) and
+		 *  onResourcesReloaded (every subsequent hot-reload) -- same work, two call sites. */
+		void rewireModulator(lx::Effect& effect, ModulatorEntry& entry);
 		void save();
 		void rebuildFromLoadedContent();
 		std::string makeUniqueID(const std::string& base) const;
 		EffectEntry* findEntry(lx::Effect& effect);
+		/** Sets effect.mFixtureCount to matchedCount (Multiple mode only) and re-propagates it to every
+		 *  modulator the effect owns via Modulator::setSlotCount. Called from fireTrigger with the actual
+		 *  number of the firing binding's fixtures that exist in the rig -- this is what keeps Chase/Noise
+		 *  slot counts truthful without requiring a hand-typed, easily-desynced FixtureCount field. */
+		void syncEffectFixtureCount(lx::Effect& effect, int matchedCount);
 		bool buildModulatorGraph(ModulatorEntry& entry, const std::string& base, utility::ErrorState& errorState);
 		lx::FixtureComponentInstance* findFixture(const std::string& entityID) const;
 		void reapClaims(uint64_t activationId);
@@ -170,6 +194,10 @@ namespace nap
 		ResourceManager*					mResourceManager = nullptr;
 		mutable std::unordered_set<std::string>	mIssuedIDs;	// every id makeUniqueID has handed out (createObject renames don't re-index the ResourceManager)
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
+		int									mNextNoiseSeed = 1;	// auto-assigned to each newly-created NoiseModulator so independent instances decorrelate
+		// Fires on every hot-reload of a loaded file (including our own save()-triggered ones); connected
+		// once in setup(), after the initial load, so it only re-wires SUBSEQUENT reloads (see onResourcesReloaded).
+		Slot<>								mResourcesReloadedSlot = { std::function<void()>([this]() { onResourcesReloaded(); }) };
 
 		ResourcePtr<MidiInputPort>			mMidiPort;
 		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;

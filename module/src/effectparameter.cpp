@@ -42,26 +42,37 @@ namespace lx
 	}
 
 
-	float EffectParameter::getComponentValue(int c) const
-	{
-		return (c >= 0 && c < static_cast<int>(mCurrentValues.size())) ? mCurrentValues[c] : 0.0f;
-	}
-
-
-	void EffectParameter::setComponentValue(int c, float value)
-	{
-		if (c >= 0 && c < static_cast<int>(mCurrentValues.size()))
-			mCurrentValues[c] = nap::math::clamp(value, 0.0f, 1.0f);
-	}
-
-
-	void EffectParameter::resetToBase()
+	float EffectParameter::getComponentValue(int slot, int c) const
 	{
 		int count = getComponentCount();
-		if (static_cast<int>(mCurrentValues.size()) != count)
-			mCurrentValues.assign(count, 0.0f);
-		for (int c = 0; c < count; ++c)
-			mCurrentValues[c] = nap::math::clamp(getBaseValue(c), 0.0f, 1.0f);
+		if (slot < 0 || c < 0 || c >= count)
+			return 0.0f;
+		int idx = slot * count + c;
+		return (idx < static_cast<int>(mCurrentValues.size())) ? mCurrentValues[idx] : getBaseValue(c);
+	}
+
+
+	void EffectParameter::setComponentValue(int slot, int c, float value)
+	{
+		int count = getComponentCount();
+		if (slot < 0 || c < 0 || c >= count)
+			return;
+		int idx = slot * count + c;
+		if (static_cast<int>(mCurrentValues.size()) <= idx)
+			mCurrentValues.resize(idx + 1, 0.0f);
+		mCurrentValues[idx] = nap::math::clamp(value, 0.0f, 1.0f);
+	}
+
+
+	void EffectParameter::resetToBase(int slots)
+	{
+		int count = getComponentCount();
+		int total = std::max(1, slots) * count;
+		if (static_cast<int>(mCurrentValues.size()) != total)
+			mCurrentValues.assign(total, 0.0f);
+		for (int s = 0; s < std::max(1, slots); ++s)
+			for (int c = 0; c < count; ++c)
+				mCurrentValues[s * count + c] = nap::math::clamp(getBaseValue(c), 0.0f, 1.0f);
 	}
 
 
