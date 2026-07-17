@@ -235,6 +235,30 @@ namespace nap
 	}
 
 
+	std::string lxcontrolApp::describeEffectSlot(lx::Effect* effect, int slot)
+	{
+		auto ordered_fixtures = mLxControlService->getFixturesPhysicalOrder();
+		for (auto& trigger : mLxControlService->getTriggers())
+		{
+			for (auto& binding : trigger->mBindings)
+			{
+				if (binding.mEffect.get() != effect)
+					continue;
+				int idx = 0;
+				for (auto* f : ordered_fixtures)
+				{
+					if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), f->getEntityID()) == binding.mFixtureNames.end())
+						continue;
+					if (idx == slot)
+						return f->getDisplayName();
+					++idx;
+				}
+			}
+		}
+		return "Slot " + std::to_string(slot);
+	}
+
+
 	void lxcontrolApp::drawEffectsTab()
 	{
 		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
@@ -263,22 +287,23 @@ namespace nap
 
 			if (open)
 			{
-				// --- Target mode: how many independent fixture slots this effect computes ---
+				// --- Target mode: how many independent fixture slots this effect computes. FixtureCount
+				// itself is no longer hand-typed here -- it's derived automatically from whichever Trigger
+				// binding fires this effect (see lxcontrolService::fireTrigger/syncEffectFixtureCount), so
+				// "how many fixtures" can never drift out of sync with what's actually checked in a
+				// binding's fixture list. ---
 				static const char* target_mode_labels[] = { "Single Fixture", "Multiple Fixtures" };
 				int mode = static_cast<int>(effect->mTargetMode);
-				int fixture_count = effect->mFixtureCount;
-				bool mode_changed = false;
 				ImGui::SetNextItemWidth(160);
-				mode_changed |= ImGui::Combo("Target", &mode, target_mode_labels, 2);
+				bool mode_changed = ImGui::Combo("Target", &mode, target_mode_labels, 2);
 				if (mode == static_cast<int>(lx::EEffectTargetMode::Multiple))
 				{
 					ImGui::SameLine();
-					ImGui::SetNextItemWidth(80);
-					mode_changed |= ImGui::InputInt("Fixture Count", &fixture_count);
-					fixture_count = nap::math::clamp(fixture_count, 1, 32);
+					ImGui::TextDisabled("(%d fixture%s -- set by whichever Trigger binding last fired this effect)",
+						effect->mFixtureCount, effect->mFixtureCount == 1 ? "" : "s");
 				}
 				if (mode_changed)
-					mLxControlService->setEffectTargetMode(*effect.get(), static_cast<lx::EEffectTargetMode>(mode), fixture_count);
+					mLxControlService->setEffectTargetMode(*effect.get(), static_cast<lx::EEffectTargetMode>(mode));
 
 				ImGui::Separator();
 
@@ -317,7 +342,7 @@ namespace nap
 				ImGui::Separator();
 
 				// --- Modulators ---
-				int& tgt = mModTargetIndex[effect.get()];
+				int& tgt = mModTargetIndex[effect->mID];
 				std::vector<const char*> plabels;
 				for (auto& p : effect->mParameters) plabels.emplace_back(p->mName.c_str());
 				if (!plabels.empty())
@@ -348,7 +373,8 @@ namespace nap
 					ImGui::PushID(m.get());
 
 					// Chase/Noise drive a distinct value per fixture slot -- a single scalar plot/bar
-					// doesn't represent that, so show one mini progress bar per slot instead.
+					// doesn't represent that, so show one mini progress bar per slot instead, labeled with
+					// the fixture that slot actually resolves to wherever we can determine it.
 					bool is_slot_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
 					if (is_slot_mod)
 					{
@@ -357,7 +383,7 @@ namespace nap
 						for (int s = 0; s < slots; ++s)
 						{
 							ImGui::PushID(s);
-							ImGui::ProgressBar(m->valueForSlot(s), ImVec2(50, 0));
+							ImGui::ProgressBar(m->valueForSlot(s), ImVec2(90, 0), describeEffectSlot(effect.get(), s).c_str());
 							ImGui::PopID();
 							if (s + 1 < slots) ImGui::SameLine();
 						}
@@ -365,7 +391,7 @@ namespace nap
 					else
 					{
 						// Live shape plot: raw 0..1 sink value over recent frames.
-						auto& hist = mModHistory[m.get()];
+						auto& hist = mModHistory[m->mID];
 						hist.push_back(m->mSink != nullptr ? m->mSink->mValue : 0.0f);
 						if (hist.size() > 120) hist.erase(hist.begin());	// ponytail: O(n) shift, n=120, negligible
 						ImGui::PlotLines("##plot", hist.data(), static_cast<int>(hist.size()), 0, nullptr, 0.0f, 1.0f, ImVec2(160, 40));
@@ -427,7 +453,11 @@ namespace nap
 					else if (auto* noise = rtti_cast<lx::NoiseModulator>(m.get()))
 					{
 						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(100); ImGui::SliderFloat("Smoothing", &noise->mSmoothing, 0.0f, 1.0f);
+						ImGui::SetNextItemWidth(100); ImGui::SliderFloat("Smoothing", &noise->mSmoothing, 0.0f, 1.0f); ImGui::SameLine();
+						// Two Noise modulators with the same Seed produce identical values at every
+						// (slot, step) -- give each a distinct Seed (auto-assigned on Add Noise) to
+						// decorrelate them, e.g. one per R/G/B component of a color.
+						ImGui::SetNextItemWidth(80); ImGui::InputInt("Seed", &noise->mSeed);
 					}
 
 					int blend = static_cast<int>(m->mBlend);
@@ -447,7 +477,18 @@ namespace nap
 	void lxcontrolApp::drawTriggerBindingsEditor(lx::Trigger& trigger)
 	{
 		const auto& effects = mLxControlService->getEffects();
-		const auto& fixtures = mLxControlService->getFixtures();
+		// Physical rig order (by StartChannel), matching exactly the order lxcontrolService::fireTrigger
+		// assigns Chase/Noise fixture slots in -- so the slot number previewed below is what a fixture
+		// will actually get, not a guess based on checkbox/registration order.
+		auto ordered_fixtures = mLxControlService->getFixturesPhysicalOrder();
+
+		auto displayNameFor = [&](const std::string& entityID) -> std::string
+		{
+			for (auto* f : ordered_fixtures)
+				if (f->getEntityID() == entityID)
+					return f->getDisplayName();
+			return entityID;	// fixture no longer in the rig; show the raw id rather than dropping it silently
+		};
 
 		if (ImGui::TreeNode("Bindings"))
 		{
@@ -457,7 +498,7 @@ namespace nap
 			{
 				ImGui::PushID(bi);
 				std::string fx;
-				for (auto& f : b.mFixtureNames) { fx += f; fx += " "; }
+				for (auto& f : b.mFixtureNames) { fx += displayNameFor(f); fx += " "; }
 				ImGui::BulletText("%s -> %s", b.mEffect != nullptr ? b.mEffect->mName.c_str() : "(none)", fx.c_str());
 				ImGui::SameLine();
 				if (ImGui::SmallButton("Remove"))
@@ -484,31 +525,35 @@ namespace nap
 					ImGui::Combo("Effect", &eidx, elabels.data(), static_cast<int>(elabels.size()));
 
 					auto& sel = mBindFixtures[trigger.mID];
-					if (effects[eidx]->mTargetMode == lx::EEffectTargetMode::Multiple)
+					bool multiple = effects[eidx]->mTargetMode == lx::EEffectTargetMode::Multiple;
+					if (multiple)
 					{
-						int needed = effects[eidx]->mFixtureCount;
 						ImGui::SameLine();
-						if (static_cast<int>(sel.size()) == needed)
-							ImGui::TextDisabled("needs %d fixtures, %d selected", needed, static_cast<int>(sel.size()));
-						else if (static_cast<int>(sel.size()) > needed)
-							ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "needs %d fixtures, %d selected -- will repeat", needed, static_cast<int>(sel.size()));
-						else
-							ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "needs %d fixtures, %d selected -- some slots stay at base", needed, static_cast<int>(sel.size()));
+						ImGui::TextDisabled("(%d selected -- each gets its own animated slot, any number is fine)", static_cast<int>(sel.size()));
 					}
 
-					for (auto* f : fixtures)
+					// One checkbox per fixture, in physical rig order. For a Multiple-mode effect, show the
+					// slot each checked fixture will actually resolve to (computed the same way fireTrigger
+					// does: position among checked fixtures in physical order) -- this is a preview, not a
+					// separate authored number, so there's nothing here that can fall out of sync.
+					int slot_preview = 0;
+					for (auto* f : ordered_fixtures)
 					{
 						ImGui::PushID(f);
 						std::string eid = f->getEntityID();
 						bool checked = sel.count(eid) > 0;
-						if (ImGui::Checkbox(f->getDisplayName().c_str(), &checked))
+						std::string label = f->getDisplayName();
+						if (multiple && checked)
+						{
+							label += " [slot " + std::to_string(slot_preview) + "]";
+							++slot_preview;
+						}
+						if (ImGui::Checkbox(label.c_str(), &checked))
 						{
 							if (checked) sel.insert(eid); else sel.erase(eid);
 						}
-						ImGui::SameLine();
 						ImGui::PopID();
 					}
-					ImGui::NewLine();
 					if (ImGui::Button("+ Add Binding") && !sel.empty())
 					{
 						auto bindings = trigger.mBindings;

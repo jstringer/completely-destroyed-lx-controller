@@ -1,0 +1,187 @@
+{
+    "Objects": [
+        {
+            "Type": "nap::ParameterGroup",
+            "mID": "Strobe1_Params",
+            "Parameters": [
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Dimmer_Base",
+                    "Name": "Dimmer",
+                    "Value": 0.2809999883174896,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Strobe_Base",
+                    "Name": "Strobe",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit1_R_Base",
+                    "Name": "Unit1 R",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit1_G_Base",
+                    "Name": "Unit1 G",
+                    "Value": 0.9359999895095825,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit1_B_Base",
+                    "Name": "Unit1 B",
+                    "Value": 0.8960000276565552,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit2_R_Base",
+                    "Name": "Unit2 R",
+                    "Value": 0.753000020980835,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit2_G_Base",
+                    "Name": "Unit2 G",
+                    "Value": 0.6399999856948853,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit2_B_Base",
+                    "Name": "Unit2 B",
+                    "Value": 0.5260000228881836,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit3_R_Base",
+                    "Name": "Unit3 R",
+                    "Value": 0.6169999837875366,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit3_G_Base",
+                    "Name": "Unit3 G",
+                    "Value": 0.7450000047683716,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit3_B_Base",
+                    "Name": "Unit3 B",
+                    "Value": 0.6980000138282776,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit4_R_Base",
+                    "Name": "Unit4 R",
+                    "Value": 0.7789999842643738,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit4_G_Base",
+                    "Name": "Unit4 G",
+                    "Value": 0.2750000059604645,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit4_B_Base",
+                    "Name": "Unit4 B",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit5_R_Base",
+                    "Name": "Unit5 R",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit5_G_Base",
+                    "Name": "Unit5 G",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit5_B_Base",
+                    "Name": "Unit5 B",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit6_R_Base",
+                    "Name": "Unit6 R",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit6_G_Base",
+                    "Name": "Unit6 G",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_Unit6_B_Base",
+                    "Name": "Unit6 B",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_PresetColor_Base",
+                    "Name": "Preset Color",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                },
+                {
+                    "Type": "nap::ParameterFloat",
+                    "mID": "Strobe1_AutoSound_Base",
+                    "Name": "Auto/Sound",
+                    "Value": 0.0,
+                    "Minimum": 0.0,
+                    "Maximum": 1.0
+                }
+            ],
+            "Groups": []
+        }
+    ]
+}

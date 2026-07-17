@@ -8,15 +8,18 @@
 RTTI_BEGIN_CLASS(lx::NoiseModulator)
 	RTTI_PROPERTY("Rate",		&lx::NoiseModulator::mRate,			nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Smoothing",	&lx::NoiseModulator::mSmoothing,	nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Seed",		&lx::NoiseModulator::mSeed,			nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace lx
 {
-	// Deterministic pure hash of (slot, step) -> [0,1). Splitmix64-style avalanche; no persisted RNG
-	// state needed since the same (slot, step) always maps to the same value.
-	static float hash01(int slot, uint64_t step)
+	// Deterministic pure hash of (slot, step, seed) -> [0,1). Splitmix64-style avalanche; no persisted RNG
+	// state needed since the same (slot, step, seed) always maps to the same value. `seed` differentiates
+	// otherwise-identical (slot, step) streams across independent NoiseModulator instances.
+	static float hash01(int slot, uint64_t step, int seed)
 	{
 		uint64_t x = (static_cast<uint64_t>(static_cast<uint32_t>(slot)) << 32) ^ step;
+		x ^= static_cast<uint64_t>(static_cast<uint32_t>(seed)) * 0x9E3779B97F4A7C15ULL;
 		x ^= x >> 33; x *= 0xff51afd7ed558ccdULL;
 		x ^= x >> 33; x *= 0xc4ceb9fe1a85ec53ULL;
 		x ^= x >> 33;
@@ -75,11 +78,11 @@ namespace lx
 		uint64_t step = static_cast<uint64_t>(std::max(step_d, 0.0));
 		float frac = static_cast<float>(t - step_d);
 
-		float a = hash01(slot, step);
+		float a = hash01(slot, step, mSeed);
 		if (mSmoothing <= 0.0f)
 			return a;
 
-		float b = hash01(slot, step + 1);
+		float b = hash01(slot, step + 1, mSeed);
 		return nap::math::lerp(a, b, smoothstep01(frac));
 	}
 }

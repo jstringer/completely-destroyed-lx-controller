@@ -38,6 +38,10 @@ namespace lx
 		std::vector<nap::ResourcePtr<EffectParameter>>	mParameters;	///< Property: 'Parameters'
 		std::vector<nap::ResourcePtr<Modulator>>		mModulators;	///< Property: 'Modulators'
 		EEffectTargetMode						mTargetMode = EEffectTargetMode::Single;	///< Property: 'TargetMode'
-		int										mFixtureCount = 2;		///< Property: 'FixtureCount' (Multiple only)
+		/// Property: 'FixtureCount' (Multiple only). No longer hand-authored: lxcontrolService derives and
+		/// overwrites this from the actual Trigger binding whenever the effect fires (see
+		/// lxcontrolService::syncEffectFixtureCount). The default of 1 only matters for a brand-new
+		/// Multiple-mode effect that hasn't fired yet (e.g. the Effects tab's per-slot preview).
+		int										mFixtureCount = 1;
 	};
 }

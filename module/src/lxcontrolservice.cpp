@@ -2,6 +2,7 @@
 #include "lxcontrolservice.h"
 #include "fixturecomponent.h"
 #include "fixturechannelcomponent.h"
+#include "noisemodulator.h"
 
 // External Includes
 #include <nap/core.h>
@@ -122,7 +123,65 @@ namespace nap
 			}
 			rebuildFromLoadedContent();
 		}
+
+		// NAP's ResourceManager hot-reloads any file it loaded when that file changes on disk -- and
+		// nearly every authoring action (addModulator, addEffectParameter, setTriggerBindings, ...) calls
+		// save(), which rewrites user_content.json and reliably trips this within about a frame. Connect
+		// AFTER the initial load above so this only re-wires SUBSEQUENT reloads, not the one setup() just
+		// did itself via rebuildFromLoadedContent(). See onResourcesReloaded for why this is needed.
+		mResourceManager->mPostResourcesLoadedSignal.connect(mResourcesReloadedSlot);
 		return true;
+	}
+
+
+	void lxcontrolService::onResourcesReloaded()
+	{
+		// A hot-reload destroys and recreates every object in the reloaded file. NAP's ObjectPtr-based
+		// references (EffectEntry::mEffect, ModulatorEntry::mModulator, Effect::mModulators, ...) get
+		// transparently repatched to the fresh objects -- confirmed empirically: mEffectEntries survives a
+		// reload with the same count/IDs, each Effect's address just moves. But Modulator::mPlayer/mSink/
+		// mEditor are plain raw pointers (never patched) into the OLD, now-destroyed SequencePlayer/sink/
+		// editor -- so after any reload, every modulator goes silently dead (frozen output, Trigger does
+		// nothing) until the app restarts. Re-wiring them here is the fix; mEffectEntries itself needs no
+		// rebuilding.
+		//
+		// Known tradeoff: rewireModulator always builds "not playing" (matches every fresh modulator's
+		// normal built-idle state), so an effect that's actively animating will visibly reset if some OTHER
+		// edit anywhere in the app trips a reload while it's mid-flight. Re-triggering afterward works
+		// fine. Not fixed here -- would need save() to avoid tripping the app's own file-watcher on its own
+		// writes, a separate, bigger change.
+		for (auto& entry : mEffectEntries)
+		{
+			if (entry.mRemoved || entry.mEffect == nullptr)
+				continue;
+			for (auto& me : entry.mModulators)
+				rewireModulator(*entry.mEffect, me);
+		}
+	}
+
+
+	void lxcontrolService::rewireModulator(lx::Effect& effect, ModulatorEntry& entry)
+	{
+		lx::Modulator* mod = entry.mModulator.get();
+		if (mod == nullptr)
+			return;
+
+		utility::ErrorState err;
+		if (!buildModulatorGraph(entry, makeUniqueID(mod->mID + "_rt"), err))
+		{
+			Logger::error("rewireModulator: build graph failed for %s: %s", mod->mID.c_str(), err.toString().c_str());
+			return;
+		}
+
+		// mSlotCount is non-serialized runtime state on Chase/Noise-style modulators; re-propagate it from
+		// the effect's (serialized) TargetMode/FixtureCount, else it silently resets to 1.
+		int slot_count = effect.mTargetMode == lx::EEffectTargetMode::Multiple ? std::max(1, effect.mFixtureCount) : 1;
+		mod->setSlotCount(slot_count);
+
+		// Keep mNextNoiseSeed past every seed already persisted, so a NoiseModulator created fresh this
+		// session never collides with (and silently correlates against) one reloaded from disk.
+		if (auto* noise = rtti_cast<lx::NoiseModulator>(mod))
+			mNextNoiseSeed = std::max(mNextNoiseSeed, noise->mSeed + 1);
 	}
 
 
@@ -136,6 +195,15 @@ namespace nap
 	void lxcontrolService::unregisterFixture(lx::FixtureComponentInstance* fixture)
 	{
 		mFixtures.erase(std::remove(mFixtures.begin(), mFixtures.end(), fixture), mFixtures.end());
+	}
+
+
+	std::vector<lx::FixtureComponentInstance*> lxcontrolService::getFixturesPhysicalOrder() const
+	{
+		std::vector<lx::FixtureComponentInstance*> ordered = mFixtures;
+		std::sort(ordered.begin(), ordered.end(),
+			[](lx::FixtureComponentInstance* a, lx::FixtureComponentInstance* b) { return a->getStartChannel() < b->getStartChannel(); });
+		return ordered;
 	}
 
 
@@ -323,6 +391,13 @@ namespace nap
 		mod->mID = makeUniqueID(effect.mID + "_Mod");
 		mod->mName = std::string(type.get_name().data());
 		mod->mTarget = target;
+
+		// Auto-assign a fresh seed so two independently-added NoiseModulators (e.g. one per R/G/B
+		// component of a color) decorrelate by default instead of both defaulting to Seed=0 and producing
+		// identical values. The user can still override it in the GUI.
+		if (auto* noise = rtti_cast<lx::NoiseModulator>(mod))
+			noise->mSeed = mNextNoiseSeed++;
+
 		utility::ErrorState err;
 		if (!mod->init(err))
 		{
@@ -346,12 +421,15 @@ namespace nap
 	}
 
 
-	void lxcontrolService::setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode, int fixtureCount)
+	void lxcontrolService::setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode)
 	{
 		effect.mTargetMode = mode;
-		effect.mFixtureCount = std::max(1, fixtureCount);
 
-		int slot_count = mode == lx::EEffectTargetMode::Multiple ? effect.mFixtureCount : 1;
+		// FixtureCount itself is no longer set here -- it's derived from each Trigger binding's actual
+		// selected fixtures the next time this effect fires (see fireTrigger/syncEffectFixtureCount).
+		// Re-propagate whatever count is currently known so a freshly-toggled Multiple effect previews
+		// sanely (e.g. in the Effects tab's per-slot progress bars) before its first fire.
+		int slot_count = mode == lx::EEffectTargetMode::Multiple ? std::max(1, effect.mFixtureCount) : 1;
 		EffectEntry* entry = findEntry(effect);
 		if (entry != nullptr)
 		{
@@ -360,6 +438,25 @@ namespace nap
 					me.mModulator->setSlotCount(slot_count);
 		}
 		save();
+	}
+
+
+	void lxcontrolService::syncEffectFixtureCount(lx::Effect& effect, int matchedCount)
+	{
+		if (effect.mTargetMode != lx::EEffectTargetMode::Multiple)
+			return;
+
+		effect.mFixtureCount = std::max(1, matchedCount);
+		EffectEntry* entry = findEntry(effect);
+		if (entry != nullptr)
+		{
+			for (auto& me : entry->mModulators)
+				if (me.mModulator != nullptr)
+					me.mModulator->setSlotCount(effect.mFixtureCount);
+		}
+		// Deliberately no save() here: this runs on every fireTrigger call (including MIDI-driven,
+		// possibly-frequent ones) and mFixtureCount is a derived/cache value, not authored state worth
+		// persisting on its own -- it'll be captured by whatever save() the next real authoring edit does.
 	}
 
 
@@ -492,9 +589,17 @@ namespace nap
 			// order (which reflects component init order, not necessarily objects.json declaration order),
 			// so slot assignment for Multiple-mode effects (Chase order, Noise decorrelation) matches the
 			// rig's physical layout.
-			std::vector<lx::FixtureComponentInstance*> ordered_fixtures = mFixtures;
-			std::sort(ordered_fixtures.begin(), ordered_fixtures.end(),
-				[](lx::FixtureComponentInstance* a, lx::FixtureComponentInstance* b) { return a->getStartChannel() < b->getStartChannel(); });
+			std::vector<lx::FixtureComponentInstance*> ordered_fixtures = getFixturesPhysicalOrder();
+
+			// The effect's fixture count is derived from this binding's actual matched fixtures, not a
+			// hand-typed property that has to be kept in sync with the checkbox selection (see
+			// syncEffectFixtureCount) -- so slot assignment below never wraps/repeats or leaves a slot at
+			// base value due to a stale count; it's always exactly "however many fixtures are bound".
+			int matched_count = 0;
+			for (auto* fixture : ordered_fixtures)
+				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) != binding.mFixtureNames.end())
+					++matched_count;
+			syncEffectFixtureCount(*effect, matched_count);
 
 			int slot_index = 0;
 			for (auto* fixture : ordered_fixtures)
@@ -502,8 +607,7 @@ namespace nap
 				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) == binding.mFixtureNames.end())
 					continue;
 
-				int slot = (effect->mTargetMode == lx::EEffectTargetMode::Multiple)
-					? slot_index % std::max(1, effect->mFixtureCount) : 0;
+				int slot = (effect->mTargetMode == lx::EEffectTargetMode::Multiple) ? slot_index : 0;
 
 				for (auto* channel : fixture->getChannels())
 				{
@@ -815,7 +919,6 @@ namespace nap
 
 	void lxcontrolService::rebuildFromLoadedContent()
 	{
-		utility::ErrorState err;
 		for (auto& effect : mResourceManager->getObjects<lx::Effect>())
 		{
 			EffectEntry entry;
@@ -823,16 +926,11 @@ namespace nap
 			for (auto& p : effect->mParameters)
 				entry.mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(p.get()));
 
-			int slot_count = effect->mTargetMode == lx::EEffectTargetMode::Multiple ? std::max(1, effect->mFixtureCount) : 1;
 			for (auto& m : effect->mModulators)
 			{
 				ModulatorEntry me;
 				me.mModulator = rtti::ObjectPtr<lx::Modulator>(m.get());
-				if (!buildModulatorGraph(me, makeUniqueID(m->mID + "_rt"), err))
-					Logger::error("rebuild: modulator graph failed for %s: %s", m->mID.c_str(), err.toString().c_str());
-				// mSlotCount is non-serialized runtime state on Chase/Noise-style modulators; re-propagate
-				// it from the effect's (serialized) TargetMode/FixtureCount, else it silently resets to 1.
-				m->setSlotCount(slot_count);
+				rewireModulator(*effect, me);
 				entry.mModulators.emplace_back(me);
 			}
 

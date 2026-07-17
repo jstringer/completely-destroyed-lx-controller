@@ -30,6 +30,10 @@ namespace lx
 
 		float	mRate = 2.0f;		///< Property: 'Rate' Hz -- new random value per slot this many times/sec
 		float	mSmoothing = 0.5f;	///< Property: 'Smoothing' 0 = hard sample-and-hold steps, >0 = eased between steps
+		int		mSeed = 0;			///< Property: 'Seed' -- salts the per-(slot,step) hash so two independent
+									///< NoiseModulators (e.g. one per R/G/B component of a color) decorrelate
+									///< instead of producing identical values. lxcontrolService::addModulator
+									///< auto-assigns a fresh seed to each newly-created NoiseModulator.
 
 	private:
 		int		mSlotCount = 1;	///< Runtime: set by lxcontrolService::setEffectTargetMode / rebuildFromLoadedContent
