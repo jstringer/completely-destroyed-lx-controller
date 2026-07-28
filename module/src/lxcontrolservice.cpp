@@ -9,6 +9,9 @@
 #include <nap/resourcemanager.h>
 #include <nap/logger.h>
 #include <rtti/factory.h>
+#include <rtti/jsonreader.h>
+#include <rtti/defaultlinkresolver.h>
+#include <rtti/object.h>
 #include <rtti/jsonwriter.h>
 #include <rtti/writer.h>
 #include <sequenceservice.h>
@@ -26,6 +29,7 @@ RTTI_END_CLASS
 namespace nap
 {
 	static constexpr const char* sUserContentFile = "user_content.json";
+	static constexpr const char* sSessionFile = "user_content.session";	// which program is loaded (runtime state)
 
 
 	void lxcontrolService::getDependentServices(std::vector<rtti::TypeInfo>& dependencies)
@@ -50,6 +54,20 @@ namespace nap
 
 	void lxcontrolService::update(double deltaTime)
 	{
+		// Debounced persistence: authoring edits mark content dirty (and reset the timer); flush the write
+		// at most ~2x/second. Because we own user_content.json (it's never handed to the ResourceManager),
+		// this write can no longer trip a hot-reload -- so it's safe to do while effects are animating.
+		if (mDirty)
+		{
+			mSaveTimer += deltaTime;
+			if (mSaveTimer >= 0.5)
+			{
+				save();
+				mDirty = false;
+				mSaveTimer = 0.0;
+			}
+		}
+
 		// Drive every effect so its modulators (fed by their player clocks / adapters) blend into the
 		// effect parameters each frame.
 		for (auto& entry : mEffectEntries)
@@ -100,6 +118,8 @@ namespace nap
 
 	void lxcontrolService::shutdown()
 	{
+		if (mDirty)
+			save();
 	}
 
 
@@ -109,54 +129,135 @@ namespace nap
 		mMidiHotplugMonitor = std::make_unique<MidiHotplugMonitor>();
 		midiSource.messageReceived.connect(mMidiSlot);
 
+		// We deserialize user_content.json ourselves and own the objects, so the ResourceManager never
+		// file-watches it. Writing it back (save()) therefore can no longer trip a hot-reload -- which used
+		// to reset a live-animating modulator mid-show and silently drop un-saved field edits. No
+		// reload-rewire machinery is needed any more.
 		if (utility::fileExists(sUserContentFile))
 		{
-			if (!mResourceManager->loadFile(sUserContentFile, errorState))
+			utility::ErrorState loadError;
+			if (!loadUserContent(loadError))
 			{
 				// Unloadable (e.g. old-format) content must never halt startup: rename and continue empty.
 				std::string backup = std::string(sUserContentFile) + ".bak";
 				std::remove(backup.c_str());
 				std::rename(sUserContentFile, backup.c_str());
 				Logger::warn("lxcontrolService: could not load %s (%s); renamed to %s, continuing empty",
-					sUserContentFile, errorState.toString().c_str(), backup.c_str());
-				return true;
+					sUserContentFile, loadError.toString().c_str(), backup.c_str());
 			}
-			rebuildFromLoadedContent();
+			else
+			{
+				restoreActiveProgram();
+			}
 		}
-
-		// NAP's ResourceManager hot-reloads any file it loaded when that file changes on disk -- and
-		// nearly every authoring action (addModulator, addEffectParameter, setTriggerBindings, ...) calls
-		// save(), which rewrites user_content.json and reliably trips this within about a frame. Connect
-		// AFTER the initial load above so this only re-wires SUBSEQUENT reloads, not the one setup() just
-		// did itself via rebuildFromLoadedContent(). See onResourcesReloaded for why this is needed.
-		mResourceManager->mPostResourcesLoadedSignal.connect(mResourcesReloadedSlot);
 		return true;
 	}
 
 
-	void lxcontrolService::onResourcesReloaded()
+	void lxcontrolService::markDirty()
 	{
-		// A hot-reload destroys and recreates every object in the reloaded file. NAP's ObjectPtr-based
-		// references (EffectEntry::mEffect, ModulatorEntry::mModulator, Effect::mModulators, ...) get
-		// transparently repatched to the fresh objects -- confirmed empirically: mEffectEntries survives a
-		// reload with the same count/IDs, each Effect's address just moves. But Modulator::mPlayer/mSink/
-		// mEditor are plain raw pointers (never patched) into the OLD, now-destroyed SequencePlayer/sink/
-		// editor -- so after any reload, every modulator goes silently dead (frozen output, Trigger does
-		// nothing) until the app restarts. Re-wiring them here is the fix; mEffectEntries itself needs no
-		// rebuilding.
-		//
-		// Known tradeoff: rewireModulator always builds "not playing" (matches every fresh modulator's
-		// normal built-idle state), so an effect that's actively animating will visibly reset if some OTHER
-		// edit anywhere in the app trips a reload while it's mid-flight. Re-triggering afterward works
-		// fine. Not fixed here -- would need save() to avoid tripping the app's own file-watcher on its own
-		// writes, a separate, bigger change.
-		for (auto& entry : mEffectEntries)
+		mDirty = true;
+		mSaveTimer = 0.0;	// debounce: flush ~0.5s after the LAST edit
+	}
+
+
+	void lxcontrolService::saveSession()
+	{
+		std::ofstream sess(sSessionFile, std::ios::trunc);
+		if (mActiveProgram != nullptr)
+			sess << mActiveProgram->mID;
+	}
+
+
+	bool lxcontrolService::loadUserContent(utility::ErrorState& errorState)
+	{
+		rtti::DeserializeResult result;
+		if (!rtti::deserializeJSONFile(sUserContentFile, rtti::EPropertyValidationMode::AllowMissingProperties,
+				rtti::EPointerPropertyMode::NoRawPointers, mResourceManager->getFactory(), result, errorState))
+			return false;
+		if (!rtti::DefaultLinkResolver::sResolveLinks(result.mReadObjects, result.mUnresolvedPointers, errorState))
+			return false;
+
+		// Init every resource references-first (params -> modulators -> effects -> triggers -> ...), the
+		// order the old ResourceManager loadFile path used before rebuildFromLoadedContent ran.
+		std::unordered_set<rtti::Object*> inited;
+		auto initType = [&](const rtti::TypeInfo& base) -> bool {
+			for (auto& o : result.mReadObjects)
+			{
+				if (inited.count(o.get()) || !(o->get_type() == base || o->get_type().is_derived_from(base)))
+					continue;
+				if (auto* r = rtti_cast<Resource>(o.get()))
+					if (!r->init(errorState))
+						return false;
+				inited.insert(o.get());
+			}
+			return true;
+		};
+		if (!initType(RTTI_OF(lx::EffectParameter)) || !initType(RTTI_OF(lx::Modulator)) ||
+			!initType(RTTI_OF(lx::Effect)) || !initType(RTTI_OF(lx::Controller)) ||
+			!initType(RTTI_OF(lx::MidiBinding)) || !initType(RTTI_OF(lx::Trigger)) ||
+			!initType(RTTI_OF(lx::ControllerMapping)) || !initType(RTTI_OF(lx::Program)) ||
+			!initType(RTTI_OF(Resource)))
+			return false;
+
+		// Take ownership + register loaded ids so a later runtime createObject() can't collide with one.
+		for (auto& o : result.mReadObjects)
 		{
-			if (entry.mRemoved || entry.mEffect == nullptr)
-				continue;
-			for (auto& me : entry.mModulators)
-				rewireModulator(*entry.mEffect, me);
+			mIssuedIDs.insert(o->mID);
+			mOwnedContent.emplace_back(std::move(o));
 		}
+
+		// Build the typed views + runtime modulator graphs from the objects we now own (this replaces the
+		// old rebuildFromLoadedContent, which scanned mResourceManager->getObjects<T>() instead).
+		for (auto& o : mOwnedContent)
+		{
+			rtti::Object* obj = o.get();
+			if (auto* effect = rtti_cast<lx::Effect>(obj))
+			{
+				EffectEntry entry;
+				entry.mEffect = rtti::ObjectPtr<lx::Effect>(effect);
+				for (auto& p : effect->mParameters)
+					entry.mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(p.get()));
+				for (auto& m : effect->mModulators)
+				{
+					ModulatorEntry me;
+					me.mModulator = rtti::ObjectPtr<lx::Modulator>(m.get());
+					rewireModulator(*effect, me);
+					entry.mModulators.emplace_back(me);
+				}
+				mEffectEntries.emplace_back(std::move(entry));
+				mEffects.emplace_back(rtti::ObjectPtr<lx::Effect>(effect));
+			}
+			else if (auto* trigger = rtti_cast<lx::Trigger>(obj))
+				mTriggers.emplace_back(rtti::ObjectPtr<lx::Trigger>(trigger));
+			else if (auto* controller = rtti_cast<lx::Controller>(obj))
+				mControllers.emplace_back(rtti::ObjectPtr<lx::Controller>(controller));
+			else if (auto* binding = rtti_cast<lx::MidiBinding>(obj))
+				mBindings.emplace_back(rtti::ObjectPtr<lx::MidiBinding>(binding));
+			else if (auto* program = rtti_cast<lx::Program>(obj))
+				mPrograms.emplace_back(rtti::ObjectPtr<lx::Program>(program));
+			else if (auto* mapping = rtti_cast<lx::ControllerMapping>(obj))
+				mControllerMappings.emplace_back(rtti::ObjectPtr<lx::ControllerMapping>(mapping));
+		}
+		return true;
+	}
+
+
+	void lxcontrolService::restoreActiveProgram()
+	{
+		std::ifstream sess(sSessionFile);
+		if (!sess.is_open())
+			return;
+		std::string id;
+		std::getline(sess, id);
+		if (id.empty())
+			return;
+		for (auto& p : mPrograms)
+			if (p != nullptr && p->mID == id)
+			{
+				loadProgram(p.get());
+				return;
+			}
 	}
 
 
@@ -258,7 +359,7 @@ namespace nap
 		entry.mEffect = effect;
 		mEffectEntries.emplace_back(entry);
 		mEffects.emplace_back(effect);
-		save();
+		markDirty();
 		return effect.get();
 	}
 
@@ -288,7 +389,7 @@ namespace nap
 
 		effect.mParameters.emplace_back(param);
 		entry->mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(param));
-		save();
+		markDirty();
 		return param;
 	}
 
@@ -416,7 +517,7 @@ namespace nap
 
 		effect.mModulators.emplace_back(mod);
 		effect_entry->mModulators.emplace_back(mod_entry);
-		save();
+		markDirty();
 		return mod;
 	}
 
@@ -437,7 +538,7 @@ namespace nap
 				if (me.mModulator != nullptr)
 					me.mModulator->setSlotCount(slot_count);
 		}
-		save();
+		markDirty();
 	}
 
 
@@ -492,7 +593,7 @@ namespace nap
 		}
 		mEffects.erase(std::remove_if(mEffects.begin(), mEffects.end(),
 			[effect](const rtti::ObjectPtr<lx::Effect>& e) { return e.get() == effect; }), mEffects.end());
-		save();
+		markDirty();
 	}
 
 
@@ -535,7 +636,7 @@ namespace nap
 			return nullptr;
 		}
 		mTriggers.emplace_back(trigger);
-		save();
+		markDirty();
 		return trigger;
 	}
 
@@ -543,7 +644,7 @@ namespace nap
 	void lxcontrolService::setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::EffectFixtureBinding>& bindings)
 	{
 		trigger.mBindings = bindings;
-		save();
+		markDirty();
 	}
 
 
@@ -564,7 +665,7 @@ namespace nap
 			list.erase(std::remove_if(list.begin(), list.end(),
 				[trigger](const nap::ResourcePtr<lx::Trigger>& t) { return t.get() == trigger; }), list.end());
 		}
-		save();
+		markDirty();
 	}
 
 
@@ -668,7 +769,7 @@ namespace nap
 			return nullptr;
 		}
 		mControllers.emplace_back(controller);
-		save();
+		markDirty();
 		return controller.get();
 	}
 
@@ -702,7 +803,7 @@ namespace nap
 			return nullptr;
 		}
 		mBindings.emplace_back(binding);
-		save();
+		markDirty();
 		return binding.get();
 	}
 
@@ -714,7 +815,7 @@ namespace nap
 
 		// Scrub any now-dangling ControllerMapping referencing this controller.
 		eraseControllerMappingsIf([controller](const lx::ControllerMapping& m) { return m.mController.get() == controller; });
-		save();
+		markDirty();
 	}
 
 
@@ -722,7 +823,7 @@ namespace nap
 	{
 		mBindings.erase(std::remove_if(mBindings.begin(), mBindings.end(),
 			[binding](const rtti::ObjectPtr<lx::MidiBinding>& b) { return b.get() == binding; }), mBindings.end());
-		save();
+		markDirty();
 	}
 
 
@@ -738,7 +839,7 @@ namespace nap
 			return nullptr;
 		}
 		mPrograms.emplace_back(program);
-		save();
+		markDirty();
 		return program.get();
 	}
 
@@ -748,7 +849,7 @@ namespace nap
 		program.mLifecycleTriggers.clear();
 		for (auto& t : triggers)
 			program.mLifecycleTriggers.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
-		save();
+		markDirty();
 	}
 
 
@@ -767,7 +868,7 @@ namespace nap
 
 		mPrograms.erase(std::remove_if(mPrograms.begin(), mPrograms.end(),
 			[program](const rtti::ObjectPtr<lx::Program>& p) { return p.get() == program; }), mPrograms.end());
-		save();
+		markDirty();
 	}
 
 
@@ -803,7 +904,7 @@ namespace nap
 		}
 		mControllerMappings.emplace_back(mapping);
 		program.mControllerMappings.emplace_back(nap::ResourcePtr<lx::ControllerMapping>(mapping.get()));
-		save();
+		markDirty();
 		return mapping.get();
 	}
 
@@ -817,7 +918,7 @@ namespace nap
 				if (pm.get() == &m) return true;
 			return false;
 		});
-		save();
+		markDirty();
 	}
 
 
@@ -859,6 +960,7 @@ namespace nap
 					fireTrigger(*t);
 			}
 		}
+		saveSession();
 	}
 
 
@@ -875,6 +977,7 @@ namespace nap
 				stopTrigger(*t);
 		}
 		mActiveProgram = nullptr;
+		saveSession();
 	}
 
 
@@ -914,40 +1017,6 @@ namespace nap
 		}
 		std::ofstream out(sUserContentFile);
 		out << writer.GetJSON();
-	}
-
-
-	void lxcontrolService::rebuildFromLoadedContent()
-	{
-		for (auto& effect : mResourceManager->getObjects<lx::Effect>())
-		{
-			EffectEntry entry;
-			entry.mEffect = effect;
-			for (auto& p : effect->mParameters)
-				entry.mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(p.get()));
-
-			for (auto& m : effect->mModulators)
-			{
-				ModulatorEntry me;
-				me.mModulator = rtti::ObjectPtr<lx::Modulator>(m.get());
-				rewireModulator(*effect, me);
-				entry.mModulators.emplace_back(me);
-			}
-
-			mEffectEntries.emplace_back(entry);
-			mEffects.emplace_back(effect);
-		}
-
-		for (auto& trigger : mResourceManager->getObjects<lx::Trigger>())
-			mTriggers.emplace_back(trigger);
-		for (auto& controller : mResourceManager->getObjects<lx::Controller>())
-			mControllers.emplace_back(controller);
-		for (auto& binding : mResourceManager->getObjects<lx::MidiBinding>())
-			mBindings.emplace_back(binding);
-		for (auto& program : mResourceManager->getObjects<lx::Program>())
-			mPrograms.emplace_back(program);
-		for (auto& mapping : mResourceManager->getObjects<lx::ControllerMapping>())
-			mControllerMappings.emplace_back(mapping);
 	}
 
 

@@ -11,6 +11,7 @@
 #include <sequenceplayerclock.h>
 #include <sequenceeditor.h>
 #include <sequenceplayercurveoutput.h>
+#include <rtti/deserializeresult.h>
 #include <parameternumeric.h>
 #include <mathutils.h>
 #include <deque>
@@ -139,6 +140,11 @@ namespace nap
 		MidiEvent getLastMidiEvent() const { return MidiEvent(mLastEventType, mLastEventNumber, mLastEventValue, mLastEventChannel, mLastEventPort); }
 		int getMidiEventCounter() const { return mMidiEventCounter; }
 
+		/** Marks authored content dirty; update() flushes it to user_content.json on a ~0.5s debounce.
+		 *  Every authoring mutation (incl. direct parameter/shape field edits made in the GUI) routes
+		 *  through here, so persistence is uniform and no edit is silently lost. */
+		void markDirty();
+
 	private:
 		struct ModulatorEntry
 		{
@@ -167,15 +173,18 @@ namespace nap
 		};
 
 		void onMidiEvent(const MidiEvent& event);
-		/** Re-wires mPlayer/mSink/mEditor on every already-tracked Modulator after NAP hot-reloads
-		 *  user_content.json (see mResourcesReloadedSlot connect site in setup() for why this is needed). */
-		void onResourcesReloaded();
 		/** (Re)builds one modulator's runtime player/sink/editor graph and re-propagates its slot count +
-		 *  Noise seed bookkeeping. Shared by rebuildFromLoadedContent (initial load) and
-		 *  onResourcesReloaded (every subsequent hot-reload) -- same work, two call sites. */
+		 *  Noise seed bookkeeping. Called for each modulator by loadUserContent. */
 		void rewireModulator(lx::Effect& effect, ModulatorEntry& entry);
+		/** Deserializes user_content.json ourselves (never handed to the ResourceManager, so it is never
+		 *  file-watched / hot-reloaded), resolves links, inits every resource references-first, then builds
+		 *  the runtime modulator graphs + typed views. Returns false (state left empty) on a bad/old file. */
+		bool loadUserContent(utility::ErrorState& errorState);
+		/** Restores the program loaded last session (tiny sidecar file) and fires its EnterTriggers. */
+		void restoreActiveProgram();
+		/** Writes just the active-program id sidecar -- cheap, separate from the full-content save(). */
+		void saveSession();
 		void save();
-		void rebuildFromLoadedContent();
 		std::string makeUniqueID(const std::string& base) const;
 		EffectEntry* findEntry(lx::Effect& effect);
 		/** Sets effect.mFixtureCount to matchedCount (Multiple mode only) and re-propagates it to every
@@ -193,12 +202,11 @@ namespace nap
 
 		ResourceManager*					mResourceManager = nullptr;
 		mutable std::unordered_set<std::string>	mIssuedIDs;	// every id makeUniqueID has handed out (createObject renames don't re-index the ResourceManager)
+		rtti::OwnedObjectList				mOwnedContent;	// authored objects deserialized from user_content.json -- WE own them (not the ResourceManager), so the file is never watched/hot-reloaded
+		bool								mDirty = false;		// authored content changed; update() flushes on a debounce
+		double								mSaveTimer = 0.0;
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
 		int									mNextNoiseSeed = 1;	// auto-assigned to each newly-created NoiseModulator so independent instances decorrelate
-		// Fires on every hot-reload of a loaded file (including our own save()-triggered ones); connected
-		// once in setup(), after the initial load, so it only re-wires SUBSEQUENT reloads (see onResourcesReloaded).
-		Slot<>								mResourcesReloadedSlot = { std::function<void()>([this]() { onResourcesReloaded(); }) };
-
 		ResourcePtr<MidiInputPort>			mMidiPort;
 		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;
 
