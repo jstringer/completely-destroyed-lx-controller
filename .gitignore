@@ -4,3 +4,4 @@ module/lib/Release-x86_64/
 
 # v0.2 run: deferred-questions log, force-added & pushed only at end of run
 QUESTIONS.md
+data/user_content.json

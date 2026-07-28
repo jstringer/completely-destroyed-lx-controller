@@ -1,0 +1,199 @@
+{
+    "Objects": [
+        {
+            "Type": "lx::AdsrModulator",
+            "mID": "Effect_effect1_Mod",
+            "Name": "lx::AdsrModulator",
+            "Target": "Effect_effect1_Param",
+            "TargetComponent": -1,
+            "Min": 0.0,
+            "Max": 1.0,
+            "Blend": "Replace",
+            "Attack": 0.009999999776482582,
+            "Decay": 0.10000000149011612,
+            "Sustain": 0.699999988079071,
+            "Release": 0.5,
+            "Loop": false
+        },
+        {
+            "Type": "lx::ColorParameter",
+            "mID": "Effect_effect1_Param",
+            "Name": "Param",
+            "Units": [],
+            "Red": 0.8645833134651184,
+            "Green": 0.3287217617034912,
+            "Blue": 0.15010125935077667
+        },
+        {
+            "Type": "lx::Controller",
+            "mID": "Controller_button1",
+            "Name": "button1",
+            "Mode": "Momentary"
+        },
+        {
+            "Type": "lx::Controller",
+            "mID": "Controller_button2",
+            "Name": "button2",
+            "Mode": "Momentary"
+        },
+        {
+            "Type": "lx::Controller",
+            "mID": "Controller_button3",
+            "Name": "button3",
+            "Mode": "Toggle"
+        },
+        {
+            "Type": "lx::Controller",
+            "mID": "Controller_button4",
+            "Name": "button4",
+            "Mode": "FireOnly"
+        },
+        {
+            "Type": "lx::Controller",
+            "mID": "Controller_knob1",
+            "Name": "knob1",
+            "Mode": "Momentary"
+        },
+        {
+            "Type": "lx::ControllerMapping",
+            "mID": "Program_program2_Controller_button1_Mapping",
+            "Controller": "Controller_button1",
+            "Trigger": "Trigger_control1_2"
+        },
+        {
+            "Type": "lx::ControllerMapping",
+            "mID": "Program_program2_Controller_button2_Mapping",
+            "Controller": "Controller_button2",
+            "Trigger": "Trigger_control2"
+        },
+        {
+            "Type": "lx::ControllerMapping",
+            "mID": "Program_program2_Controller_button3_Mapping",
+            "Controller": "Controller_button3",
+            "Trigger": "Trigger_control2"
+        },
+        {
+            "Type": "lx::ControllerTrigger",
+            "mID": "Trigger_control1_2",
+            "Name": "control1",
+            "Bindings": [
+                {
+                    "Effect": "Effect_effect1",
+                    "Fixtures": [
+                        "Strobe1Entity_instance",
+                        "Strobe2Entity_instance"
+                    ]
+                },
+                {
+                    "Effect": "Effect_effect2",
+                    "Fixtures": [
+                        "Strobe1Entity_instance",
+                        "Strobe2Entity_instance",
+                        "Strobe3Entity_instance"
+                    ]
+                }
+            ]
+        },
+        {
+            "Type": "lx::ControllerTrigger",
+            "mID": "Trigger_control2",
+            "Name": "control2",
+            "Bindings": [
+                {
+                    "Effect": "Effect_effect1",
+                    "Fixtures": [
+                        "Strobe1Entity_instance",
+                        "Strobe2Entity_instance",
+                        "Strobe3Entity_instance"
+                    ]
+                },
+                {
+                    "Effect": "Effect_effect2",
+                    "Fixtures": [
+                        "Strobe1Entity_instance"
+                    ]
+                }
+            ]
+        },
+        {
+            "Type": "lx::Effect",
+            "mID": "Effect_effect1",
+            "Name": "effect1",
+            "Parameters": [
+                "Effect_effect1_Param"
+            ],
+            "Modulators": [
+                "Effect_effect1_Mod"
+            ],
+            "TargetMode": "Single",
+            "FixtureCount": 1
+        },
+        {
+            "Type": "lx::Effect",
+            "mID": "Effect_effect2",
+            "Name": "effect2",
+            "Parameters": [
+                "Effect_effect2_Param"
+            ],
+            "Modulators": [
+                "Effect_effect2_Mod"
+            ],
+            "TargetMode": "Multiple",
+            "FixtureCount": 1
+        },
+        {
+            "Type": "lx::EnterTrigger",
+            "mID": "Trigger_on_enter",
+            "Name": "on_enter",
+            "Bindings": []
+        },
+        {
+            "Type": "lx::FloatParameter",
+            "mID": "Effect_effect2_Param",
+            "Name": "Param",
+            "Units": [],
+            "Role": "Dimmer",
+            "Value": 0.0
+        },
+        {
+            "Type": "lx::NoiseModulator",
+            "mID": "Effect_effect2_Mod",
+            "Name": "lx::NoiseModulator",
+            "Target": "Effect_effect2_Param",
+            "TargetComponent": -1,
+            "Min": 0.0,
+            "Max": 1.0,
+            "Blend": "Replace",
+            "Rate": 2.0,
+            "Smoothing": 0.5,
+            "Seed": 1
+        },
+        {
+            "Type": "lx::Program",
+            "mID": "Program_program1",
+            "Name": "program1",
+            "LifecycleTriggers": [
+                "Trigger_on_enter"
+            ],
+            "ControllerMappings": []
+        },
+        {
+            "Type": "lx::Program",
+            "mID": "Program_program2",
+            "Name": "program2",
+            "LifecycleTriggers": [],
+            "ControllerMappings": [
+                "Program_program2_Controller_button1_Mapping",
+                "Program_program2_Controller_button2_Mapping",
+                "Program_program2_Controller_button3_Mapping"
+            ]
+        },
+        {
+            "Type": "lx::Program",
+            "mID": "Program_program3",
+            "Name": "program3",
+            "LifecycleTriggers": [],
+            "ControllerMappings": []
+        }
+    ]
+}
