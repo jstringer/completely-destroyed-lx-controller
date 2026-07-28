@@ -12,6 +12,14 @@ Execution playbook for building the redesign in `docs/gui-refactor-findings.md` 
 
 **Legend:** ✅ backed by current API · 🔧 needs new engine code · ⚠️ risk/unknown.
 
+## Progress (live)
+- ✅ **Phase 0** shipped (`8cd92b8`) — docs, migration fixture, `.gitignore`, baseline build verified. Learned: the `build.bat`/`regenerate.bat` shims don't invoke from Git Bash's shell; build directly with the bundled python: `PYTHONPATH= PYTHONHOME= <root>/thirdparty/python/msvc/x86_64/python.exe <root>/tools/buildsystem/common/build_app_by_dir.py <app-dir>`. LNK1104 on `lxcontrol.exe` = the app is running; `taskkill /F /IM lxcontrol.exe` then rebuild.
+- ✅ **Phase A** shipped (`95dcbf3`) — owned load + debounced save + active-program sidecar; hot-reload path deleted. Built green + runtime-verified (real content loads, modulator graphs rebuild, no `.bak`).
+- ✅ **Phase C1** shipped (`2244939`) — `stopAll()` panic + `activeVoiceCount()`.
+- ✅ **Phase C2** shipped (`f3dc7eb`) — held-priority arbitration (held gesture is foreground; stabs/released tails yield; `fireTrigger(trigger, held)`).
+- ↪ **C3/C4/C5 folded into Phase E** (each needs its GUI consumer — no unused backend).
+- ⏭ **Next:** Phase D (model rename + migration loader) → Phase E (the UI, with theme hooks + C3/C4/C5). D touches many files + risks authored data (test the migration on `test/fixtures/user_content.pre-rename.json` first); E is the largest chunk.
+
 ---
 
 ## Phase 0 — Baseline & safety net  *(commit: "chore: refactor planning docs + baseline")*
