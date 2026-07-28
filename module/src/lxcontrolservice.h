@@ -111,6 +111,12 @@ namespace nap
 		uint64_t fireTrigger(lx::Trigger& trigger);
 		void stopTrigger(lx::Trigger& trigger);
 		bool isTriggerActive(lx::Trigger& trigger) const;
+		/** Panic / All Stop: immediately stop every effect and drop every channel claim so output goes
+		 *  dark this frame (no release-linger). A subsequent fireTrigger starts clean. */
+		void stopAll();
+		/** @return number of currently-held (non-releasing) activations -- the live "voices" count the GUI
+		 *  shows so "Output live / N held" is honest rather than a hardcoded label. */
+		size_t activeVoiceCount() const;
 
 		// --- Controllers + MIDI bindings ---
 		lx::Controller* createController(const std::string& name, lx::EControllerMode mode);

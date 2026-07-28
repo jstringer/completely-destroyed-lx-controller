@@ -756,6 +756,29 @@ namespace nap
 	}
 
 
+	void lxcontrolService::stopAll()
+	{
+		// Panic: stop every effect, drop every claim, clear all activations -> output is dark this frame.
+		for (auto& activation : mActivations)
+		{
+			for (auto* effect : activation.mEffects)
+				effect->stop();
+			reapClaims(activation.mId);
+		}
+		mActivations.clear();
+	}
+
+
+	size_t lxcontrolService::activeVoiceCount() const
+	{
+		size_t n = 0;
+		for (auto& activation : mActivations)
+			if (!activation.mReleasing)
+				++n;
+		return n;
+	}
+
+
 	lx::Controller* lxcontrolService::createController(const std::string& name, lx::EControllerMode mode)
 	{
 		auto controller = mResourceManager->createObject<lx::Controller>();
