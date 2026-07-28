@@ -35,22 +35,29 @@ namespace lx
 
 	float FixtureChannelComponentInstance::resolveValue() const
 	{
-		// LTP: latest-triggered active claim (largest activation id, kept last) wins; else base value.
-		if (!mClaims.empty())
+		// Held-priority LTP: prefer the newest claim from a currently-held control; if none is held, fall
+		// back to the newest remaining claim (a stab / released gesture ringing out); else the base value.
+		// mClaims is sorted ascending by activation id, so the last match in the scan is the newest.
+		const ChannelClaim* winner = nullptr;
+		for (const ChannelClaim& c : mClaims)
 		{
-			const ChannelClaim& top = mClaims.back();
-			return nap::math::clamp(top.mParam->getComponentValue(top.mSlot, top.mComponent), 0.0f, 1.0f);
+			if (c.mHeld)
+				winner = &c;			// newest held so far
 		}
+		if (winner == nullptr && !mClaims.empty())
+			winner = &mClaims.back();	// nothing held -> newest overall rings out
+		if (winner != nullptr)
+			return nap::math::clamp(winner->mParam->getComponentValue(winner->mSlot, winner->mComponent), 0.0f, 1.0f);
 		return nap::math::clamp(mBaseParameter->mValue, 0.0f, 1.0f);
 	}
 
 
-	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot)
+	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot, bool held)
 	{
 		removeClaims(activationId);
 		// Activation ids are monotonically increasing, so a new claim is always the latest -> append
 		// keeps the vector sorted ascending by id.
-		mClaims.push_back({ activationId, param, component, slot });
+		mClaims.push_back({ activationId, param, component, slot, held });
 	}
 
 
@@ -58,5 +65,13 @@ namespace lx
 	{
 		mClaims.erase(std::remove_if(mClaims.begin(), mClaims.end(),
 			[activationId](const ChannelClaim& c) { return c.mActivationId == activationId; }), mClaims.end());
+	}
+
+
+	void FixtureChannelComponentInstance::releaseClaims(uint64_t activationId)
+	{
+		for (ChannelClaim& c : mClaims)
+			if (c.mActivationId == activationId)
+				c.mHeld = false;
 	}
 }

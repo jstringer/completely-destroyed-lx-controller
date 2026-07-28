@@ -669,7 +669,7 @@ namespace nap
 	}
 
 
-	uint64_t lxcontrolService::fireTrigger(lx::Trigger& trigger)
+	uint64_t lxcontrolService::fireTrigger(lx::Trigger& trigger, bool held)
 	{
 		// Retrigger: stop-then-replace any existing activation of this trigger.
 		stopTrigger(trigger);
@@ -677,6 +677,7 @@ namespace nap
 		Activation activation;
 		activation.mId = mNextActivationId++;
 		activation.mTrigger = &trigger;
+		activation.mHeld = held;
 
 		for (auto& binding : trigger.mBindings)
 		{
@@ -718,7 +719,7 @@ namespace nap
 						for (int c = 0; c < count; ++c)
 						{
 							if (param->getComponentRole(c) == channel->getRole() && param->appliesToUnit(channel->getUnitIndex()))
-								channel->pushClaim(activation.mId, param.get(), c, slot);
+								channel->pushClaim(activation.mId, param.get(), c, slot, held);
 						}
 					}
 				}
@@ -740,7 +741,13 @@ namespace nap
 				continue;
 			for (auto* effect : activation.mEffects)
 				effect->stop();
+			// This gesture is no longer held: release its claims so any still-held control reclaims the
+			// channel; the released claim then shows only where nothing held remains (it rings out).
+			for (auto* fixture : mFixtures)
+				for (auto* channel : fixture->getChannels())
+					channel->releaseClaims(activation.mId);
 			activation.mReleasing = true;
+			activation.mHeld = false;
 		}
 	}
 
@@ -773,7 +780,7 @@ namespace nap
 	{
 		size_t n = 0;
 		for (auto& activation : mActivations)
-			if (!activation.mReleasing)
+			if (activation.mHeld && !activation.mReleasing)
 				++n;
 		return n;
 	}
@@ -1087,18 +1094,18 @@ namespace nap
 			switch (controller->mMode)
 			{
 			case lx::EControllerMode::Momentary:
-				if (on_event && !controller->mHeld)		{ controller->mHeld = true;  fireTrigger(*trig); }
+				if (on_event && !controller->mHeld)		{ controller->mHeld = true;  fireTrigger(*trig, /*held*/true); }
 				else if (off_event && controller->mHeld)	{ controller->mHeld = false; stopTrigger(*trig); }
 				break;
 			case lx::EControllerMode::Toggle:
 				if (on_event)
 				{
 					controller->mLatched = !controller->mLatched;
-					if (controller->mLatched) fireTrigger(*trig); else stopTrigger(*trig);
+					if (controller->mLatched) fireTrigger(*trig, /*held*/true); else stopTrigger(*trig);
 				}
 				break;
 			case lx::EControllerMode::FireOnly:
-				if (on_event) fireTrigger(*trig);
+				if (on_event) fireTrigger(*trig, /*held*/false);
 				break;
 			}
 		}

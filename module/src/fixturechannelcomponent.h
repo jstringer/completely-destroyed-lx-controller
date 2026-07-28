@@ -45,17 +45,21 @@ namespace lx
 		virtual bool init(nap::utility::ErrorState& errorState) override;
 
 		/**
-		 * @return this channel's current output value, 0..1: the highest-activation-id (latest-triggered,
-		 * LTP) active claim's value, or the base parameter's value if no effect claims this channel.
+		 * @return this channel's current output value, 0..1. Held-priority LTP: the newest claim fired by a
+		 * currently-held control (Momentary down / Latch on) wins; if none is held, the newest remaining
+		 * (stab / released gesture) claim wins so it rings out; else the base parameter value.
 		 */
 		float resolveValue() const;
 
 		/** Adds/replaces the claim for the given activation. Claims stay sorted ascending by id (latest last).
 		 *  `slot` selects which fixture slot of `param` this claim reads (see Effect::mTargetMode); 0 for
-		 *  Single-mode effects. */
-		void pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot = 0);
+		 *  Single-mode effects. `held` marks a claim from a currently-held control so it outranks stabs. */
+		void pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot = 0, bool held = false);
 		/** Removes any claim for the given activation. */
 		void removeClaims(uint64_t activationId);
+		/** Marks this activation's claims as no longer held (its control was released) so a still-held lower
+		 *  claim reclaims the channel; the released claim rings out only where nothing held remains. */
+		void releaseClaims(uint64_t activationId);
 
 		int getOffset() const				{ return mOffset; }
 		EChannelRole getRole() const		{ return mRole; }
@@ -70,6 +74,7 @@ namespace lx
 			const EffectParameter*	mParam = nullptr;
 			int						mComponent = 0;
 			int						mSlot = 0;
+			bool					mHeld = false;	// fired by a currently-held control (Momentary down / Latch on) -> outranks stabs/releasing
 		};
 
 		std::string				mName;

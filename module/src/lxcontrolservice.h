@@ -108,7 +108,7 @@ namespace nap
 		void setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::EffectFixtureBinding>& bindings);
 		void removeTrigger(lx::Trigger* trigger);
 		const std::vector<rtti::ObjectPtr<lx::Trigger>>& getTriggers() const { return mTriggers; }
-		uint64_t fireTrigger(lx::Trigger& trigger);
+		uint64_t fireTrigger(lx::Trigger& trigger, bool held = false);
 		void stopTrigger(lx::Trigger& trigger);
 		bool isTriggerActive(lx::Trigger& trigger) const;
 		/** Panic / All Stop: immediately stop every effect and drop every channel claim so output goes
@@ -176,6 +176,7 @@ namespace nap
 			lx::Trigger*				mTrigger = nullptr;
 			std::vector<lx::Effect*>	mEffects;
 			bool						mReleasing = false;
+			bool						mHeld = false;	// fired by a currently-held control (Momentary/Latch), not a stab/lifecycle
 		};
 
 		void onMidiEvent(const MidiEvent& event);
