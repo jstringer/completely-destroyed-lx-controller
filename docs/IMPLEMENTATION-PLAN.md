@@ -18,7 +18,7 @@ Execution playbook for building the redesign in `docs/gui-refactor-findings.md` 
 - ✅ **Phase C1** shipped (`2244939`) — `stopAll()` panic + `activeVoiceCount()`.
 - ✅ **Phase C2** shipped (`f3dc7eb`) — held-priority arbitration (held gesture is foreground; stabs/released tails yield; `fireTrigger(trigger, held)`).
 - ↪ **C3/C4/C5 folded into Phase E** (each needs its GUI consumer — no unused backend).
-- ⏭ **Next:** Phase D (model rename + migration loader) → Phase E (the UI, with theme hooks + C3/C4/C5). D touches many files + risks authored data (test the migration on `test/fixtures/user_content.pre-rename.json` first); E is the largest chunk.
+- ⏭ **Next:** Phase D (model rename — **migration-free**; `user_content.json` is placeholder per owner, so reset & rename freely) → Phase E (the UI, with theme hooks + C3/C4/C5 folded in). E is the largest chunk.
 
 ---
 
@@ -55,12 +55,11 @@ Audit-then-build, first-principles. Each is independently committable.
 - **C5. Patch duplicate + "used by N".** `duplicateEffect()` = deep-copy Effect + params + modulators, rebuild each modulator graph (reuse `buildModulatorGraph`). `effectConsumers(effect)` = scan every `Trigger.mBindings` + `Program` mapping → reverse index for the "used by N / fork" affordance. Budget: dup is the most complex "small button."
 - *Commits: one per C-item, e.g. "feat(engine): stopAll", "feat(engine): held-priority arbitration", …*
 
-## Phase D — Model rename + migration loader  🔧  ⚠️ *(touches existing authored data)*
-- **D1. Migration map at the load boundary** (built on Phase A's owned loader): a one-time type-string substitution over the JSON text before deserialize — `lx::Effect→lx::Patch`, `lx::EffectParameter→lx::PatchParameter`, `lx::Controller→lx::Control`, `lx::{Enter,Exit,Controller}Trigger→lx::Trigger` (+ inject a `Kind` field), `Slot→Voice` where surfaced. Idempotent; upgrades `user_content.json` on first launch.
-- **D2. Rename the classes** (`effect.h→patch.h`, etc.), update `RTTI_*`, includes, and all call sites. Collapse the 3 empty Trigger subtypes to `Trigger{ ETriggerKind Kind }`.
-- ✅ Verify: unit-migrate the captured fixture `test/fixtures/user_content.pre-rename.json` → loads clean; keep the `.bak` guard; rename in one pass (never partial).
-- ⚠️ Risk (high): a wrong map wipes user data via the `.bak`-and-empty path. Test migration on the real fixture *before* shipping.
-- *Commit: "refactor(model): rename Effect→Patch/Controller→Control + migration loader"*
+## Phase D — Model rename  🔧  *(migration-free: authored content is placeholder — owner directive)*
+- **D1. Rename the classes** (`effect.h→patch.h`, `Effect→Patch`, `EffectParameter→PatchParameter`, `Controller→Control`, `Slot→Voice`), update `RTTI_*`, includes, and all call sites (service + app + `objects.json` type strings). Collapse the 3 empty Trigger subtypes to `Trigger{ ETriggerKind Kind }`.
+- **D2. Reset content, don't migrate.** `user_content.json` is placeholder (owner confirmed no back-compat) → just delete it on rename; the app starts empty and re-authors under the new type names. No migration loader, no fixture test needed (`test/fixtures/user_content.pre-rename.json` may be dropped).
+- ✅ Verify: regenerate if any file added, build green, app starts empty and can author + persist under new names.
+- *Commit: "refactor(model): rename Effect→Patch / Controller→Control, collapse Trigger subtypes"*
 
 ## Phase E — The new UI  🔧  *(the mockup, made real; regenerate per new view file)*
 Build the four surfaces from mockup v5 on the Phase-B scaffold + Phase-C/D engine. Sub-commits per surface.
