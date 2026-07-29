@@ -59,7 +59,10 @@ namespace nap
 		void drawPatchesTab();
 		void drawTriggerBindingsEditor(lx::Trigger& trigger);
 		void drawTriggerCreationForm(lx::Program& program);
-		void drawProgramsTab();
+		/** PROGRAMS panel 1: the programs list (loaded=gold, cued=selected-for-edit) + New. */
+		void drawProgramsListPanel();
+		/** PROGRAMS panel 2: header + editing band + Routing matrix + Automatic + Output, for one program. */
+		void drawRoutingPanel(lx::Program* prog);
 		void drawControlsTab();
 		/** One Control row in the CONTROLS surface. Returns true if it deleted the control (caller
 		 *  must stop iterating the controls vector that frame). */

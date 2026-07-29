@@ -204,13 +204,17 @@ namespace nap
 			}
 			if (ImGui::BeginTabItem("PROGRAMS"))
 			{
-				// Workspace: programs + routing on the left, the shared Patch editor on the right
-				// (Patches are shared across Programs; edited in context - findings §93).
-				ImGui::BeginChild("prog_left", ImVec2(ImGui::GetContentRegionAvail().x * 0.52f, 0), true);
-				drawProgramsTab();
+				// 3-panel workspace: programs list | routing+automatic+output | shared patch editor.
+				lx::Program* cued = mCuedProgram != nullptr ? mCuedProgram : mLxControlService->getActiveProgram();
+				ImGui::BeginChild("prog_list", ImVec2(190, 0), true);
+				drawProgramsListPanel();
 				ImGui::EndChild();
 				ImGui::SameLine();
-				ImGui::BeginChild("patch_right", ImVec2(0, 0), true);
+				ImGui::BeginChild("prog_route", ImVec2(ImGui::GetContentRegionAvail().x - 396.0f, 0), true);
+				drawRoutingPanel(cued);
+				ImGui::EndChild();
+				ImGui::SameLine();
+				ImGui::BeginChild("prog_patch", ImVec2(380, 0), true);
 				ImGui::TextColored(lxtheme::accent(), "PATCH EDITOR");
 				ImGui::Separator();
 				drawPatchesTab();
@@ -862,257 +866,240 @@ namespace nap
 	}
 
 
-	void lxcontrolApp::drawProgramsTab()
+	void lxcontrolApp::drawProgramsListPanel()
 	{
-		ImGui::InputText("Name##prog", mNewProgramName, sizeof(mNewProgramName));
-		ImGui::SameLine();
-		if (ImGui::Button("+ New Program") && std::strlen(mNewProgramName) > 0)
+		lxtheme::SectionHeader("Programs");
+		lx::Program* active = mLxControlService->getActiveProgram();
+		const auto& progs = mLxControlService->getPrograms();
+		if (progs.empty())
+			ImGui::TextDisabled("none yet");
+
+		for (auto& prog : progs)
 		{
-			mLxControlService->createProgram(mNewProgramName);
+			ImGui::PushID(prog.get());
+			bool is_active = (prog.get() == active);
+			bool is_sel = (prog.get() == mCuedProgram);
+			if (is_active) { lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine(); }
+			ImGui::PushStyleColor(ImGuiCol_Text, is_active ? lxtheme::live() : (is_sel ? lxtheme::text() : lxtheme::text2()));
+			if (ImGui::Selectable(prog->mName.c_str(), is_sel))
+				mCuedProgram = prog.get();
+			ImGui::PopStyleColor();
+			ImGui::PopID();
+		}
+
+		ImGui::Separator();
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("##newprog", mNewProgramName, sizeof(mNewProgramName));
+		if (ImGui::Button("+ New program", ImVec2(-1.0f, 0.0f)) && std::strlen(mNewProgramName) > 0)
+		{
+			lx::Program* np = mLxControlService->createProgram(mNewProgramName);
+			if (np != nullptr) mCuedProgram = np;
 			mNewProgramName[0] = '\0';
 		}
-		ImGui::Separator();
+	}
 
+
+	void lxcontrolApp::drawRoutingPanel(lx::Program* prog)
+	{
+		if (prog == nullptr)
+		{
+			ImGui::Spacing();
+			ImGui::TextDisabled("No program selected.");
+			ImGui::TextDisabled("Pick one on the left, or + New program.");
+			ImGui::Spacing();
+			ImGui::TextDisabled("A Program is a loadable set of controls playing patches on your fixtures:");
+			ImGui::TextDisabled("  1 build a Patch   2 add a Control   3 Route control -> patch   4 Load + play");
+			return;
+		}
+
+		lx::Program* active = mLxControlService->getActiveProgram();
+		const bool is_loaded = (prog == active);
 		const auto& triggers = mLxControlService->getTriggers();
 		const auto& controls = mLxControlService->getControls();
-		lx::Program* active = mLxControlService->getActiveProgram();
 
-		// Control-kind triggers only offer themselves in the per-Control mapping combos
-		// (Enter/Exit auto-fire on load/unload and aren't manually mappable).
+		// --- Header: name + loaded/Load + delete ---
+		ImGui::TextColored(is_loaded ? lxtheme::live() : lxtheme::text(), "%s", prog->mName.c_str());
+		ImGui::SameLine();
+		if (is_loaded)
+			lxtheme::Chip("- Loaded", lxtheme::live2());
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2());
+			if (ImGui::SmallButton("Load >")) mLxControlService->loadProgram(prog);
+			ImGui::PopStyleColor();
+		}
+		ImGui::SameLine();
+		if (lxtheme::DangerButton("Del"))
+			ImGui::OpenPopup("del_prog");
+		if (ImGui::BeginPopup("del_prog"))
+		{
+			ImGui::Text("Delete program \"%s\"?", prog->mName.c_str());
+			if (lxtheme::DangerButton("Delete"))
+			{
+				if (mCuedProgram == prog) mCuedProgram = nullptr;
+				mLxControlService->removeProgram(prog);
+				ImGui::CloseCurrentPopup();
+				ImGui::EndPopup();
+				return;	// prog is gone; bail this frame
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
+
+		// Editing-vs-live band.
+		if (!is_loaded)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2());
+			ImGui::TextUnformatted("Editing - not the live program");
+			ImGui::PopStyleColor();
+		}
+
+		// Control-kind triggers only (Enter/Exit auto-fire on load/unload).
 		std::vector<lx::Trigger*> control_triggers;
 		for (auto& t : triggers)
 			if (t->mKind == lx::ETriggerKind::Control) control_triggers.emplace_back(t.get());
 
-		if (mLxControlService->getPrograms().empty())
-			ImGui::TextDisabled("No programs yet. Name one above and hit + New Program, then Load it to go live.");
+		// Controls already mapped to any Trigger in this Program (one mapping per Control, enforced by service).
+		std::vector<lx::Control*> mapped_in_program;
+		for (auto& m : prog->mControlMappings)
+			if (m->mControl != nullptr)
+				mapped_in_program.emplace_back(m->mControl.get());
 
-		for (auto& prog : mLxControlService->getPrograms())
+		// --- ROUTING matrix: one flat block per control-trigger (control -> patch -> fixtures + test) ---
+		lxtheme::SectionHeader("Routing");
+		for (auto* t : control_triggers)
 		{
-			// Keyed by mID, not the raw pointer: any mapping/binding/lifecycle edit below rewrites
-			// user_content.json, which the ResourceManager's directory watch hot-reloads next frame,
-			// recreating changed Programs/Triggers/Controls at a new address. mID survives that;
-			// a pointer-based ID would orphan this tree's open/closed state and it'd appear to collapse.
-			ImGui::PushID(prog->mID.c_str());
-			bool is_active = (active == prog.get());
-			// Loaded program name reads as live (gold); others are neutral. Load = recall (goes live);
-			// this is distinct from just expanding a program's rows to edit it.
-			if (is_active)
+			ImGui::PushID(t->mID.c_str());
+			bool active_t = mLxControlService->isTriggerActive(*t);
+
+			// Row head: trigger name (+ active dot), Test fire/stop, Delete.
+			if (active_t) { lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine(); }
+			ImGui::TextColored(active_t ? lxtheme::live2() : lxtheme::text(), "%s", t->mName.c_str());
+			ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t);
+			ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*t);
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Del##trig")) { mLxControlService->removeTrigger(t); ImGui::PopID(); break; }
+
+			// Patch -> fixtures summary for this trigger (from its bindings).
+			for (auto& b : t->mBindings)
 			{
-				lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine();
-				ImGui::TextColored(lxtheme::live(), "%s  (loaded)", prog->mName.c_str());
+				ImGui::TextColored(lxtheme::mod2(), "  -> %s", b.mPatch != nullptr ? b.mPatch->mName.c_str() : "(no patch)");
+				ImGui::SameLine();
+				std::string fx = "[" + std::to_string(b.mFixtureNames.size()) + " fx]";
+				lxtheme::Chip(fx.c_str());
+			}
+			if (t->mBindings.empty())
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::live2());
+				ImGui::TextUnformatted("  ! no patch bound");
+				ImGui::PopStyleColor();
+			}
+
+			// Which controls fire this trigger (retarget combo + remove), + add-binding.
+			if (!controls.empty())
+			{
+				std::vector<lx::ControlMapping*> rows;
+				for (auto& m : prog->mControlMappings)
+					if (m->mTrigger.get() == t) rows.emplace_back(m.get());
+
+				bool mutated = false;
+				for (auto* row : rows)
+				{
+					ImGui::PushID(row->mID.c_str());
+					lx::Control* cur = row->mControl.get();
+					std::vector<lx::Control*> avail; std::vector<const char*> labels; int cur_idx = 0;
+					for (auto& c : controls)
+					{
+						bool taken = std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) != mapped_in_program.end();
+						if (taken && c.get() != cur) continue;
+						if (c.get() == cur) cur_idx = static_cast<int>(avail.size());
+						avail.emplace_back(c.get()); labels.emplace_back(c->mName.c_str());
+					}
+					ImGui::TextUnformatted("  ctrl"); ImGui::SameLine(); ImGui::SetNextItemWidth(150);
+					if (ImGui::Combo("##ctrl", &cur_idx, labels.data(), static_cast<int>(labels.size())))
+					{
+						lx::Control* picked = avail[cur_idx];
+						if (picked != cur && cur != nullptr)
+						{
+							mLxControlService->clearControlMapping(*prog, *cur);
+							mLxControlService->setControlMapping(*prog, *picked, t);
+							mutated = true;
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::SmallButton("x") && cur != nullptr) { mLxControlService->clearControlMapping(*prog, *cur); mutated = true; }
+					ImGui::PopID();
+					if (mutated) break;
+				}
+				if (!mutated)
+				{
+					lx::Control* next_avail = nullptr;
+					for (auto& c : controls)
+						if (std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) == mapped_in_program.end()) { next_avail = c.get(); break; }
+					bool can_add = (next_avail != nullptr);
+					bool dis = lxtheme::PushDisabled(!can_add);
+					if (ImGui::SmallButton("+ route a control") && can_add)
+						mLxControlService->setControlMapping(*prog, *next_avail, t);
+					lxtheme::PopDisabled(dis);
+					if (!can_add && ImGui::IsItemHovered())
+						ImGui::SetTooltip("Every control is already routed in this program");
+				}
 			}
 			else
 			{
-				ImGui::TextUnformatted(prog->mName.c_str());
-			}
-			ImGui::SameLine();
-			if (is_active) { if (ImGui::SmallButton("Unload")) mLxControlService->unloadProgram(); }
-			else { if (ImGui::SmallButton("Load")) mLxControlService->loadProgram(prog.get()); }
-			ImGui::SameLine();
-			if (lxtheme::DangerButton("Delete"))
-				ImGui::OpenPopup("confirm_del_prog");
-			if (ImGui::BeginPopup("confirm_del_prog"))
-			{
-				ImGui::Text("Delete program \"%s\"?", prog->mName.c_str());
-				if (lxtheme::DangerButton("Delete"))
-				{
-					mLxControlService->removeProgram(prog.get());
-					ImGui::CloseCurrentPopup();
-					ImGui::EndPopup();
-					ImGui::PopID();
-					break;
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
-				ImGui::EndPopup();
+				ImGui::TextDisabled("  create a Control first (CONTROLS tab)");
 			}
 
-			// --- Control Mappings: manage each ControlTrigger (fire/stop/delete + bindings) and
-			// pick which Control(s) fire it while this Program is active ---
-			if (ImGui::TreeNode("Control Mappings"))
-			{
-				// Controls already mapped to ANY Trigger in this Program. A Control may only
-				// drive one Trigger per Program - setControlMapping enforces this by clearing any
-				// existing mapping for that Control first (lxcontrolservice.cpp) - so this list has
-				// at most one entry per Control. Used below to scope each row's Combo and to decide
-				// whether "+ Add Control binding" has anything left to offer.
-				std::vector<lx::Control*> mapped_in_program;
-				for (auto& m : prog->mControlMappings)
-					if (m->mControl != nullptr)
-						mapped_in_program.emplace_back(m->mControl.get());
-
-				for (auto* t : control_triggers)
-				{
-					ImGui::PushID(t->mID.c_str());
-
-					bool active_t = mLxControlService->isTriggerActive(*t);
-					ImGui::BulletText("%s%s", t->mName.c_str(), active_t ? " (active)" : "");
-					ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t);
-					ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*t);
-					ImGui::SameLine();
-					if (ImGui::SmallButton("Delete##trig"))
-					{
-						mLxControlService->removeTrigger(t);
-						ImGui::PopID();
-						break;	// breaks this inner loop only; the program row below still runs
-					}
-
-					drawTriggerBindingsEditor(*t);
-
-					// --- Control bindings for this Trigger: one flat row per bound Control
-					// (Combo to retarget + Remove), plus an Add button. Replaces the old "Mapped
-					// Controls" nested checkbox tree (Program -> Trigger -> checkbox-per-Control).
-					if (controls.empty())
-					{
-						ImGui::TextDisabled("Create a Control in the MIDI tab first");
-					}
-					else
-					{
-						// Rows = this Program's ControlMappings targeting this Trigger. PushID'd by
-						// the mapping's own mID, not loop index (row order isn't stable across a
-						// retarget/remove) and not the Control pointer (this tab hot-reloads from
-						// JSON and reallocates objects next frame).
-						std::vector<lx::ControlMapping*> rows;
-						for (auto& m : prog->mControlMappings)
-							if (m->mTrigger.get() == t)
-								rows.emplace_back(m.get());
-
-						bool mutated = false;
-						for (auto* row : rows)
-						{
-							ImGui::PushID(row->mID.c_str());
-							lx::Control* cur = row->mControl.get();
-
-							// This row's choices = Controls unmapped anywhere in this Program, plus
-							// its own current Control (so it stays visible/selected even though
-							// every other row treats it as "taken").
-							std::vector<lx::Control*> avail;
-							std::vector<const char*> avail_labels;
-							int cur_idx = 0;
-							for (auto& c : controls)
-							{
-								bool taken = std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) != mapped_in_program.end();
-								if (taken && c.get() != cur)
-									continue;
-								if (c.get() == cur)
-									cur_idx = static_cast<int>(avail.size());
-								avail.emplace_back(c.get());
-								avail_labels.emplace_back(c->mName.c_str());
-							}
-
-							ImGui::SetNextItemWidth(160);
-							if (ImGui::Combo("Control", &cur_idx, avail_labels.data(), static_cast<int>(avail_labels.size())))
-							{
-								lx::Control* picked = avail[cur_idx];
-								if (picked != cur && cur != nullptr)
-								{
-									// Re-target this voice: vacate the old Control, then bind the new
-									// one to the same Trigger. Clearing `cur` is required in addition to
-									// setControlMapping on `picked` - otherwise `cur` is left as an
-									// orphaned extra binding to `t`.
-									mLxControlService->clearControlMapping(*prog.get(), *cur);
-									mLxControlService->setControlMapping(*prog.get(), *picked, t);
-									mutated = true;
-								}
-							}
-
-							ImGui::SameLine();
-							if (ImGui::SmallButton("Remove##ctrlmap") && cur != nullptr)
-							{
-								mLxControlService->clearControlMapping(*prog.get(), *cur);
-								mutated = true;
-							}
-
-							ImGui::PopID();
-							if (mutated) break;	// rows / mapped_in_program are now stale; next frame recomputes
-						}
-
-						if (!mutated)
-						{
-							lx::Control* next_avail = nullptr;
-							for (auto& c : controls)
-							{
-								if (std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) == mapped_in_program.end())
-								{
-									next_avail = c.get();
-									break;
-								}
-							}
-
-							// Vendored ImGui is 1.76, predates BeginDisabled/EndDisabled (1.83), so
-							// gray manually and gate the click on can_add.
-							bool can_add = (next_avail != nullptr);
-							if (!can_add) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-							bool add_clicked = ImGui::Button("+ Add Control binding");
-							if (!can_add) ImGui::PopStyleVar();
-							if (!can_add && ImGui::IsItemHovered())
-								ImGui::SetTooltip("Every Control is already mapped to a Trigger in this Program");
-							if (add_clicked && can_add)
-								mLxControlService->setControlMapping(*prog.get(), *next_avail, t);
-						}
-					}
-
-					ImGui::Separator();
-					ImGui::PopID();
-				}
-
-				drawTriggerCreationForm(*prog.get());
-
-				ImGui::TreePop();
-			}
-
-			// --- Lifecycle Triggers: Enter/Exit, auto-fired on Program load/unload ---
-			if (ImGui::TreeNode("Lifecycle Triggers"))
-			{
-				for (auto& t : triggers)
-				{
-					if (t->mKind != lx::ETriggerKind::Enter && t->mKind != lx::ETriggerKind::Exit)
-						continue;
-
-					ImGui::PushID(t->mID.c_str());
-
-					bool member = false;
-					for (auto& pt : prog->mLifecycleTriggers)
-						if (pt.get() == t.get()) { member = true; break; }
-					if (ImGui::Checkbox(t->mName.c_str(), &member))
-					{
-						auto list = prog->mLifecycleTriggers;
-						if (member)
-						{
-							list.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
-						}
-						else
-						{
-							list.erase(std::remove_if(list.begin(), list.end(),
-								[&t](const nap::ResourcePtr<lx::Trigger>& x) { return x.get() == t.get(); }), list.end());
-						}
-						mLxControlService->setProgramLifecycleTriggers(*prog.get(), list);
-					}
-
-					const char* tn = t->mKind == lx::ETriggerKind::Enter ? "Enter" : "Exit";
-					bool active_t = mLxControlService->isTriggerActive(*t.get());
-					ImGui::SameLine(); ImGui::TextDisabled("[%s]%s", tn, active_t ? " (active)" : "");
-					ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t.get());
-					ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*t.get());
-					ImGui::SameLine();
-					if (ImGui::SmallButton("Delete##trig"))
-					{
-						mLxControlService->removeTrigger(t.get());
-						ImGui::PopID();
-						break;	// breaks this inner loop only; the program row below still runs
-					}
-
-					drawTriggerBindingsEditor(*t.get());
-
-					ImGui::PopID();
-				}
-
-				ImGui::Separator();
-				drawTriggerCreationForm(*prog.get());
-
-				ImGui::TreePop();
-			}
+			// Detailed binding editor on demand (kept from the working authoring path).
+			drawTriggerBindingsEditor(*t);
 			ImGui::Separator();
+			ImGui::PopID();
+		}
+		drawTriggerCreationForm(*prog);
+
+		// --- AUTOMATIC: Enter/Exit lifecycle triggers ---
+		lxtheme::SectionHeader("Automatic");
+		for (auto& t : triggers)
+		{
+			if (t->mKind != lx::ETriggerKind::Enter && t->mKind != lx::ETriggerKind::Exit) continue;
+			ImGui::PushID(t->mID.c_str());
+			bool member = false;
+			for (auto& pt : prog->mLifecycleTriggers)
+				if (pt.get() == t.get()) { member = true; break; }
+			if (ImGui::Checkbox(t->mName.c_str(), &member))
+			{
+				auto list = prog->mLifecycleTriggers;
+				if (member) list.emplace_back(nap::ResourcePtr<lx::Trigger>(t.get()));
+				else list.erase(std::remove_if(list.begin(), list.end(),
+					[&t](const nap::ResourcePtr<lx::Trigger>& x) { return x.get() == t.get(); }), list.end());
+				mLxControlService->setProgramLifecycleTriggers(*prog, list);
+			}
+			ImGui::SameLine();
+			lxtheme::Chip(t->mKind == lx::ETriggerKind::Enter ? "On load" : "On exit");
+			ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t.get());
+			ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*t.get());
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Del##life")) { mLxControlService->removeTrigger(t.get()); ImGui::PopID(); break; }
+			if (member) drawTriggerBindingsEditor(*t.get());
+			ImGui::PopID();
+		}
+
+		// --- OUTPUT: honest per-fixture summary (dimmer level + claim count) ---
+		lxtheme::SectionHeader("Output   held control wins - newest on top");
+		for (auto* fx : mLxControlService->getFixturesPhysicalOrder())
+		{
+			ImGui::PushID(fx);
+			size_t claims = 0;
+			for (auto* ch : fx->getChannels()) claims += ch->getClaimCount();
+			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
+			ImGui::Text("%s", fx->getDisplayName().c_str());
+			ImGui::PopStyleColor();
+			ImGui::SameLine(120.0f);
+			lxtheme::Fader("##odim", roleOutput(*fx, lx::EChannelRole::Dimmer), ImVec2(100, 12), lxtheme::live());
+			ImGui::SameLine();
+			if (claims > 0) ImGui::TextColored(lxtheme::live2(), "%d claim%s", static_cast<int>(claims), claims == 1 ? "" : "s");
+			else ImGui::TextDisabled("base");
 			ImGui::PopID();
 		}
 	}
