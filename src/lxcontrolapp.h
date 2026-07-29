@@ -49,7 +49,11 @@ namespace nap
 		/** Perform mode: a play-only pad grid. Each pad fires its Control's mapped Trigger in the
 		 *  active program; no authoring/editing. Keeps the Live Bar + output readout visible. */
 		void drawPerformGrid();
-		void drawFixturesTab();
+		void drawRigTab();
+		/** Live output strip for one fixture: Dimmer/Strobe filling faders, per-unit RGB swatches, and a
+		 *  per-channel output-LED row -- all from FixtureChannelComponentInstance::resolveValue() (the real
+		 *  post-arbitration output, i.e. honest output state / C3), not a phantom mix. */
+		void drawFixtureOutputStrip(lx::FixtureComponentInstance& fx);
 		void drawPatchesTab();
 		void drawTriggerBindingsEditor(lx::Trigger& trigger);
 		void drawTriggerCreationForm(lx::Program& program);

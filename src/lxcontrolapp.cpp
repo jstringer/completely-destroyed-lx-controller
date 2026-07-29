@@ -17,6 +17,7 @@
 
 // lx patch/modulator types (for RTTI_OF dispatch + casts)
 #include <channelrole.h>
+#include <fixturechannelcomponent.h>
 #include <patchparameter.h>
 #include <adsrmodulator.h>
 #include <admodulator.h>
@@ -196,9 +197,9 @@ namespace nap
 		// for now the existing tabs remain, reachable only in Edit mode.)
 		if (ImGui::BeginTabBar("MainTabs"))
 		{
-			if (ImGui::BeginTabItem("Fixtures"))
+			if (ImGui::BeginTabItem("RIG"))
 			{
-				drawFixturesTab();
+				drawRigTab();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Patches"))
@@ -327,20 +328,93 @@ namespace nap
 	}
 
 
-	void lxcontrolApp::drawFixturesTab()
+	// First channel matching `role` (0..1 resolved output), or 0 if the fixture has no such channel.
+	static float roleOutput(lx::FixtureComponentInstance& fx, lx::EChannelRole role)
 	{
-		ImGui::Text("Registered fixtures: %d", static_cast<int>(mLxControlService->getFixtures().size()));
+		for (auto* ch : fx.getChannels())
+			if (ch->getRole() == role)
+				return ch->resolveValue();
+		return 0.0f;
+	}
+
+
+	void lxcontrolApp::drawFixtureOutputStrip(lx::FixtureComponentInstance& fx)
+	{
+		// Dimmer + Strobe as filling faders (real post-arbitration output).
+		lxtheme::Fader("##dim", roleOutput(fx, lx::EChannelRole::Dimmer), ImVec2(20, 70), lxtheme::live());
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Dimmer");
+		ImGui::SameLine();
+		lxtheme::Fader("##strobe", roleOutput(fx, lx::EChannelRole::Strobe), ImVec2(20, 70), lxtheme::accent());
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Strobe");
+		ImGui::SameLine();
+
+		// Per-unit RGB swatches (units 1..6 for the Eurolite's six SMD units).
+		ImGui::BeginGroup();
+		int shown = 0;
+		for (int unit = 1; unit <= 6; ++unit)
+		{
+			float rgb[3] = { 0, 0, 0 };
+			bool present = false;
+			for (auto* ch : fx.getChannels())
+			{
+				if (ch->getUnitIndex() != unit) continue;
+				if (ch->getRole() == lx::EChannelRole::Red)   { rgb[0] = ch->resolveValue(); present = true; }
+				if (ch->getRole() == lx::EChannelRole::Green) { rgb[1] = ch->resolveValue(); present = true; }
+				if (ch->getRole() == lx::EChannelRole::Blue)  { rgb[2] = ch->resolveValue(); present = true; }
+			}
+			if (!present) continue;
+			ImGui::PushID(unit);
+			lxtheme::Swatch("##u", rgb, 22.0f);
+			ImGui::PopID();
+			if (++shown % 3 != 0) ImGui::SameLine();
+		}
+		ImGui::EndGroup();
+
+		// Per-channel output LEDs (lit = channel currently emitting).
+		ImGui::TextDisabled("out");
+		ImGui::SameLine();
+		for (auto* ch : fx.getChannels())
+		{
+			ImGui::PushID(ch);
+			lxtheme::OutputLed(ch->resolveValue() > 0.02f, lxtheme::live());
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", ch->getChannelName().c_str());
+			ImGui::PopID();
+			ImGui::SameLine();
+		}
+		ImGui::NewLine();
+	}
+
+
+	void lxcontrolApp::drawRigTab()
+	{
+		ImGui::TextDisabled("Art-Net output. Universe / DMX mode / IP are start-time only (restart to change).");
 		ImGui::Separator();
 
+		// Physical (StartChannel) order aligns with Strobe1/2/3 param groups (StartChannels 0/22/44).
+		auto fixtures = mLxControlService->getFixturesPhysicalOrder();
 		const char* fixture_names[3] = { "Strobe 1", "Strobe 2", "Strobe 3" };
 		ParameterGroup* fixture_groups[3] = { mFixtureParams1.get(), mFixtureParams2.get(), mFixtureParams3.get() };
 		for (int i = 0; i < 3; i++)
 		{
 			if (i > 0)
 				ImGui::SameLine();
-			ImGui::BeginChild(fixture_names[i], ImVec2(300, 0), true);
-			ImGui::Text("%s", fixture_names[i]);
+			ImGui::BeginChild(fixture_names[i], ImVec2(320, 0), true);
+
+			lx::FixtureComponentInstance* fx = (i < static_cast<int>(fixtures.size())) ? fixtures[i] : nullptr;
+			ImGui::TextColored(lxtheme::accent(), "%s", fixture_names[i]);
+			if (fx != nullptr)
+			{
+				ImGui::SameLine();
+				ImGui::TextDisabled("%s @ ch %d", fx->getDisplayName().c_str(), fx->getStartChannel());
+			}
 			ImGui::Separator();
+
+			if (fx != nullptr)
+			{
+				drawFixtureOutputStrip(*fx);
+				ImGui::Separator();
+			}
+
 			drawFixtureParamGroup(*fixture_groups[i]);
 			ImGui::EndChild();
 		}
