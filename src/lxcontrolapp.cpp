@@ -181,6 +181,7 @@ namespace nap
 
 	void lxcontrolApp::drawMainUI()
 	{
+		lxtheme::applyStyle();	// own the full terminal/luminous style each frame (wins over the SDK scheme)
 		ImGui::Begin("lxcontrol");
 
 		drawLiveBar();

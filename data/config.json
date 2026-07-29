@@ -4,7 +4,8 @@
             "Type": "nap::IMGuiServiceConfiguration",
             "mID": "IMGuiServiceConfiguration",
             "Color Scheme": "HyperDark",
-            "Font Size": 16.0,
+            "Font Size": 15.0,
+            "FontFile": "CascadiaCode.ttf",
             "Scale": 1.0
         }
     ]

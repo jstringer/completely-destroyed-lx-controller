@@ -18,13 +18,88 @@
  */
 namespace lxtheme
 {
-	// --- Semantic palette ---------------------------------------------------
-	inline ImVec4 accent()	{ return { 0.20f, 0.85f, 0.82f, 1.0f }; }	// teal/cyan  - selection, armed
-	inline ImVec4 live()	{ return { 1.00f, 0.78f, 0.20f, 1.0f }; }	// gold       - live output / active program
-	inline ImVec4 mod()		{ return { 0.66f, 0.45f, 1.00f, 1.0f }; }	// violet     - modulation motion
-	inline ImVec4 danger()	{ return { 1.00f, 0.35f, 0.35f, 1.0f }; }	// red        - destructive action
-	inline ImVec4 pulse()	{ return { 1.00f, 0.60f, 0.00f, 1.0f }; }	// amber      - learn / awaiting input
-	inline ImVec4 muted()	{ return { 0.55f, 0.55f, 0.58f, 1.0f }; }	// gray       - secondary text
+	// --- Palette (mockup v5 :root, exact hex) -------------------------------
+	inline ImVec4 rgb(int hex, float a = 1.0f)
+	{
+		return { ((hex >> 16) & 0xff) / 255.0f, ((hex >> 8) & 0xff) / 255.0f, (hex & 0xff) / 255.0f, a };
+	}
+	// Surfaces
+	inline ImVec4 bg()		{ return rgb(0x06090c); }	// window background
+	inline ImVec4 well()	{ return rgb(0x03060a); }	// recessed panel / input well
+	inline ImVec4 bar()		{ return rgb(0x0a1015); }	// title / header bars
+	inline ImVec4 border()	{ return rgb(0x183640); }
+	inline ImVec4 borderHi(){ return rgb(0x22505c); }
+	inline ImVec4 btnbg()	{ return rgb(0x0c141a); }	// button background
+	// Text
+	inline ImVec4 text()	{ return rgb(0xe3f4f7); }
+	inline ImVec4 text2()	{ return rgb(0x9dbdc5); }
+	inline ImVec4 muted()	{ return rgb(0x5f818c); }	// secondary text
+	// Semantic accents
+	inline ImVec4 accent()	{ return rgb(0x2dd4bf); }	// teal   - you / armed / selection
+	inline ImVec4 accent2()	{ return rgb(0x7cf5ff); }	// cyan   - hover / active-you
+	inline ImVec4 live()	{ return rgb(0xf5b301); }	// gold   - light is LIVE
+	inline ImVec4 live2()	{ return rgb(0xffce4d); }
+	inline ImVec4 mod()		{ return rgb(0xa78bfa); }	// violet - modulation
+	inline ImVec4 mod2()	{ return rgb(0xc4b5fd); }
+	inline ImVec4 danger()	{ return rgb(0xfb7185); }	// rose   - destructive
+	inline ImVec4 pulse()	{ return rgb(0x7cf5ff); }	// cyan   - listening / awaiting input (breathing)
+
+	/** Writes the full terminal/luminous style into ImGui::GetStyle(). Call once per frame BEFORE any
+	 *  window is submitted (top of drawMainUI) so it wins over whatever the SDK scheme set. */
+	inline void applyStyle()
+	{
+		ImGuiStyle& s = ImGui::GetStyle();
+		// Geometry: sharp, terminal-like.
+		s.WindowRounding = 0.0f; s.ChildRounding = 0.0f; s.FrameRounding = 0.0f;
+		s.PopupRounding = 0.0f; s.ScrollbarRounding = 0.0f; s.GrabRounding = 0.0f; s.TabRounding = 0.0f;
+		s.WindowBorderSize = 1.0f; s.ChildBorderSize = 1.0f; s.FrameBorderSize = 1.0f; s.PopupBorderSize = 1.0f;
+		s.WindowPadding = ImVec2(14, 12); s.FramePadding = ImVec2(9, 5); s.ItemSpacing = ImVec2(10, 6);
+		s.ItemInnerSpacing = ImVec2(8, 6); s.IndentSpacing = 18.0f; s.ScrollbarSize = 12.0f; s.GrabMinSize = 8.0f;
+
+		ImVec4* c = s.Colors;
+		c[ImGuiCol_Text]				= text();
+		c[ImGuiCol_TextDisabled]		= muted();
+		c[ImGuiCol_WindowBg]			= bg();
+		c[ImGuiCol_ChildBg]				= well();
+		c[ImGuiCol_PopupBg]				= bar();
+		c[ImGuiCol_Border]				= border();
+		c[ImGuiCol_BorderShadow]		= ImVec4(0, 0, 0, 0);
+		c[ImGuiCol_FrameBg]				= well();
+		c[ImGuiCol_FrameBgHovered]		= bar();
+		c[ImGuiCol_FrameBgActive]		= rgb(0x183640, 0.6f);
+		c[ImGuiCol_TitleBg]				= bar();
+		c[ImGuiCol_TitleBgActive]		= bar();
+		c[ImGuiCol_TitleBgCollapsed]	= bar();
+		c[ImGuiCol_MenuBarBg]			= bar();
+		c[ImGuiCol_ScrollbarBg]			= well();
+		c[ImGuiCol_ScrollbarGrab]		= border();
+		c[ImGuiCol_ScrollbarGrabHovered]= borderHi();
+		c[ImGuiCol_ScrollbarGrabActive]	= accent();
+		c[ImGuiCol_CheckMark]			= accent();
+		c[ImGuiCol_SliderGrab]			= accent();
+		c[ImGuiCol_SliderGrabActive]	= accent2();
+		c[ImGuiCol_Button]				= btnbg();
+		c[ImGuiCol_ButtonHovered]		= bar();
+		c[ImGuiCol_ButtonActive]		= rgb(0x22505c, 0.5f);
+		c[ImGuiCol_Header]				= rgb(0x2dd4bf, 0.12f);
+		c[ImGuiCol_HeaderHovered]		= rgb(0x2dd4bf, 0.20f);
+		c[ImGuiCol_HeaderActive]		= rgb(0x2dd4bf, 0.30f);
+		c[ImGuiCol_Separator]			= border();
+		c[ImGuiCol_SeparatorHovered]	= borderHi();
+		c[ImGuiCol_SeparatorActive]		= accent();
+		c[ImGuiCol_Tab]					= bar();
+		c[ImGuiCol_TabHovered]			= rgb(0x2dd4bf, 0.20f);
+		c[ImGuiCol_TabActive]			= rgb(0x2dd4bf, 0.16f);
+		c[ImGuiCol_TabUnfocused]		= bar();
+		c[ImGuiCol_TabUnfocusedActive]	= well();
+		c[ImGuiCol_PlotLines]			= mod();
+		c[ImGuiCol_PlotLinesHovered]	= mod2();
+		c[ImGuiCol_PlotHistogram]		= live();
+		c[ImGuiCol_TextSelectedBg]		= rgb(0x2dd4bf, 0.30f);
+		c[ImGuiCol_ResizeGrip]			= border();
+		c[ImGuiCol_ResizeGripHovered]	= borderHi();
+		c[ImGuiCol_ResizeGripActive]	= accent();
+	}
 
 	// --- Widget helpers -----------------------------------------------------
 
