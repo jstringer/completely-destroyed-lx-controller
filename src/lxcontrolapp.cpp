@@ -463,6 +463,9 @@ namespace nap
 		}
 		ImGui::Separator();
 
+		if (mLxControlService->getPatches().empty())
+			ImGui::TextDisabled("No patches yet. A patch is a light-voice: parameters + modulators.");
+
 		for (auto& patch : mLxControlService->getPatches())
 		{
 			ImGui::PushID(patch.get());
@@ -480,10 +483,23 @@ namespace nap
 
 			ImGui::SameLine();
 			if (lxtheme::DangerButton("Delete"))
+				ImGui::OpenPopup("confirm_del_patch");
+			if (ImGui::BeginPopup("confirm_del_patch"))
 			{
-				mLxControlService->removePatch(patch.get());
-				ImGui::PopID();
-				break;
+				if (used_by > 0)
+					ImGui::TextColored(lxtheme::danger(), "Used by %d trigger binding%s.", used_by, used_by == 1 ? "" : "s");
+				ImGui::Text("Delete patch \"%s\"?", patch->mName.c_str());
+				if (lxtheme::DangerButton("Delete"))
+				{
+					mLxControlService->removePatch(patch.get());
+					ImGui::CloseCurrentPopup();
+					ImGui::EndPopup();
+					ImGui::PopID();
+					break;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+				ImGui::EndPopup();
 			}
 
 			if (open)
@@ -796,6 +812,9 @@ namespace nap
 		std::vector<lx::Trigger*> control_triggers;
 		for (auto& t : triggers)
 			if (t->mKind == lx::ETriggerKind::Control) control_triggers.emplace_back(t.get());
+
+		if (mLxControlService->getPrograms().empty())
+			ImGui::TextDisabled("No programs yet. Name one above and hit + New Program, then Load it to go live.");
 
 		for (auto& prog : mLxControlService->getPrograms())
 		{
