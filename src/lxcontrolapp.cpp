@@ -182,17 +182,18 @@ namespace nap
 	{
 		ImGui::Begin("lxcontrol");
 
-		ImGui::Checkbox("Style Guide", &mShowStyleGuide);
+		drawLiveBar();
 		ImGui::Separator();
 
-		// Active-program banner (shown on every tab)
-		lx::Program* active = mLxControlService->getActiveProgram();
-		if (active != nullptr)
-			ImGui::TextColored(lxtheme::live(), "Program: %s", active->mName.c_str());
-		else
-			ImGui::TextDisabled("Program: (none loaded - output is dark)");
-		ImGui::Separator();
+		if (mMode == EUiMode::Perform)
+		{
+			drawPerformGrid();
+			ImGui::End();
+			return;
+		}
 
+		// Edit mode: authoring surfaces. (RIG / PROGRAMS / CONTROLS restructure lands in E2-E4;
+		// for now the existing tabs remain, reachable only in Edit mode.)
 		if (ImGui::BeginTabBar("MainTabs"))
 		{
 			if (ImGui::BeginTabItem("Fixtures"))
@@ -218,6 +219,111 @@ namespace nap
 			ImGui::EndTabBar();
 		}
 		ImGui::End();
+	}
+
+
+	void lxcontrolApp::drawLiveBar()
+	{
+		lx::Program* active = mLxControlService->getActiveProgram();
+		const size_t voices = mLxControlService->activeVoiceCount();
+
+		// Output state dot + label: honest (dark / N held / loaded-idle), never a phantom "on".
+		if (voices > 0)
+		{
+			lxtheme::StateDot(lxtheme::live(), true);
+			ImGui::SameLine();
+			ImGui::TextColored(lxtheme::live(), "%d voice%s", static_cast<int>(voices), voices == 1 ? "" : "s");
+		}
+		else
+		{
+			lxtheme::StateDot(ImVec4(0.25f, 0.25f, 0.28f, 1.0f));
+			ImGui::SameLine();
+			ImGui::TextDisabled(active != nullptr ? "loaded - idle" : "dark");
+		}
+
+		// Loaded program.
+		ImGui::SameLine(0.0f, 20.0f);
+		if (active != nullptr)
+			ImGui::TextColored(lxtheme::accent(), "Program: %s", active->mName.c_str());
+		else
+			ImGui::TextDisabled("Program: - none -");
+
+		// All Stop (panic).
+		ImGui::SameLine(0.0f, 20.0f);
+		if (lxtheme::DangerButton("# All Stop"))
+			mLxControlService->stopAll();
+
+		// MIDI activity: the last message, not a fake "connected" light (review #3 / findings §6).
+		ImGui::SameLine(0.0f, 20.0f);
+		if (mLxControlService->hasLastMidiEvent())
+		{
+			MidiEvent ev = mLxControlService->getLastMidiEvent();
+			ImGui::TextDisabled("MIDI: ch%d n%d v%d", ev.getChannel(), ev.getNumber(), ev.getValue());
+		}
+		else
+		{
+			ImGui::TextDisabled("MIDI: -");
+		}
+
+		// Perform/Edit toggle + Style Guide (right-aligned-ish).
+		ImGui::SameLine(0.0f, 24.0f);
+		const bool perform = (mMode == EUiMode::Perform);
+		if (perform) ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::accent());
+		if (ImGui::Button(perform ? "PERFORM" : "EDIT"))
+			mMode = perform ? EUiMode::Edit : EUiMode::Perform;
+		if (perform) ImGui::PopStyleColor();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Toggle Perform (play-only) / Edit (authoring)");
+
+		ImGui::SameLine();
+		ImGui::Checkbox("Style Guide", &mShowStyleGuide);
+	}
+
+
+	void lxcontrolApp::drawPerformGrid()
+	{
+		lx::Program* active = mLxControlService->getActiveProgram();
+		if (active == nullptr)
+		{
+			ImGui::Spacing();
+			ImGui::TextDisabled("No program loaded. Load one in Edit mode to perform it.");
+			return;
+		}
+
+		const auto& controls = mLxControlService->getControls();
+		if (controls.empty())
+		{
+			ImGui::Spacing();
+			ImGui::TextDisabled("No Controls yet. Create some in Edit mode (CONTROLS).");
+			return;
+		}
+
+		// Play-only pad grid: one pad per Control, firing its mapped Trigger in the active program.
+		// Unbound controls are shown dimmed (no trigger to fire), never hidden.
+		const float pad = 96.0f;
+		const float avail = ImGui::GetContentRegionAvail().x;
+		const int per_row = (avail > pad * 1.5f) ? static_cast<int>(avail / (pad + 8.0f)) : 1;
+		int col = 0;
+		for (auto& c : controls)
+		{
+			lx::Trigger* trig = mLxControlService->getControlMapping(*active, *c.get());
+			const bool bound = (trig != nullptr);
+			const bool live = bound && mLxControlService->isTriggerActive(*trig);
+
+			ImGui::PushID(c.get());
+			if (live) ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::live());
+			const bool dis = lxtheme::PushDisabled(!bound);
+			if (ImGui::Button(c->mName.c_str(), ImVec2(pad, pad)) && bound)
+				mLxControlService->fireTrigger(*trig);
+			lxtheme::PopDisabled(dis);
+			if (live) ImGui::PopStyleColor();
+			if (!bound && ImGui::IsItemHovered())
+				ImGui::SetTooltip("Unbound in this program - map it in Edit / PROGRAMS");
+			ImGui::PopID();
+
+			if (++col % per_row != 0)
+				ImGui::SameLine();
+		}
 	}
 
 

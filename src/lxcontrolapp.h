@@ -43,6 +43,12 @@ namespace nap
 
 	private:
 		void drawMainUI();
+		/** Persistent top bar (all modes): active program, honest output state (activeVoiceCount),
+		 *  ■ All Stop (stopAll), MIDI activity readout, and the Perform/Edit toggle. */
+		void drawLiveBar();
+		/** Perform mode: a play-only pad grid. Each pad fires its Control's mapped Trigger in the
+		 *  active program; no authoring/editing. Keeps the Live Bar + output readout visible. */
+		void drawPerformGrid();
 		void drawFixturesTab();
 		void drawPatchesTab();
 		void drawTriggerBindingsEditor(lx::Trigger& trigger);
@@ -113,5 +119,9 @@ namespace nap
 
 		// Design-language test bed (src/lxstyleguide.cpp). Default on so it's visible on first run.
 		bool						mShowStyleGuide = true;
+
+		// Perform vs Edit (the Live Bar toggle). Perform = play-only pad grid; Edit = authoring tabs.
+		enum class EUiMode { Edit, Perform };
+		EUiMode						mMode = EUiMode::Edit;
 	};
 }
