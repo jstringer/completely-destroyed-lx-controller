@@ -1250,20 +1250,14 @@ namespace nap
 
 	void lxcontrolApp::drawControlsTab()
 	{
-		// Device list: honest "seen at startup" snapshot (napmidi has no hot-plug enumeration; the Live
-		// Bar shows real per-message activity). Never a fake green "connected" (review #3 / findings §6).
-		ImGui::TextDisabled("MIDI input ports (startup snapshot):");
-		std::string port_names = mMidiPort->getPortNames();
-		ImGui::SameLine();
-		ImGui::TextUnformatted(port_names.empty() ? "(none)" : port_names.c_str());
+		const auto& controls = mLxControlService->getControls();
 
-		ImGui::BeginChild("MidiLog", ImVec2(0, 96), true);
-		for (const auto& line : mLxControlService->getMidiLog())
-			ImGui::TextUnformatted(line.c_str());
-		ImGui::EndChild();
+		// Two columns: controllers (device cards) | devices + incoming monitor.
+		ImGui::BeginChild("ctrl_left", ImVec2(ImGui::GetContentRegionAvail().x - 336.0f, 0), false);
 
-		// --- New control -------------------------------------------------
-		lxtheme::SectionHeader("New Control");
+		lxtheme::SectionHeader("Controllers");
+
+		// New control form.
 		ImGui::SetNextItemWidth(140);
 		ImGui::InputText("Name##ctrl", mNewControlName, sizeof(mNewControlName));
 		ImGui::SameLine(); ImGui::SetNextItemWidth(90);
@@ -1271,43 +1265,73 @@ namespace nap
 		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
 		ImGui::InputText("Device##ctrl", mNewControlGroup, sizeof(mNewControlGroup));
 		ImGui::SameLine();
-		if (ImGui::Button("+ Add") && std::strlen(mNewControlName) > 0)
+		if (ImGui::Button("+ Add control") && std::strlen(mNewControlName) > 0)
 		{
 			lx::Control* nc = mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
 			if (nc != nullptr) { nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }
 			mNewControlName[0] = '\0';
 		}
 
-		// --- Controls grouped by device ----------------------------------
-		const auto& controls = mLxControlService->getControls();
 		if (controls.empty())
 		{
 			ImGui::Spacing();
-			ImGui::TextDisabled("No Controls yet. Add one above, then Learn a MIDI message to bind it.");
-			return;
+			ImGui::TextDisabled("No controls yet. Add one above, then Learn a MIDI message to bind it.");
+			ImGui::EndChild();
 		}
-
-		// Distinct groups in first-seen order; empty group ("(ungrouped)") drawn last.
-		std::vector<std::string> groups;
-		bool has_ungrouped = false;
-		for (auto& c : controls)
+		else
 		{
-			if (c->mGroup.empty()) { has_ungrouped = true; continue; }
-			if (std::find(groups.begin(), groups.end(), c->mGroup) == groups.end())
-				groups.emplace_back(c->mGroup);
-		}
-		if (has_ungrouped) groups.emplace_back(std::string());
-
-		for (const auto& g : groups)
-		{
-			lxtheme::SectionHeader(g.empty() ? "(ungrouped)" : g.c_str());
+			// Distinct device groups in first-seen order; ungrouped drawn last.
+			std::vector<std::string> groups;
+			bool has_ungrouped = false;
 			for (auto& c : controls)
 			{
-				if (c->mGroup != g) continue;
-				if (drawControlRow(c.get()))
-					return;	// deleted -> `controls` mutated, bail this frame
+				if (c->mGroup.empty()) { has_ungrouped = true; continue; }
+				if (std::find(groups.begin(), groups.end(), c->mGroup) == groups.end())
+					groups.emplace_back(c->mGroup);
 			}
+			if (has_ungrouped) groups.emplace_back(std::string());
+
+			const double since = mLastMidiSeen < 0.0 ? -1.0 : ImGui::GetTime() - mLastMidiSeen;
+			for (const auto& g : groups)
+			{
+				ImGui::PushID(g.c_str());
+				// Device card header (Controller chip + name + activity).
+				ImGui::Spacing();
+				lxtheme::Chip("Controller");
+				ImGui::SameLine();
+				ImGui::TextColored(lxtheme::text(), "%s", g.empty() ? "(ungrouped)" : g.c_str());
+				ImGui::SameLine();
+				if (since < 0.0) ImGui::TextDisabled("   no messages yet");
+				else ImGui::TextDisabled("   last msg %.1fs", since);
+				ImGui::Separator();
+
+				bool deleted = false;
+				for (auto& c : controls)
+				{
+					if (c->mGroup != g) continue;
+					if (drawControlRow(c.get())) { deleted = true; break; }
+				}
+				ImGui::PopID();
+				if (deleted) { ImGui::EndChild(); return; }	// controls mutated
+			}
+			ImGui::EndChild();
 		}
+
+		// Right column: devices + incoming monitor.
+		ImGui::SameLine();
+		ImGui::BeginChild("ctrl_right", ImVec2(320, 0), false);
+		lxtheme::SectionHeader("Devices");
+		std::string port_names = mMidiPort->getPortNames();
+		lxtheme::Chip(port_names.empty() ? "(none) - startup snapshot" : port_names.c_str());
+		ImGui::TextDisabled("napmidi has no hot-plug enumeration - this is the startup snapshot.");
+		ImGui::TextDisabled("Silence > 30s may mean a device was unplugged.");
+
+		lxtheme::SectionHeader("Incoming");
+		ImGui::BeginChild("MidiLog", ImVec2(0, 160), true);
+		for (const auto& line : mLxControlService->getMidiLog())
+			ImGui::TextUnformatted(line.c_str());
+		ImGui::EndChild();
+		ImGui::EndChild();
 	}
 
 
