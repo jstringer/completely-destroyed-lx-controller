@@ -193,8 +193,7 @@ namespace nap
 			return;
 		}
 
-		// Edit mode: authoring surfaces. (RIG / PROGRAMS / CONTROLS restructure lands in E2-E4;
-		// for now the existing tabs remain, reachable only in Edit mode.)
+		// Edit mode: the three authoring surfaces RIG / PROGRAMS / CONTROLS.
 		if (ImGui::BeginTabBar("MainTabs"))
 		{
 			if (ImGui::BeginTabItem("RIG"))
@@ -202,14 +201,19 @@ namespace nap
 				drawRigTab();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("Patches"))
+			if (ImGui::BeginTabItem("PROGRAMS"))
 			{
-				drawPatchesTab();
-				ImGui::EndTabItem();
-			}
-			if (ImGui::BeginTabItem("Programs"))
-			{
+				// Workspace: programs + routing on the left, the shared Patch editor on the right
+				// (Patches are shared across Programs; edited in context - findings §93).
+				ImGui::BeginChild("prog_left", ImVec2(ImGui::GetContentRegionAvail().x * 0.52f, 0), true);
 				drawProgramsTab();
+				ImGui::EndChild();
+				ImGui::SameLine();
+				ImGui::BeginChild("patch_right", ImVec2(0, 0), true);
+				ImGui::TextColored(lxtheme::accent(), "PATCH EDITOR");
+				ImGui::Separator();
+				drawPatchesTab();
+				ImGui::EndChild();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("CONTROLS"))
@@ -463,8 +467,19 @@ namespace nap
 		{
 			ImGui::PushID(patch.get());
 			bool open = ImGui::CollapsingHeader(patch->mName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+			// "used by N" reverse index: how many Trigger bindings reference this patch (C5 - the
+			// affordance that makes a shared patch's reach visible before you edit/delete it). Inline
+			// scan; no backend needed. Fork (deep-copy) is deferred - see IMPLEMENTATION-PLAN Phase E.
+			int used_by = 0;
+			for (auto& trig : mLxControlService->getTriggers())
+				for (auto& b : trig->mBindings)
+					if (b.mPatch.get() == patch.get()) { used_by++; break; }
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Delete"))
+			ImGui::TextDisabled("(used by %d)", used_by);
+
+			ImGui::SameLine();
+			if (lxtheme::DangerButton("Delete"))
 			{
 				mLxControlService->removePatch(patch.get());
 				ImGui::PopID();
@@ -790,12 +805,38 @@ namespace nap
 			// a pointer-based ID would orphan this tree's open/closed state and it'd appear to collapse.
 			ImGui::PushID(prog->mID.c_str());
 			bool is_active = (active == prog.get());
-			ImGui::Text("%s%s", prog->mName.c_str(), is_active ? "  (active)" : "");
+			// Loaded program name reads as live (gold); others are neutral. Load = recall (goes live);
+			// this is distinct from just expanding a program's rows to edit it.
+			if (is_active)
+			{
+				lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine();
+				ImGui::TextColored(lxtheme::live(), "%s  (loaded)", prog->mName.c_str());
+			}
+			else
+			{
+				ImGui::TextUnformatted(prog->mName.c_str());
+			}
 			ImGui::SameLine();
 			if (is_active) { if (ImGui::SmallButton("Unload")) mLxControlService->unloadProgram(); }
 			else { if (ImGui::SmallButton("Load")) mLxControlService->loadProgram(prog.get()); }
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Delete")) { mLxControlService->removeProgram(prog.get()); ImGui::PopID(); break; }
+			if (lxtheme::DangerButton("Delete"))
+				ImGui::OpenPopup("confirm_del_prog");
+			if (ImGui::BeginPopup("confirm_del_prog"))
+			{
+				ImGui::Text("Delete program \"%s\"?", prog->mName.c_str());
+				if (lxtheme::DangerButton("Delete"))
+				{
+					mLxControlService->removeProgram(prog.get());
+					ImGui::CloseCurrentPopup();
+					ImGui::EndPopup();
+					ImGui::PopID();
+					break;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+				ImGui::EndPopup();
+			}
 
 			// --- Control Mappings: manage each ControlTrigger (fire/stop/delete + bindings) and
 			// pick which Control(s) fire it while this Program is active ---
