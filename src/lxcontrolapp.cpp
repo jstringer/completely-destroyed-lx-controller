@@ -328,10 +328,15 @@ namespace nap
 	void lxcontrolApp::drawPerformGrid()
 	{
 		lx::Program* active = mLxControlService->getActiveProgram();
+		if (active != nullptr)
+			lxtheme::SectionHeader((std::string("Perform - ") + active->mName).c_str());
+		else
+			lxtheme::SectionHeader("Perform");
+
 		if (active == nullptr)
 		{
 			ImGui::Spacing();
-			ImGui::TextDisabled("No program loaded. Load one in Edit mode to perform it.");
+			ImGui::TextDisabled("No program loaded. Cue one in the bar and press Load to perform it.");
 			return;
 		}
 
@@ -339,15 +344,16 @@ namespace nap
 		if (controls.empty())
 		{
 			ImGui::Spacing();
-			ImGui::TextDisabled("No Controls yet. Create some in Edit mode (CONTROLS).");
+			ImGui::TextDisabled("No controls yet. Create some in Edit mode (CONTROLS).");
 			return;
 		}
 
-		// Play-only pad grid: one pad per Control, firing its mapped Trigger in the active program.
-		// Unbound controls are shown dimmed (no trigger to fire), never hidden.
-		const float pad = 96.0f;
+		// Play-only pad grid (mockup .bigpad, aspect ~1.5). One pad per Control, firing its mapped
+		// Trigger; lit=gold when its trigger is active; unbound dimmed. All-Stop lives in the bar.
+		const int cols = 4;
 		const float avail = ImGui::GetContentRegionAvail().x;
-		const int per_row = (avail > pad * 1.5f) ? static_cast<int>(avail / (pad + 8.0f)) : 1;
+		const float pad_w = (avail - ImGui::GetStyle().ItemSpacing.x * (cols - 1)) / cols;
+		const float pad_h = pad_w / 1.5f;
 		int col = 0;
 		for (auto& c : controls)
 		{
@@ -355,20 +361,39 @@ namespace nap
 			const bool bound = (trig != nullptr);
 			const bool live = bound && mLxControlService->isTriggerActive(*trig);
 
+			// Sublabel: the patch(es) this control fires, from its trigger's first binding.
+			std::string fx;
+			if (bound && !trig->mBindings.empty() && trig->mBindings[0].mPatch != nullptr)
+				fx = trig->mBindings[0].mPatch->mName + "  [" + std::to_string(trig->mBindings[0].mFixtureNames.size()) + " fx]";
+			else if (bound)
+				fx = "no patch";
+			else
+				fx = "unbound";
+
 			ImGui::PushID(c.get());
-			if (live) ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::live());
+			if (live)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::rgb(0xf5b301, 0.20f));
+				ImGui::PushStyleColor(ImGuiCol_Border, lxtheme::live());
+			}
 			const bool dis = lxtheme::PushDisabled(!bound);
-			if (ImGui::Button(c->mName.c_str(), ImVec2(pad, pad)) && bound)
+
+			// Two-line pad label (cue name + sublabel) inside a fixed-size button.
+			std::string label = c->mName + "\n" + fx;
+			if (ImGui::Button(label.c_str(), ImVec2(pad_w, pad_h)) && bound)
 				mLxControlService->fireTrigger(*trig);
+
 			lxtheme::PopDisabled(dis);
-			if (live) ImGui::PopStyleColor();
+			if (live) ImGui::PopStyleColor(2);
 			if (!bound && ImGui::IsItemHovered())
-				ImGui::SetTooltip("Unbound in this program - map it in Edit / PROGRAMS");
+				ImGui::SetTooltip("Unbound in this program - route it in Edit / PROGRAMS");
 			ImGui::PopID();
 
-			if (++col % per_row != 0)
+			if (++col % cols != 0)
 				ImGui::SameLine();
 		}
+		ImGui::NewLine();
+		ImGui::TextDisabled("Play-only. All Stop and the output readout stay in the top bar. Toggle EDIT to author.");
 	}
 
 
