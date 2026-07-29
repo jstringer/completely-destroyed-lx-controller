@@ -20,6 +20,7 @@ namespace lx
 	public:
 		std::string					mName;						///< Property: 'Name'
 		EControlMode				mMode = EControlMode::Momentary;	///< Property: 'Mode'
+		std::string					mGroup;						///< Property: 'Group' device label that groups Controls in the CONTROLS UI (empty = ungrouped). Presentational only; not a resource (findings §6).
 
 		// Runtime, non-serialized
 		bool	mLatched = false;	///< Toggle mode latch

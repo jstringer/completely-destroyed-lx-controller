@@ -54,7 +54,10 @@ namespace nap
 		void drawTriggerBindingsEditor(lx::Trigger& trigger);
 		void drawTriggerCreationForm(lx::Program& program);
 		void drawProgramsTab();
-		void drawMidiTab();
+		void drawControlsTab();
+		/** One Control row in the CONTROLS surface. Returns true if it deleted the control (caller
+		 *  must stop iterating the controls vector that frame). */
+		bool drawControlRow(lx::Control* c);
 		void drawFixtureParamGroup(ParameterGroup& group);
 		/** Best-effort label for a Multiple-mode patch's fixture voice in the modulator preview: finds any
 		 *  Trigger binding targeting this patch and resolves which physically-ordered fixture landed in
@@ -108,9 +111,10 @@ namespace nap
 		};
 		std::map<std::string, NewTriggerForm> mNewTriggerFormByProgram;	// keyed by Program::mID, see note above
 
-		// MIDI tab form state
+		// CONTROLS tab form state
 		char						mNewControlName[128] = "";
-		int							mNewControlMode = 0;	// 0=Momentary,1=Toggle,2=FireOnly
+		int							mNewControlMode = 0;	// 0=Hold(Momentary),1=Latch(Toggle),2=Trig(FireOnly)
+		char						mNewControlGroup[64] = "";	// device group for the next created control
 		lx::Control*				mLearningControl = nullptr;	// control awaiting a learned MIDI event
 		int							mLearnStartCounter = 0;
 

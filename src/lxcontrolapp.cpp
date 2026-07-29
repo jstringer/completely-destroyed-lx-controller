@@ -211,9 +211,9 @@ namespace nap
 				drawProgramsTab();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("MIDI"))
+			if (ImGui::BeginTabItem("CONTROLS"))
 			{
-				drawMidiTab();
+				drawControlsTab();
 				ImGui::EndTabItem();
 			}
 			ImGui::EndTabBar();
@@ -942,78 +942,167 @@ namespace nap
 	}
 
 
-	void lxcontrolApp::drawMidiTab()
+	// Desk vocabulary for EControlMode: Hold=Momentary, Latch=Toggle, Trig=FireOnly (findings §92).
+	static const char* kModeLabels[] = { "Hold", "Latch", "Trig" };
+	static const char* kModeTips[] = {
+		"Hold (Momentary): fires while held, releases (falls back) on note-off.",
+		"Latch (Toggle): each press toggles the trigger on / off.",
+		"Trig (FireOnly): each press re-fires; never holds."
+	};
+
+	// Draws one Control row (mode combo + group + Learn/Cancel + Delete-confirm + its bindings).
+	// Returns true if the control was deleted (caller must stop iterating that vector).
+	bool lxcontrolApp::drawControlRow(lx::Control* c)
 	{
-		ImGui::Text("Connected MIDI input devices:");
-		std::string port_names = mMidiPort->getPortNames();
-		if (port_names.empty())
-			ImGui::TextDisabled("No MIDI devices found");
-		else
-			ImGui::BulletText("%s", port_names.c_str());
+		ImGui::PushID(c);
 
-		ImGui::Separator();
-		ImGui::Text("Incoming messages:");
-		ImGui::BeginChild("MidiLog", ImVec2(0, 120), true);
-		for (const auto& line : mLxControlService->getMidiLog())
-			ImGui::TextUnformatted(line.c_str());
-		ImGui::EndChild();
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextUnformatted(c->mName.c_str());
 
-		ImGui::Separator();
-		ImGui::Text("Controls:");
-
-		static const char* mode_labels[] = { "Momentary", "Toggle", "FireOnly" };
-
-		ImGui::InputText("Name##ctrl", mNewControlName, sizeof(mNewControlName));
-		ImGui::SameLine(); ImGui::SetNextItemWidth(110);
-		ImGui::Combo("Mode##ctrl", &mNewControlMode, mode_labels, 3);
-		ImGui::SameLine();
-		if (ImGui::Button("+ New Control") && std::strlen(mNewControlName) > 0)
+		// Mode: Hold / Latch / Trig, with an explanatory tooltip.
+		int mode = static_cast<int>(c->mMode);
+		ImGui::SameLine(); ImGui::SetNextItemWidth(80);
+		if (ImGui::Combo("##mode", &mode, kModeLabels, 3))
 		{
-			mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
-			mNewControlName[0] = '\0';
+			c->mMode = static_cast<lx::EControlMode>(mode);
+			mLxControlService->markDirty();
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("%s", kModeTips[mode]);
+
+		// Device group (live-editable; re-buckets next frame).
+		char gbuf[64];
+		std::strncpy(gbuf, c->mGroup.c_str(), sizeof(gbuf) - 1);
+		gbuf[sizeof(gbuf) - 1] = '\0';
+		ImGui::SameLine(); ImGui::SetNextItemWidth(110);
+		if (ImGui::InputText("##group", gbuf, sizeof(gbuf)))
+		{
+			c->mGroup = gbuf;
+			mLxControlService->markDirty();
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Device group (blank = ungrouped)");
+
+		// Learn, with an explicit Cancel (Esc also cancels - see inputMessageReceived).
+		ImGui::SameLine();
+		if (mLearningControl == c)
+		{
+			ImGui::TextColored(lxtheme::pulse(), "learning...");
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Cancel"))
+				mLearningControl = nullptr;
+			else if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
+			{
+				MidiEvent ev = mLxControlService->getLastMidiEvent();
+				mLxControlService->createBinding(ev, *c);
+				mLearningControl = nullptr;
+			}
+		}
+		else if (ImGui::SmallButton("Learn"))
+		{
+			mLearningControl = c;
+			mLearnStartCounter = mLxControlService->getMidiEventCounter();
 		}
 
-		ImGui::Separator();
-		for (auto& c : mLxControlService->getControls())
+		// Delete, with a confirm popup (destructive - review's Del-confirm).
+		ImGui::SameLine();
+		if (lxtheme::DangerButton("Del"))
+			ImGui::OpenPopup("confirm_del");
+		bool deleted = false;
+		if (ImGui::BeginPopup("confirm_del"))
 		{
-			ImGui::PushID(c.get());
-			int mode = static_cast<int>(c->mMode);
-			ImGui::Text("%s", c->mName.c_str());
-			ImGui::SameLine(); ImGui::SetNextItemWidth(110);
-			if (ImGui::Combo("##mode", &mode, mode_labels, 3)) c->mMode = static_cast<lx::EControlMode>(mode);
-
-			ImGui::SameLine();
-			if (mLearningControl == c.get())
+			ImGui::Text("Delete control \"%s\"?", c->mName.c_str());
+			if (lxtheme::DangerButton("Delete"))
 			{
-				ImGui::TextColored(lxtheme::pulse(), "learning...");
-				if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
-				{
-					MidiEvent ev = mLxControlService->getLastMidiEvent();
-					mLxControlService->createBinding(ev, *c.get());
-					mLearningControl = nullptr;
-				}
-			}
-			else if (ImGui::SmallButton("Learn"))
-			{
-				mLearningControl = c.get();
-				mLearnStartCounter = mLxControlService->getMidiEventCounter();
+				mLxControlService->removeControl(c);
+				deleted = true;
+				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Delete")) { mLxControlService->removeControl(c.get()); ImGui::PopID(); break; }
+			if (ImGui::Button("Cancel"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
 
+		// Bindings (learned MIDI numbers) with per-binding remove.
+		if (!deleted)
+		{
 			for (auto& b : mLxControlService->getBindings())
 			{
-				if (b->mControl.get() != c.get())
-					continue;
+				if (b->mControl.get() != c) continue;
 				ImGui::PushID(b.get());
 				std::string nums;
 				for (int n : b->mNumbers) { nums += std::to_string(n); nums += " "; }
-				ImGui::BulletText("num: %s", nums.c_str());
+				ImGui::BulletText("MIDI num: %s", nums.empty() ? "(any)" : nums.c_str());
 				ImGui::SameLine();
 				if (ImGui::SmallButton("X")) mLxControlService->removeBinding(b.get());
 				ImGui::PopID();
 			}
-			ImGui::PopID();
+		}
+
+		ImGui::PopID();
+		return deleted;
+	}
+
+	void lxcontrolApp::drawControlsTab()
+	{
+		// Device list: honest "seen at startup" snapshot (napmidi has no hot-plug enumeration; the Live
+		// Bar shows real per-message activity). Never a fake green "connected" (review #3 / findings §6).
+		ImGui::TextDisabled("MIDI input ports (startup snapshot):");
+		std::string port_names = mMidiPort->getPortNames();
+		ImGui::SameLine();
+		ImGui::TextUnformatted(port_names.empty() ? "(none)" : port_names.c_str());
+
+		ImGui::BeginChild("MidiLog", ImVec2(0, 96), true);
+		for (const auto& line : mLxControlService->getMidiLog())
+			ImGui::TextUnformatted(line.c_str());
+		ImGui::EndChild();
+
+		// --- New control -------------------------------------------------
+		lxtheme::SectionHeader("New Control");
+		ImGui::SetNextItemWidth(140);
+		ImGui::InputText("Name##ctrl", mNewControlName, sizeof(mNewControlName));
+		ImGui::SameLine(); ImGui::SetNextItemWidth(90);
+		ImGui::Combo("Mode##ctrl", &mNewControlMode, kModeLabels, 3);
+		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
+		ImGui::InputText("Device##ctrl", mNewControlGroup, sizeof(mNewControlGroup));
+		ImGui::SameLine();
+		if (ImGui::Button("+ Add") && std::strlen(mNewControlName) > 0)
+		{
+			lx::Control* nc = mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
+			if (nc != nullptr) { nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }
+			mNewControlName[0] = '\0';
+		}
+
+		// --- Controls grouped by device ----------------------------------
+		const auto& controls = mLxControlService->getControls();
+		if (controls.empty())
+		{
+			ImGui::Spacing();
+			ImGui::TextDisabled("No Controls yet. Add one above, then Learn a MIDI message to bind it.");
+			return;
+		}
+
+		// Distinct groups in first-seen order; empty group ("(ungrouped)") drawn last.
+		std::vector<std::string> groups;
+		bool has_ungrouped = false;
+		for (auto& c : controls)
+		{
+			if (c->mGroup.empty()) { has_ungrouped = true; continue; }
+			if (std::find(groups.begin(), groups.end(), c->mGroup) == groups.end())
+				groups.emplace_back(c->mGroup);
+		}
+		if (has_ungrouped) groups.emplace_back(std::string());
+
+		for (const auto& g : groups)
+		{
+			lxtheme::SectionHeader(g.empty() ? "(ungrouped)" : g.c_str());
+			for (auto& c : controls)
+			{
+				if (c->mGroup != g) continue;
+				if (drawControlRow(c.get()))
+					return;	// deleted -> `controls` mutated, bail this frame
+			}
 		}
 	}
 
@@ -1053,7 +1142,12 @@ namespace nap
 		{
 			nap::KeyPressEvent* press_event = static_cast<nap::KeyPressEvent*>(inputEvent.get());
 			if (press_event->mKey == nap::EKeyCode::KEY_ESCAPE)
-				quit();
+			{
+				if (mLearningControl != nullptr)
+					mLearningControl = nullptr;	// Esc cancels an in-progress Learn instead of quitting
+				else
+					quit();
+			}
 			if (press_event->mKey == nap::EKeyCode::KEY_f)
 				mRenderWindow->toggleFullscreen();
 		}

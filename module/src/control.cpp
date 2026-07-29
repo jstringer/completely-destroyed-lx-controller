@@ -9,4 +9,5 @@ RTTI_END_ENUM
 RTTI_BEGIN_CLASS(lx::Control)
 	RTTI_PROPERTY("Name",		&lx::Control::mName,		nap::rtti::EPropertyMetaData::Required)
 	RTTI_PROPERTY("Mode",		&lx::Control::mMode,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Group",		&lx::Control::mGroup,		nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
