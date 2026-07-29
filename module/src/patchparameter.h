@@ -10,14 +10,14 @@
 namespace lx
 {
 	/**
-	 * A logical effect parameter: an authored base value (serialized) plus a live runtime output
+	 * A logical patch parameter: an authored base value (serialized) plus a live runtime output
 	 * (mCurrentValues, non-serialized) that modulators blend into. One parameter can have several
 	 * components (a color has 3). Each component has a semantic role and optional unit scoping.
 	 *
 	 * Deliberately does NOT wrap nap::Parameter (see PLAN.md §2): every component is 0..1 so there's
 	 * no min/max win, and the GUI widgets are one-liners.
 	 */
-	class NAPAPI EffectParameter : public nap::Resource
+	class NAPAPI PatchParameter : public nap::Resource
 	{
 		RTTI_ENABLE(nap::Resource)
 	public:
@@ -33,31 +33,31 @@ namespace lx
 		/** @return true if this parameter targets the given fixture unit (empty Units = all units). */
 		bool appliesToUnit(int unit) const;
 
-		/** Slot-0 convenience wrappers (Single-mode effects; every existing caller keeps working). */
+		/** Voice-0 convenience wrappers (Single-mode patches; every existing caller keeps working). */
 		float getComponentValue(int c) const					{ return getComponentValue(0, c); }
 		void setComponentValue(int c, float value)				{ setComponentValue(0, c, value); }
 
-		/** @return component c's current (post-modulation) value for fixture slot `slot`. */
-		float getComponentValue(int slot, int c) const;
-		/** Sets component c's current value for fixture slot `slot`, clamped 0..1. Grows storage as needed. */
-		void setComponentValue(int slot, int c, float value);
+		/** @return component c's current (post-modulation) value for fixture voice `voice`. */
+		float getComponentValue(int voice, int c) const;
+		/** Sets component c's current value for fixture voice `voice`, clamped 0..1. Grows storage as needed. */
+		void setComponentValue(int voice, int c, float value);
 
-		/** Copies each component's authored base value into every one of `slots` fixture slots
-		 *  (called each frame before modulation; `slots` = 1 for Single-mode effects). */
-		void resetToBase(int slots = 1);
+		/** Copies each component's authored base value into every one of `voices` fixture voices
+		 *  (called each frame before modulation; `voices` = 1 for Single-mode patches). */
+		void resetToBase(int voices = 1);
 
 		std::string			mName;			///< Property: 'Name'
 		std::vector<int>	mUnits;			///< Property: 'Units' empty = all units
 
-		/** Runtime post-modulation output, non-serialized. Flattened [slot * getComponentCount() + c]. */
+		/** Runtime post-modulation output, non-serialized. Flattened [voice * getComponentCount() + c]. */
 		std::vector<float>	mCurrentValues;
 	};
 
 
 	/** Single-component float parameter with an explicit role. */
-	class NAPAPI FloatParameter : public EffectParameter
+	class NAPAPI FloatParameter : public PatchParameter
 	{
-		RTTI_ENABLE(EffectParameter)
+		RTTI_ENABLE(PatchParameter)
 	public:
 		int getComponentCount() const override			{ return 1; }
 		EChannelRole getComponentRole(int) const override	{ return mRole; }
@@ -69,9 +69,9 @@ namespace lx
 
 
 	/** Three-component color parameter (roles Red/Green/Blue). */
-	class NAPAPI ColorParameter : public EffectParameter
+	class NAPAPI ColorParameter : public PatchParameter
 	{
-		RTTI_ENABLE(EffectParameter)
+		RTTI_ENABLE(PatchParameter)
 	public:
 		int getComponentCount() const override { return 3; }
 		EChannelRole getComponentRole(int c) const override;
@@ -84,9 +84,9 @@ namespace lx
 
 
 	/** Single-component boolean parameter (0/1) with an explicit role. */
-	class NAPAPI ToggleParameter : public EffectParameter
+	class NAPAPI ToggleParameter : public PatchParameter
 	{
-		RTTI_ENABLE(EffectParameter)
+		RTTI_ENABLE(PatchParameter)
 	public:
 		int getComponentCount() const override			{ return 1; }
 		EChannelRole getComponentRole(int) const override	{ return mRole; }

@@ -22,7 +22,7 @@ namespace lx
 
 	void ChaseModulator::generateCurve(nap::lxcontrolService& svc)
 	{
-		// Value is computed analytically in valueForSlot() from the player's own time; this dummy curve
+		// Value is computed analytically in valueForVoice() from the player's own time; this dummy curve
 		// exists only to pin mDuration/the sequence duration to one second, matching LfoModulator.
 		mDuration = 1.0;
 		using I = nap::math::ECurveInterp;
@@ -52,13 +52,13 @@ namespace lx
 	}
 
 
-	float ChaseModulator::valueForSlot(int slot) const
+	float ChaseModulator::valueForVoice(int voice) const
 	{
 		if (mPlayer == nullptr)
 			return 0.0f;
 
 		double t = mPlayer->getPlayerTime();
-		double phase = wrapFrac(t - (double)slot / (double)mSlotCount);
+		double phase = wrapFrac(t - (double)voice / (double)mVoiceCount);
 		float pw = nap::math::clamp(mPulseWidth, 0.01f, 1.0f);
 
 		if (!mGlide)

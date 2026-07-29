@@ -18,7 +18,8 @@ Execution playbook for building the redesign in `docs/gui-refactor-findings.md` 
 - ✅ **Phase C1** shipped (`2244939`) — `stopAll()` panic + `activeVoiceCount()`.
 - ✅ **Phase C2** shipped (`f3dc7eb`) — held-priority arbitration (held gesture is foreground; stabs/released tails yield; `fireTrigger(trigger, held)`).
 - ↪ **C3/C4/C5 folded into Phase E** (each needs its GUI consumer — no unused backend).
-- ⏭ **Next:** Phase D (model rename — **migration-free**; `user_content.json` is placeholder per owner, so reset & rename freely) → Phase E (the UI, with theme hooks + C3/C4/C5 folded in). E is the largest chunk.
+- ✅ **Phase D** shipped — `Effect→Patch`, `EffectParameter→PatchParameter`, `Controller→Control` (+`ControllerMapping→ControlMapping`, `EEffectTargetMode→EPatchTargetMode`, `EControllerMode→EControlMode`, `EffectFixtureBinding→PatchFixtureBinding`), the per-fixture `Slot→Voice` vocabulary, and the 3 empty Trigger subtypes collapsed to `Trigger{ ETriggerKind Kind }` (`createTrigger(ETriggerKind, name)`). Migration-free: deleted placeholder `user_content.json` + the pre-rename fixture. Built green + runtime-verified (objects.json loads under renamed module, app starts empty). Gotchas hit: the blanket rename wrongly touched three SDK surfaces that had to be reverted — the fixture's `nap::ArtNetController` field/`"Controller"` JSON property (a DMX-device ref, not our pad/knob `Control`), the `#include <nap/signalslot.h>` header, and `SequenceEditor::getController<T>()`; also the physical "DMX slot" comment (≠ the polyphony voice concept).
+- ⏭ **Next:** Phase B (design-system hooks — theme + `lxtheme.h`) and/or Phase E (the UI, with C3/C4/C5 folded in). E is the largest chunk.
 
 ---
 

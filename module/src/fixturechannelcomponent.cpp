@@ -47,17 +47,17 @@ namespace lx
 		if (winner == nullptr && !mClaims.empty())
 			winner = &mClaims.back();	// nothing held -> newest overall rings out
 		if (winner != nullptr)
-			return nap::math::clamp(winner->mParam->getComponentValue(winner->mSlot, winner->mComponent), 0.0f, 1.0f);
+			return nap::math::clamp(winner->mParam->getComponentValue(winner->mVoice, winner->mComponent), 0.0f, 1.0f);
 		return nap::math::clamp(mBaseParameter->mValue, 0.0f, 1.0f);
 	}
 
 
-	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot, bool held)
+	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const PatchParameter* param, int component, int voice, bool held)
 	{
 		removeClaims(activationId);
 		// Activation ids are monotonically increasing, so a new claim is always the latest -> append
 		// keeps the vector sorted ascending by id.
-		mClaims.push_back({ activationId, param, component, slot, held });
+		mClaims.push_back({ activationId, param, component, voice, held });
 	}
 
 

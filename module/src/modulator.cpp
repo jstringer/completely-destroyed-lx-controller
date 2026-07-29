@@ -1,5 +1,5 @@
 #include "modulator.h"
-#include "effectparameter.h"
+#include "patchparameter.h"
 
 #include <sequenceplayer.h>
 #include <mathutils.h>

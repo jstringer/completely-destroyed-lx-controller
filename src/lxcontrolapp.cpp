@@ -13,9 +13,9 @@
 #include <cstring>
 #include <algorithm>
 
-// lx effect/modulator types (for RTTI_OF dispatch + casts)
+// lx patch/modulator types (for RTTI_OF dispatch + casts)
 #include <channelrole.h>
-#include <effectparameter.h>
+#include <patchparameter.h>
 #include <adsrmodulator.h>
 #include <admodulator.h>
 #include <lfomodulator.h>
@@ -23,7 +23,7 @@
 #include <chasemodulator.h>
 #include <noisemodulator.h>
 #include <trigger.h>
-#include <controller.h>
+#include <control.h>
 #include <midibinding.h>
 #include <program.h>
 #include <fixturecomponent.h>
@@ -194,9 +194,9 @@ namespace nap
 				drawFixturesTab();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("Effects"))
+			if (ImGui::BeginTabItem("Patches"))
 			{
-				drawEffectsTab();
+				drawPatchesTab();
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Programs"))
@@ -235,86 +235,86 @@ namespace nap
 	}
 
 
-	std::string lxcontrolApp::describeEffectSlot(lx::Effect* effect, int slot)
+	std::string lxcontrolApp::describePatchVoice(lx::Patch* patch, int voice)
 	{
 		auto ordered_fixtures = mLxControlService->getFixturesPhysicalOrder();
 		for (auto& trigger : mLxControlService->getTriggers())
 		{
 			for (auto& binding : trigger->mBindings)
 			{
-				if (binding.mEffect.get() != effect)
+				if (binding.mPatch.get() != patch)
 					continue;
 				int idx = 0;
 				for (auto* f : ordered_fixtures)
 				{
 					if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), f->getEntityID()) == binding.mFixtureNames.end())
 						continue;
-					if (idx == slot)
+					if (idx == voice)
 						return f->getDisplayName();
 					++idx;
 				}
 			}
 		}
-		return "Slot " + std::to_string(slot);
+		return "Voice " + std::to_string(voice);
 	}
 
 
-	void lxcontrolApp::drawEffectsTab()
+	void lxcontrolApp::drawPatchesTab()
 	{
 		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
 		static const char* shape_labels[] = { "Sine", "Ramp", "Triangle", "Square", "Pulse", "Gaussian" };
 
-		ImGui::InputText("Name", mNewEffectName, sizeof(mNewEffectName));
+		ImGui::InputText("Name", mNewPatchName, sizeof(mNewPatchName));
 		ImGui::SameLine();
-		if (ImGui::Button("+ New Effect") && std::strlen(mNewEffectName) > 0)
+		if (ImGui::Button("+ New Patch") && std::strlen(mNewPatchName) > 0)
 		{
-			mLxControlService->createEffect(mNewEffectName);
-			mNewEffectName[0] = '\0';
+			mLxControlService->createPatch(mNewPatchName);
+			mNewPatchName[0] = '\0';
 		}
 		ImGui::Separator();
 
-		for (auto& effect : mLxControlService->getEffects())
+		for (auto& patch : mLxControlService->getPatches())
 		{
-			ImGui::PushID(effect.get());
-			bool open = ImGui::CollapsingHeader(effect->mName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+			ImGui::PushID(patch.get());
+			bool open = ImGui::CollapsingHeader(patch->mName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Delete"))
 			{
-				mLxControlService->removeEffect(effect.get());
+				mLxControlService->removePatch(patch.get());
 				ImGui::PopID();
 				break;
 			}
 
 			if (open)
 			{
-				// --- Target mode: how many independent fixture slots this effect computes. FixtureCount
+				// --- Target mode: how many independent fixture voices this patch computes. FixtureCount
 				// itself is no longer hand-typed here -- it's derived automatically from whichever Trigger
-				// binding fires this effect (see lxcontrolService::fireTrigger/syncEffectFixtureCount), so
+				// binding fires this patch (see lxcontrolService::fireTrigger/syncPatchFixtureCount), so
 				// "how many fixtures" can never drift out of sync with what's actually checked in a
 				// binding's fixture list. ---
 				static const char* target_mode_labels[] = { "Single Fixture", "Multiple Fixtures" };
-				int mode = static_cast<int>(effect->mTargetMode);
+				int mode = static_cast<int>(patch->mTargetMode);
 				ImGui::SetNextItemWidth(160);
 				bool mode_changed = ImGui::Combo("Target", &mode, target_mode_labels, 2);
-				if (mode == static_cast<int>(lx::EEffectTargetMode::Multiple))
+				if (mode == static_cast<int>(lx::EPatchTargetMode::Multiple))
 				{
 					ImGui::SameLine();
-					ImGui::TextDisabled("(%d fixture%s -- set by whichever Trigger binding last fired this effect)",
-						effect->mFixtureCount, effect->mFixtureCount == 1 ? "" : "s");
+					ImGui::TextDisabled("(%d fixture%s -- set by whichever Trigger binding last fired this patch)",
+						patch->mFixtureCount, patch->mFixtureCount == 1 ? "" : "s");
 				}
 				if (mode_changed)
-					mLxControlService->setEffectTargetMode(*effect.get(), static_cast<lx::EEffectTargetMode>(mode));
+					mLxControlService->setPatchTargetMode(*patch.get(), static_cast<lx::EPatchTargetMode>(mode));
 
 				ImGui::Separator();
 
 				// --- Parameters ---
-				if (ImGui::Button("Add Float"))		mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::FloatParameter));
+				if (ImGui::Button("Add Float"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
 				ImGui::SameLine();
-				if (ImGui::Button("Add Color"))		mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::ColorParameter));
+				if (ImGui::Button("Add Color"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
 				ImGui::SameLine();
-				if (ImGui::Button("Add Toggle"))	mLxControlService->addEffectParameter(*effect.get(), RTTI_OF(lx::ToggleParameter));
+				if (ImGui::Button("Add Toggle"))	mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
 
-				for (auto& p : effect->mParameters)
+				for (auto& p : patch->mParameters)
 				{
 					ImGui::PushID(p.get());
 					if (auto* fp = rtti_cast<lx::FloatParameter>(p.get()))
@@ -342,9 +342,9 @@ namespace nap
 				ImGui::Separator();
 
 				// --- Modulators ---
-				int& tgt = mModTargetIndex[effect->mID];
+				int& tgt = mModTargetIndex[patch->mID];
 				std::vector<const char*> plabels;
-				for (auto& p : effect->mParameters) plabels.emplace_back(p->mName.c_str());
+				for (auto& p : patch->mParameters) plabels.emplace_back(p->mName.c_str());
 				if (!plabels.empty())
 				{
 					tgt = nap::math::clamp(tgt, 0, static_cast<int>(plabels.size()) - 1);
@@ -353,9 +353,9 @@ namespace nap
 				}
 				auto add_mod = [&](nap::rtti::TypeInfo type)
 				{
-					if (effect->mParameters.empty()) return;
-					int i = nap::math::clamp(tgt, 0, static_cast<int>(effect->mParameters.size()) - 1);
-					mLxControlService->addModulator(*effect.get(), type, effect->mParameters[i].get());
+					if (patch->mParameters.empty()) return;
+					int i = nap::math::clamp(tgt, 0, static_cast<int>(patch->mParameters.size()) - 1);
+					mLxControlService->addModulator(*patch.get(), type, patch->mParameters[i].get());
 				};
 				ImGui::SameLine(); if (ImGui::Button("Add ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
 				ImGui::SameLine(); if (ImGui::Button("Add AD"))   add_mod(RTTI_OF(lx::AdModulator));
@@ -368,24 +368,24 @@ namespace nap
 				static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
 				static const char* ad_mode_labels[]  = { "OneShot", "LoopWhileSustained" };
 
-				for (auto& m : effect->mModulators)
+				for (auto& m : patch->mModulators)
 				{
 					ImGui::PushID(m.get());
 
-					// Chase/Noise drive a distinct value per fixture slot -- a single scalar plot/bar
-					// doesn't represent that, so show one mini progress bar per slot instead, labeled with
-					// the fixture that slot actually resolves to wherever we can determine it.
-					bool is_slot_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
-					if (is_slot_mod)
+					// Chase/Noise drive a distinct value per fixture voice -- a single scalar plot/bar
+					// doesn't represent that, so show one mini progress bar per voice instead, labeled with
+					// the fixture that voice actually resolves to wherever we can determine it.
+					bool is_voice_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
+					if (is_voice_mod)
 					{
-						int slots = effect->mTargetMode == lx::EEffectTargetMode::Multiple ?
-							nap::math::clamp(effect->mFixtureCount, 1, 32) : 1;
-						for (int s = 0; s < slots; ++s)
+						int voices = patch->mTargetMode == lx::EPatchTargetMode::Multiple ?
+							nap::math::clamp(patch->mFixtureCount, 1, 32) : 1;
+						for (int s = 0; s < voices; ++s)
 						{
 							ImGui::PushID(s);
-							ImGui::ProgressBar(m->valueForSlot(s), ImVec2(90, 0), describeEffectSlot(effect.get(), s).c_str());
+							ImGui::ProgressBar(m->valueForVoice(s), ImVec2(90, 0), describePatchVoice(patch.get(), s).c_str());
 							ImGui::PopID();
-							if (s + 1 < slots) ImGui::SameLine();
+							if (s + 1 < voices) ImGui::SameLine();
 						}
 					}
 					else
@@ -455,7 +455,7 @@ namespace nap
 						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
 						ImGui::SetNextItemWidth(100); ImGui::SliderFloat("Smoothing", &noise->mSmoothing, 0.0f, 1.0f); ImGui::SameLine();
 						// Two Noise modulators with the same Seed produce identical values at every
-						// (slot, step) -- give each a distinct Seed (auto-assigned on Add Noise) to
+						// (voice, step) -- give each a distinct Seed (auto-assigned on Add Noise) to
 						// decorrelate them, e.g. one per R/G/B component of a color.
 						ImGui::SetNextItemWidth(80); ImGui::InputInt("Seed", &noise->mSeed);
 					}
@@ -476,9 +476,9 @@ namespace nap
 
 	void lxcontrolApp::drawTriggerBindingsEditor(lx::Trigger& trigger)
 	{
-		const auto& effects = mLxControlService->getEffects();
+		const auto& patches = mLxControlService->getPatches();
 		// Physical rig order (by StartChannel), matching exactly the order lxcontrolService::fireTrigger
-		// assigns Chase/Noise fixture slots in -- so the slot number previewed below is what a fixture
+		// assigns Chase/Noise fixture voices in -- so the voice number previewed below is what a fixture
 		// will actually get, not a guess based on checkbox/registration order.
 		auto ordered_fixtures = mLxControlService->getFixturesPhysicalOrder();
 
@@ -499,7 +499,7 @@ namespace nap
 				ImGui::PushID(bi);
 				std::string fx;
 				for (auto& f : b.mFixtureNames) { fx += displayNameFor(f); fx += " "; }
-				ImGui::BulletText("%s -> %s", b.mEffect != nullptr ? b.mEffect->mName.c_str() : "(none)", fx.c_str());
+				ImGui::BulletText("%s -> %s", b.mPatch != nullptr ? b.mPatch->mName.c_str() : "(none)", fx.c_str());
 				ImGui::SameLine();
 				if (ImGui::SmallButton("Remove"))
 				{
@@ -515,28 +515,28 @@ namespace nap
 
 			if (!removed)
 			{
-				if (!effects.empty())
+				if (!patches.empty())
 				{
-					int& eidx = mBindEffectIdx[trigger.mID];
+					int& eidx = mBindPatchIdx[trigger.mID];
 					std::vector<const char*> elabels;
-					for (auto& e : effects) elabels.emplace_back(e->mName.c_str());
+					for (auto& e : patches) elabels.emplace_back(e->mName.c_str());
 					eidx = nap::math::clamp(eidx, 0, static_cast<int>(elabels.size()) - 1);
 					ImGui::SetNextItemWidth(160);
-					ImGui::Combo("Effect", &eidx, elabels.data(), static_cast<int>(elabels.size()));
+					ImGui::Combo("Patch", &eidx, elabels.data(), static_cast<int>(elabels.size()));
 
 					auto& sel = mBindFixtures[trigger.mID];
-					bool multiple = effects[eidx]->mTargetMode == lx::EEffectTargetMode::Multiple;
+					bool multiple = patches[eidx]->mTargetMode == lx::EPatchTargetMode::Multiple;
 					if (multiple)
 					{
 						ImGui::SameLine();
-						ImGui::TextDisabled("(%d selected -- each gets its own animated slot, any number is fine)", static_cast<int>(sel.size()));
+						ImGui::TextDisabled("(%d selected -- each gets its own animated voice, any number is fine)", static_cast<int>(sel.size()));
 					}
 
-					// One checkbox per fixture, in physical rig order. For a Multiple-mode effect, show the
-					// slot each checked fixture will actually resolve to (computed the same way fireTrigger
+					// One checkbox per fixture, in physical rig order. For a Multiple-mode patch, show the
+					// voice each checked fixture will actually resolve to (computed the same way fireTrigger
 					// does: position among checked fixtures in physical order) -- this is a preview, not a
 					// separate authored number, so there's nothing here that can fall out of sync.
-					int slot_preview = 0;
+					int voice_preview = 0;
 					for (auto* f : ordered_fixtures)
 					{
 						ImGui::PushID(f);
@@ -545,8 +545,8 @@ namespace nap
 						std::string label = f->getDisplayName();
 						if (multiple && checked)
 						{
-							label += " [slot " + std::to_string(slot_preview) + "]";
-							++slot_preview;
+							label += " [voice " + std::to_string(voice_preview) + "]";
+							++voice_preview;
 						}
 						if (ImGui::Checkbox(label.c_str(), &checked))
 						{
@@ -557,8 +557,8 @@ namespace nap
 					if (ImGui::Button("+ Add Binding") && !sel.empty())
 					{
 						auto bindings = trigger.mBindings;
-						lx::EffectFixtureBinding nb;
-						nb.mEffect = effects[eidx].get();
+						lx::PatchFixtureBinding nb;
+						nb.mPatch = patches[eidx].get();
 						for (auto& s : sel) nb.mFixtureNames.emplace_back(s);
 						bindings.emplace_back(nb);
 						mLxControlService->setTriggerBindings(trigger, bindings);
@@ -567,7 +567,7 @@ namespace nap
 				}
 				else
 				{
-					ImGui::TextDisabled("Create an effect first");
+					ImGui::TextDisabled("Create an patch first");
 				}
 			}
 			ImGui::TreePop();
@@ -587,20 +587,20 @@ namespace nap
 		ImGui::Separator();
 
 		const auto& triggers = mLxControlService->getTriggers();
-		const auto& controllers = mLxControlService->getControllers();
+		const auto& controls = mLxControlService->getControls();
 		lx::Program* active = mLxControlService->getActiveProgram();
 
-		// ControllerTrigger-typed triggers only offer themselves in the per-Control mapping combos
+		// Control-kind triggers only offer themselves in the per-Control mapping combos
 		// (Enter/Exit auto-fire on load/unload and aren't manually mappable).
-		std::vector<lx::Trigger*> controller_triggers;
+		std::vector<lx::Trigger*> control_triggers;
 		for (auto& t : triggers)
-			if (t->get_type() == RTTI_OF(lx::ControllerTrigger)) controller_triggers.emplace_back(t.get());
+			if (t->mKind == lx::ETriggerKind::Control) control_triggers.emplace_back(t.get());
 
 		for (auto& prog : mLxControlService->getPrograms())
 		{
 			// Keyed by mID, not the raw pointer: any mapping/binding/lifecycle edit below rewrites
 			// user_content.json, which the ResourceManager's directory watch hot-reloads next frame,
-			// recreating changed Programs/Triggers/Controllers at a new address. mID survives that;
+			// recreating changed Programs/Triggers/Controls at a new address. mID survives that;
 			// a pointer-based ID would orphan this tree's open/closed state and it'd appear to collapse.
 			ImGui::PushID(prog->mID.c_str());
 			bool is_active = (active == prog.get());
@@ -611,21 +611,21 @@ namespace nap
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Delete")) { mLxControlService->removeProgram(prog.get()); ImGui::PopID(); break; }
 
-			// --- Controller Mappings: manage each ControllerTrigger (fire/stop/delete + bindings) and
-			// pick which Controller(s) fire it while this Program is active ---
-			if (ImGui::TreeNode("Controller Mappings"))
+			// --- Control Mappings: manage each ControlTrigger (fire/stop/delete + bindings) and
+			// pick which Control(s) fire it while this Program is active ---
+			if (ImGui::TreeNode("Control Mappings"))
 			{
-				// Controllers already mapped to ANY Trigger in this Program. A Controller may only
-				// drive one Trigger per Program - setControllerMapping enforces this by clearing any
-				// existing mapping for that Controller first (lxcontrolservice.cpp) - so this list has
-				// at most one entry per Controller. Used below to scope each row's Combo and to decide
-				// whether "+ Add Controller binding" has anything left to offer.
-				std::vector<lx::Controller*> mapped_in_program;
-				for (auto& m : prog->mControllerMappings)
-					if (m->mController != nullptr)
-						mapped_in_program.emplace_back(m->mController.get());
+				// Controls already mapped to ANY Trigger in this Program. A Control may only
+				// drive one Trigger per Program - setControlMapping enforces this by clearing any
+				// existing mapping for that Control first (lxcontrolservice.cpp) - so this list has
+				// at most one entry per Control. Used below to scope each row's Combo and to decide
+				// whether "+ Add Control binding" has anything left to offer.
+				std::vector<lx::Control*> mapped_in_program;
+				for (auto& m : prog->mControlMappings)
+					if (m->mControl != nullptr)
+						mapped_in_program.emplace_back(m->mControl.get());
 
-				for (auto* t : controller_triggers)
+				for (auto* t : control_triggers)
 				{
 					ImGui::PushID(t->mID.c_str());
 
@@ -643,21 +643,21 @@ namespace nap
 
 					drawTriggerBindingsEditor(*t);
 
-					// --- Controller bindings for this Trigger: one flat row per bound Controller
+					// --- Control bindings for this Trigger: one flat row per bound Control
 					// (Combo to retarget + Remove), plus an Add button. Replaces the old "Mapped
-					// Controllers" nested checkbox tree (Program -> Trigger -> checkbox-per-Controller).
-					if (controllers.empty())
+					// Controls" nested checkbox tree (Program -> Trigger -> checkbox-per-Control).
+					if (controls.empty())
 					{
-						ImGui::TextDisabled("Create a Controller in the MIDI tab first");
+						ImGui::TextDisabled("Create a Control in the MIDI tab first");
 					}
 					else
 					{
-						// Rows = this Program's ControllerMappings targeting this Trigger. PushID'd by
+						// Rows = this Program's ControlMappings targeting this Trigger. PushID'd by
 						// the mapping's own mID, not loop index (row order isn't stable across a
-						// retarget/remove) and not the Controller pointer (this tab hot-reloads from
+						// retarget/remove) and not the Control pointer (this tab hot-reloads from
 						// JSON and reallocates objects next frame).
-						std::vector<lx::ControllerMapping*> rows;
-						for (auto& m : prog->mControllerMappings)
+						std::vector<lx::ControlMapping*> rows;
+						for (auto& m : prog->mControlMappings)
 							if (m->mTrigger.get() == t)
 								rows.emplace_back(m.get());
 
@@ -665,15 +665,15 @@ namespace nap
 						for (auto* row : rows)
 						{
 							ImGui::PushID(row->mID.c_str());
-							lx::Controller* cur = row->mController.get();
+							lx::Control* cur = row->mControl.get();
 
-							// This row's choices = Controllers unmapped anywhere in this Program, plus
-							// its own current Controller (so it stays visible/selected even though
+							// This row's choices = Controls unmapped anywhere in this Program, plus
+							// its own current Control (so it stays visible/selected even though
 							// every other row treats it as "taken").
-							std::vector<lx::Controller*> avail;
+							std::vector<lx::Control*> avail;
 							std::vector<const char*> avail_labels;
 							int cur_idx = 0;
-							for (auto& c : controllers)
+							for (auto& c : controls)
 							{
 								bool taken = std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) != mapped_in_program.end();
 								if (taken && c.get() != cur)
@@ -685,17 +685,17 @@ namespace nap
 							}
 
 							ImGui::SetNextItemWidth(160);
-							if (ImGui::Combo("Controller", &cur_idx, avail_labels.data(), static_cast<int>(avail_labels.size())))
+							if (ImGui::Combo("Control", &cur_idx, avail_labels.data(), static_cast<int>(avail_labels.size())))
 							{
-								lx::Controller* picked = avail[cur_idx];
+								lx::Control* picked = avail[cur_idx];
 								if (picked != cur && cur != nullptr)
 								{
-									// Re-target this slot: vacate the old Controller, then bind the new
+									// Re-target this voice: vacate the old Control, then bind the new
 									// one to the same Trigger. Clearing `cur` is required in addition to
-									// setControllerMapping on `picked` - otherwise `cur` is left as an
+									// setControlMapping on `picked` - otherwise `cur` is left as an
 									// orphaned extra binding to `t`.
-									mLxControlService->clearControllerMapping(*prog.get(), *cur);
-									mLxControlService->setControllerMapping(*prog.get(), *picked, t);
+									mLxControlService->clearControlMapping(*prog.get(), *cur);
+									mLxControlService->setControlMapping(*prog.get(), *picked, t);
 									mutated = true;
 								}
 							}
@@ -703,7 +703,7 @@ namespace nap
 							ImGui::SameLine();
 							if (ImGui::SmallButton("Remove##ctrlmap") && cur != nullptr)
 							{
-								mLxControlService->clearControllerMapping(*prog.get(), *cur);
+								mLxControlService->clearControlMapping(*prog.get(), *cur);
 								mutated = true;
 							}
 
@@ -713,8 +713,8 @@ namespace nap
 
 						if (!mutated)
 						{
-							lx::Controller* next_avail = nullptr;
-							for (auto& c : controllers)
+							lx::Control* next_avail = nullptr;
+							for (auto& c : controls)
 							{
 								if (std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) == mapped_in_program.end())
 								{
@@ -727,12 +727,12 @@ namespace nap
 							// gray manually and gate the click on can_add.
 							bool can_add = (next_avail != nullptr);
 							if (!can_add) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-							bool add_clicked = ImGui::Button("+ Add Controller binding");
+							bool add_clicked = ImGui::Button("+ Add Control binding");
 							if (!can_add) ImGui::PopStyleVar();
 							if (!can_add && ImGui::IsItemHovered())
-								ImGui::SetTooltip("Every Controller is already mapped to a Trigger in this Program");
+								ImGui::SetTooltip("Every Control is already mapped to a Trigger in this Program");
 							if (add_clicked && can_add)
-								mLxControlService->setControllerMapping(*prog.get(), *next_avail, t);
+								mLxControlService->setControlMapping(*prog.get(), *next_avail, t);
 						}
 					}
 
@@ -750,7 +750,7 @@ namespace nap
 			{
 				for (auto& t : triggers)
 				{
-					if (t->get_type() != RTTI_OF(lx::EnterTrigger) && t->get_type() != RTTI_OF(lx::ExitTrigger))
+					if (t->mKind != lx::ETriggerKind::Enter && t->mKind != lx::ETriggerKind::Exit)
 						continue;
 
 					ImGui::PushID(t->mID.c_str());
@@ -773,7 +773,7 @@ namespace nap
 						mLxControlService->setProgramLifecycleTriggers(*prog.get(), list);
 					}
 
-					const char* tn = t->get_type() == RTTI_OF(lx::EnterTrigger) ? "Enter" : "Exit";
+					const char* tn = t->mKind == lx::ETriggerKind::Enter ? "Enter" : "Exit";
 					bool active_t = mLxControlService->isTriggerActive(*t.get());
 					ImGui::SameLine(); ImGui::TextDisabled("[%s]%s", tn, active_t ? " (active)" : "");
 					ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t.get());
@@ -804,7 +804,7 @@ namespace nap
 
 	void lxcontrolApp::drawTriggerCreationForm(lx::Program& program)
 	{
-		static const char* type_labels[] = { "Controller", "Enter", "Exit" };
+		static const char* type_labels[] = { "Control", "Enter", "Exit" };
 
 		auto& form = mNewTriggerFormByProgram[program.mID];
 		ImGui::InputText("Name##newtrig", form.mName, sizeof(form.mName));
@@ -813,12 +813,12 @@ namespace nap
 		ImGui::SameLine();
 		if (ImGui::Button("+ New Trigger") && std::strlen(form.mName) > 0)
 		{
-			nap::rtti::TypeInfo type = form.mType == 1 ? RTTI_OF(lx::EnterTrigger)
-				: form.mType == 2 ? RTTI_OF(lx::ExitTrigger)
-				: RTTI_OF(lx::ControllerTrigger);
-			auto* new_trig = mLxControlService->createTrigger(type, form.mName);
+			lx::ETriggerKind kind = form.mType == 1 ? lx::ETriggerKind::Enter
+				: form.mType == 2 ? lx::ETriggerKind::Exit
+				: lx::ETriggerKind::Control;
+			auto* new_trig = mLxControlService->createTrigger(kind, form.mName);
 			// Enter/Exit triggers auto-join this Program's lifecycle list (one-step workflow);
-			// ControllerTriggers are created unassigned - map them via the Controller Mappings menu.
+			// Control-kind triggers are created unassigned - map them via the Control Mappings menu.
 			if (form.mType == 1 || form.mType == 2)
 			{
 				auto list = program.mLifecycleTriggers;
@@ -847,51 +847,51 @@ namespace nap
 		ImGui::EndChild();
 
 		ImGui::Separator();
-		ImGui::Text("Controllers:");
+		ImGui::Text("Controls:");
 
 		static const char* mode_labels[] = { "Momentary", "Toggle", "FireOnly" };
 
-		ImGui::InputText("Name##ctrl", mNewControllerName, sizeof(mNewControllerName));
+		ImGui::InputText("Name##ctrl", mNewControlName, sizeof(mNewControlName));
 		ImGui::SameLine(); ImGui::SetNextItemWidth(110);
-		ImGui::Combo("Mode##ctrl", &mNewControllerMode, mode_labels, 3);
+		ImGui::Combo("Mode##ctrl", &mNewControlMode, mode_labels, 3);
 		ImGui::SameLine();
-		if (ImGui::Button("+ New Controller") && std::strlen(mNewControllerName) > 0)
+		if (ImGui::Button("+ New Control") && std::strlen(mNewControlName) > 0)
 		{
-			mLxControlService->createController(mNewControllerName, static_cast<lx::EControllerMode>(mNewControllerMode));
-			mNewControllerName[0] = '\0';
+			mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
+			mNewControlName[0] = '\0';
 		}
 
 		ImGui::Separator();
-		for (auto& c : mLxControlService->getControllers())
+		for (auto& c : mLxControlService->getControls())
 		{
 			ImGui::PushID(c.get());
 			int mode = static_cast<int>(c->mMode);
 			ImGui::Text("%s", c->mName.c_str());
 			ImGui::SameLine(); ImGui::SetNextItemWidth(110);
-			if (ImGui::Combo("##mode", &mode, mode_labels, 3)) c->mMode = static_cast<lx::EControllerMode>(mode);
+			if (ImGui::Combo("##mode", &mode, mode_labels, 3)) c->mMode = static_cast<lx::EControlMode>(mode);
 
 			ImGui::SameLine();
-			if (mLearningController == c.get())
+			if (mLearningControl == c.get())
 			{
 				ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "learning...");
 				if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
 				{
 					MidiEvent ev = mLxControlService->getLastMidiEvent();
 					mLxControlService->createBinding(ev, *c.get());
-					mLearningController = nullptr;
+					mLearningControl = nullptr;
 				}
 			}
 			else if (ImGui::SmallButton("Learn"))
 			{
-				mLearningController = c.get();
+				mLearningControl = c.get();
 				mLearnStartCounter = mLxControlService->getMidiEventCounter();
 			}
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Delete")) { mLxControlService->removeController(c.get()); ImGui::PopID(); break; }
+			if (ImGui::SmallButton("Delete")) { mLxControlService->removeControl(c.get()); ImGui::PopID(); break; }
 
 			for (auto& b : mLxControlService->getBindings())
 			{
-				if (b->mController.get() != c.get())
+				if (b->mControl.get() != c.get())
 					continue;
 				ImGui::PushID(b.get());
 				std::string nums;

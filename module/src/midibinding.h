@@ -8,13 +8,13 @@
 #include <string>
 
 // Local Includes
-#include "controller.h"
+#include "control.h"
 
 namespace lx
 {
 	/**
-	 * A MIDI message filter (mirrors MidiInputComponent's) plus the Controller it drives. Many bindings
-	 * can point at one Controller. Empty Ports/Channels/Numbers act as wildcards.
+	 * A MIDI message filter (mirrors MidiInputComponent's) plus the Control it drives. Many bindings
+	 * can point at one Control. Empty Ports/Channels/Numbers act as wildcards.
 	 */
 	class NAPAPI MidiBinding : public nap::Resource
 	{
@@ -34,6 +34,6 @@ namespace lx
 		bool	mChannelPressure = false;	///< Property: 'ChannelPressure'
 		bool	mPitchBend = false;			///< Property: 'PitchBend'
 
-		nap::ResourcePtr<Controller>	mController;	///< Property: 'Controller'
+		nap::ResourcePtr<Control>	mControl;	///< Property: 'Control'
 	};
 }

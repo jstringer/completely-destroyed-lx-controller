@@ -44,19 +44,19 @@ namespace nap
 	private:
 		void drawMainUI();
 		void drawFixturesTab();
-		void drawEffectsTab();
+		void drawPatchesTab();
 		void drawTriggerBindingsEditor(lx::Trigger& trigger);
 		void drawTriggerCreationForm(lx::Program& program);
 		void drawProgramsTab();
 		void drawMidiTab();
 		void drawFixtureParamGroup(ParameterGroup& group);
-		/** Best-effort label for a Multiple-mode effect's fixture slot in the modulator preview: finds any
-		 *  Trigger binding targeting this effect and resolves which physically-ordered fixture landed in
-		 *  `slot` (mirrors lxcontrolService::fireTrigger's own assignment). Falls back to "Slot N" if no
-		 *  binding is found, or if the effect is bound by more than one Trigger with different fixture
-		 *  sets (a known shared-Effect-state limitation -- see QUESTIONS.md) the first match wins, so this
+		/** Best-effort label for a Multiple-mode patch's fixture voice in the modulator preview: finds any
+		 *  Trigger binding targeting this patch and resolves which physically-ordered fixture landed in
+		 *  `voice` (mirrors lxcontrolService::fireTrigger's own assignment). Falls back to "Voice N" if no
+		 *  binding is found, or if the patch is bound by more than one Trigger with different fixture
+		 *  sets (a known shared-Patch-state limitation -- see QUESTIONS.md) the first match wins, so this
 		 *  is a preview aid, not a runtime guarantee. */
-		std::string describeEffectSlot(lx::Effect* effect, int slot);
+		std::string describePatchVoice(lx::Patch* patch, int voice);
 
 		ResourceManager*			mResourceManager = nullptr;		///< Manages all the loaded data
 		RenderService*				mRenderService = nullptr;		///< Render Service that handles render calls
@@ -77,13 +77,13 @@ namespace nap
 		// port when devices connect/disconnect (hot-plug), so this reflects live state.
 		ObjectPtr<MidiInputPort>	mMidiPort;
 
-		// Effects tab form state. Keyed by mID rather than pointer: several service calls (addModulator,
-		// addEffectParameter, setEffectTargetMode, ...) call save(), which rewrites user_content.json and
-		// gets hot-reloaded by nap::ResourceManager's directory watch, recreating Effects/Modulators at a
+		// Patches tab form state. Keyed by mID rather than pointer: several service calls (addModulator,
+		// addPatchParameter, setPatchTargetMode, ...) call save(), which rewrites user_content.json and
+		// gets hot-reloaded by nap::ResourceManager's directory watch, recreating Patches/Modulators at a
 		// new address next frame -- a pointer-keyed map would silently orphan its entry (plot history
-		// resets, selection resets) on the very next such edit. Same reasoning as mBindEffectIdx/mBindFixtures below.
-		char						mNewEffectName[128] = "";
-		std::map<std::string, int>	mModTargetIndex;	// per-effect (by mID) selected target-parameter index
+		// resets, selection resets) on the very next such edit. Same reasoning as mBindPatchIdx/mBindFixtures below.
+		char						mNewPatchName[128] = "";
+		std::map<std::string, int>	mModTargetIndex;	// per-patch (by mID) selected target-parameter index
 		std::map<std::string, std::vector<float>>	mModHistory;	// per-modulator (by mID) live value ring for the shape plot
 
 		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's
@@ -91,21 +91,21 @@ namespace nap
 		// nap::ResourceManager's directory watch hot-reloads, recreating the changed Trigger/Program at a new
 		// address - a pointer-keyed map (or ImGui PushID) would silently orphan its entry / reset tree state
 		// on the very next frame.
-		std::map<std::string, int>					mBindEffectIdx;		// per-trigger add-binding effect selection
+		std::map<std::string, int>					mBindPatchIdx;		// per-trigger add-binding patch selection
 		std::map<std::string, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
 
 		// Trigger creation form state, one per Program section (a user may have several Program sections open at once)
 		struct NewTriggerForm
 		{
 			char	mName[128] = "";
-			int		mType = 0;	// 0=Controller,1=Enter,2=Exit
+			int		mType = 0;	// 0=Control,1=Enter,2=Exit
 		};
 		std::map<std::string, NewTriggerForm> mNewTriggerFormByProgram;	// keyed by Program::mID, see note above
 
 		// MIDI tab form state
-		char						mNewControllerName[128] = "";
-		int							mNewControllerMode = 0;	// 0=Momentary,1=Toggle,2=FireOnly
-		lx::Controller*				mLearningController = nullptr;	// controller awaiting a learned MIDI event
+		char						mNewControlName[128] = "";
+		int							mNewControlMode = 0;	// 0=Momentary,1=Toggle,2=FireOnly
+		lx::Control*				mLearningControl = nullptr;	// control awaiting a learned MIDI event
 		int							mLearnStartCounter = 0;
 
 		// Programs tab form state

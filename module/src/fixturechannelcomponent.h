@@ -10,7 +10,7 @@
 // Local Includes
 #include "channelrole.h"
 #include "fixturechannelmapping.h"
-#include "effectparameter.h"
+#include "patchparameter.h"
 
 namespace lx
 {
@@ -52,9 +52,9 @@ namespace lx
 		float resolveValue() const;
 
 		/** Adds/replaces the claim for the given activation. Claims stay sorted ascending by id (latest last).
-		 *  `slot` selects which fixture slot of `param` this claim reads (see Effect::mTargetMode); 0 for
-		 *  Single-mode effects. `held` marks a claim from a currently-held control so it outranks stabs. */
-		void pushClaim(uint64_t activationId, const EffectParameter* param, int component, int slot = 0, bool held = false);
+		 *  `voice` selects which fixture voice of `param` this claim reads (see Patch::mTargetMode); 0 for
+		 *  Single-mode patches. `held` marks a claim from a currently-held control so it outranks stabs. */
+		void pushClaim(uint64_t activationId, const PatchParameter* param, int component, int voice = 0, bool held = false);
 		/** Removes any claim for the given activation. */
 		void removeClaims(uint64_t activationId);
 		/** Marks this activation's claims as no longer held (its control was released) so a still-held lower
@@ -71,9 +71,9 @@ namespace lx
 		struct ChannelClaim
 		{
 			uint64_t				mActivationId = 0;
-			const EffectParameter*	mParam = nullptr;
+			const PatchParameter*	mParam = nullptr;
 			int						mComponent = 0;
-			int						mSlot = 0;
+			int						mVoice = 0;
 			bool					mHeld = false;	// fired by a currently-held control (Momentary down / Latch on) -> outranks stabs/releasing
 		};
 

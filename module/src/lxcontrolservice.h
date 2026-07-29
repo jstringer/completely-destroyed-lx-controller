@@ -21,10 +21,10 @@
 
 // Local Includes
 #include "midihotplugmonitor.h"
-#include "effect.h"
+#include "patch.h"
 #include "trigger.h"
-#include "controller.h"
-#include "controllermapping.h"
+#include "control.h"
+#include "controlmapping.h"
 #include "midibinding.h"
 #include "program.h"
 #include <cstdint>
@@ -51,7 +51,7 @@ namespace nap
 	 * Runtime authority for the lxcontrol app.
 	 *
 	 * Owns the fixture registry, the wildcard MIDI-listener subscription + hot-plug reconnect + learn
-	 * snapshot, and (Phase 2) the live-authored Effects: their EffectParameters and Modulators, each
+	 * snapshot, and (Phase 2) the live-authored Patches: their PatchParameters and Modulators, each
 	 * modulator backed by its own SequencePlayer + clock + stock SequencePlayerCurveOutput (curve engine).
 	 * Persists everything to data/user_content.json.
 	 */
@@ -75,24 +75,24 @@ namespace nap
 		void unregisterFixture(lx::FixtureComponentInstance* fixture);
 		const std::vector<lx::FixtureComponentInstance*>& getFixtures() const { return mFixtures; }
 		/** @return all registered fixtures sorted by physical DMX StartChannel (rig order) -- the same
-		 *  order fireTrigger uses to assign Chase/Noise fixture slots. Fixture-picking UI should iterate
+		 *  order fireTrigger uses to assign Chase/Noise fixture voices. Fixture-picking UI should iterate
 		 *  this (not getFixtures()'s raw registration order) so what's shown while authoring matches what
 		 *  actually happens at fire time. */
 		std::vector<lx::FixtureComponentInstance*> getFixturesPhysicalOrder() const;
 
-		// --- Effects ---
-		lx::Effect* createEffect(const std::string& name);
-		lx::EffectParameter* addEffectParameter(lx::Effect& effect, rtti::TypeInfo type);
-		lx::Modulator* addModulator(lx::Effect& effect, rtti::TypeInfo type, lx::EffectParameter* target);
-		/** Sets whether this effect computes one shared value (Single) or a distinct value per bound
+		// --- Patches ---
+		lx::Patch* createPatch(const std::string& name);
+		lx::PatchParameter* addPatchParameter(lx::Patch& patch, rtti::TypeInfo type);
+		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type, lx::PatchParameter* target);
+		/** Sets whether this patch computes one shared value (Single) or a distinct value per bound
 		 *  fixture (Multiple), and re-propagates the currently-known fixture count to every modulator it
-		 *  owns (a no-op for modulator types that don't use slots, e.g. ADSR/AD/LFO/Step). The fixture
+		 *  owns (a no-op for modulator types that don't use voices, e.g. ADSR/AD/LFO/Step). The fixture
 		 *  COUNT itself is no longer authored here -- it's derived automatically from each Trigger
-		 *  binding's actual selected fixtures at fire time (see fireTrigger/syncEffectFixtureCount), so it
+		 *  binding's actual selected fixtures at fire time (see fireTrigger/syncPatchFixtureCount), so it
 		 *  can never drift out of sync with what's actually bound. */
-		void setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode);
-		void removeEffect(lx::Effect* effect);
-		const std::vector<rtti::ObjectPtr<lx::Effect>>& getEffects() const { return mEffects; }
+		void setPatchTargetMode(lx::Patch& patch, lx::EPatchTargetMode mode);
+		void removePatch(lx::Patch* patch);
+		const std::vector<rtti::ObjectPtr<lx::Patch>>& getPatches() const { return mPatches; }
 
 		/**
 		 * Authors a float curve track at runtime from a keyframe list, via the editor's SequenceControllerCurve.
@@ -104,26 +104,26 @@ namespace nap
 		void authorFloatCurve(SequenceEditor& editor, const std::string& trackID, const std::vector<lx::Key>& keys);
 
 		// --- Triggers ---
-		lx::Trigger* createTrigger(rtti::TypeInfo type, const std::string& name);
-		void setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::EffectFixtureBinding>& bindings);
+		lx::Trigger* createTrigger(lx::ETriggerKind kind, const std::string& name);
+		void setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::PatchFixtureBinding>& bindings);
 		void removeTrigger(lx::Trigger* trigger);
 		const std::vector<rtti::ObjectPtr<lx::Trigger>>& getTriggers() const { return mTriggers; }
 		uint64_t fireTrigger(lx::Trigger& trigger, bool held = false);
 		void stopTrigger(lx::Trigger& trigger);
 		bool isTriggerActive(lx::Trigger& trigger) const;
-		/** Panic / All Stop: immediately stop every effect and drop every channel claim so output goes
+		/** Panic / All Stop: immediately stop every patch and drop every channel claim so output goes
 		 *  dark this frame (no release-linger). A subsequent fireTrigger starts clean. */
 		void stopAll();
 		/** @return number of currently-held (non-releasing) activations -- the live "voices" count the GUI
 		 *  shows so "Output live / N held" is honest rather than a hardcoded label. */
 		size_t activeVoiceCount() const;
 
-		// --- Controllers + MIDI bindings ---
-		lx::Controller* createController(const std::string& name, lx::EControllerMode mode);
-		lx::MidiBinding* createBinding(const MidiEvent& learnedEvent, lx::Controller& controller);
-		void removeController(lx::Controller* controller);
+		// --- Controls + MIDI bindings ---
+		lx::Control* createControl(const std::string& name, lx::EControlMode mode);
+		lx::MidiBinding* createBinding(const MidiEvent& learnedEvent, lx::Control& control);
+		void removeControl(lx::Control* control);
 		void removeBinding(lx::MidiBinding* binding);
-		const std::vector<rtti::ObjectPtr<lx::Controller>>& getControllers() const { return mControllers; }
+		const std::vector<rtti::ObjectPtr<lx::Control>>& getControls() const { return mControls; }
 		const std::vector<rtti::ObjectPtr<lx::MidiBinding>>& getBindings() const { return mBindings; }
 
 		// --- Programs ---
@@ -135,10 +135,10 @@ namespace nap
 		lx::Program* getActiveProgram() const { return mActiveProgram; }
 		const std::vector<rtti::ObjectPtr<lx::Program>>& getPrograms() const { return mPrograms; }
 
-		// --- Controller mappings (per-Program: which Trigger a Control fires) ---
-		lx::ControllerMapping* setControllerMapping(lx::Program& program, lx::Controller& controller, lx::Trigger* trigger);
-		void clearControllerMapping(lx::Program& program, lx::Controller& controller);
-		lx::Trigger* getControllerMapping(const lx::Program& program, const lx::Controller& controller) const;
+		// --- Control mappings (per-Program: which Trigger a Control fires) ---
+		lx::ControlMapping* setControlMapping(lx::Program& program, lx::Control& control, lx::Trigger* trigger);
+		void clearControlMapping(lx::Program& program, lx::Control& control);
+		lx::Trigger* getControlMapping(const lx::Program& program, const lx::Control& control) const;
 
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
@@ -162,11 +162,11 @@ namespace nap
 			rtti::ObjectPtr<SequenceEditor>				mEditor;	// runtime curve authoring + duration
 		};
 
-		struct EffectEntry
+		struct PatchEntry
 		{
-			rtti::ObjectPtr<lx::Effect>						mEffect;
+			rtti::ObjectPtr<lx::Patch>						mPatch;
 			std::vector<ModulatorEntry>						mModulators;
-			std::vector<rtti::ObjectPtr<lx::EffectParameter>>	mParams;
+			std::vector<rtti::ObjectPtr<lx::PatchParameter>>	mParams;
 			bool											mRemoved = false;
 		};
 
@@ -174,38 +174,38 @@ namespace nap
 		{
 			uint64_t					mId = 0;
 			lx::Trigger*				mTrigger = nullptr;
-			std::vector<lx::Effect*>	mEffects;
+			std::vector<lx::Patch*>	mPatches;
 			bool						mReleasing = false;
 			bool						mHeld = false;	// fired by a currently-held control (Momentary/Latch), not a stab/lifecycle
 		};
 
 		void onMidiEvent(const MidiEvent& event);
-		/** (Re)builds one modulator's runtime player/sink/editor graph and re-propagates its slot count +
+		/** (Re)builds one modulator's runtime player/sink/editor graph and re-propagates its voice count +
 		 *  Noise seed bookkeeping. Called for each modulator by loadUserContent. */
-		void rewireModulator(lx::Effect& effect, ModulatorEntry& entry);
+		void rewireModulator(lx::Patch& patch, ModulatorEntry& entry);
 		/** Deserializes user_content.json ourselves (never handed to the ResourceManager, so it is never
 		 *  file-watched / hot-reloaded), resolves links, inits every resource references-first, then builds
 		 *  the runtime modulator graphs + typed views. Returns false (state left empty) on a bad/old file. */
 		bool loadUserContent(utility::ErrorState& errorState);
-		/** Restores the program loaded last session (tiny sidecar file) and fires its EnterTriggers. */
+		/** Restores the program loaded last session (tiny sidecar file) and fires its Enter triggers. */
 		void restoreActiveProgram();
 		/** Writes just the active-program id sidecar -- cheap, separate from the full-content save(). */
 		void saveSession();
 		void save();
 		std::string makeUniqueID(const std::string& base) const;
-		EffectEntry* findEntry(lx::Effect& effect);
-		/** Sets effect.mFixtureCount to matchedCount (Multiple mode only) and re-propagates it to every
-		 *  modulator the effect owns via Modulator::setSlotCount. Called from fireTrigger with the actual
+		PatchEntry* findEntry(lx::Patch& patch);
+		/** Sets patch.mFixtureCount to matchedCount (Multiple mode only) and re-propagates it to every
+		 *  modulator the patch owns via Modulator::setVoiceCount. Called from fireTrigger with the actual
 		 *  number of the firing binding's fixtures that exist in the rig -- this is what keeps Chase/Noise
-		 *  slot counts truthful without requiring a hand-typed, easily-desynced FixtureCount field. */
-		void syncEffectFixtureCount(lx::Effect& effect, int matchedCount);
+		 *  voice counts truthful without requiring a hand-typed, easily-desynced FixtureCount field. */
+		void syncPatchFixtureCount(lx::Patch& patch, int matchedCount);
 		bool buildModulatorGraph(ModulatorEntry& entry, const std::string& base, utility::ErrorState& errorState);
 		lx::FixtureComponentInstance* findFixture(const std::string& entityID) const;
 		void reapClaims(uint64_t activationId);
-		// Shared erase: drops any ControllerMapping matching the given predicate from both the service's
-		// flat cache and every Program's mControllerMappings list. Used by clearControllerMapping,
-		// removeController, and removeTrigger.
-		void eraseControllerMappingsIf(const std::function<bool(const lx::ControllerMapping&)>& pred);
+		// Shared erase: drops any ControlMapping matching the given predicate from both the service's
+		// flat cache and every Program's mControlMappings list. Used by clearControlMapping,
+		// removeControl, and removeTrigger.
+		void eraseControlMappingsIf(const std::function<bool(const lx::ControlMapping&)>& pred);
 
 		ResourceManager*					mResourceManager = nullptr;
 		mutable std::unordered_set<std::string>	mIssuedIDs;	// every id makeUniqueID has handed out (createObject renames don't re-index the ResourceManager)
@@ -217,14 +217,14 @@ namespace nap
 		ResourcePtr<MidiInputPort>			mMidiPort;
 		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;
 
-		std::vector<EffectEntry>				mEffectEntries;
-		std::vector<rtti::ObjectPtr<lx::Effect>>	mEffects;	// mirrors mEffectEntries for getEffects()
+		std::vector<PatchEntry>				mPatchEntries;
+		std::vector<rtti::ObjectPtr<lx::Patch>>	mPatches;	// mirrors mPatchEntries for getPatches()
 
 		std::vector<rtti::ObjectPtr<lx::Trigger>>	mTriggers;
-		std::vector<rtti::ObjectPtr<lx::Controller>>	mControllers;
+		std::vector<rtti::ObjectPtr<lx::Control>>	mControls;
 		std::vector<rtti::ObjectPtr<lx::MidiBinding>>	mBindings;
 		std::vector<rtti::ObjectPtr<lx::Program>>	mPrograms;
-		std::vector<rtti::ObjectPtr<lx::ControllerMapping>>	mControllerMappings;
+		std::vector<rtti::ObjectPtr<lx::ControlMapping>>	mControlMappings;
 		lx::Program*							mActiveProgram = nullptr;	// runtime, not persisted
 		std::vector<Activation>					mActivations;
 		uint64_t								mNextActivationId = 1;

@@ -14,7 +14,7 @@ namespace lx
 	 * A patched fixture: the ArtNetController/universe it lives on and its start channel. Its channels
 	 * are sibling FixtureChannelComponents on the same entity. Each frame it writes every channel's
 	 * resolved value out over Art-Net at (StartChannel + channel offset). On init it self-registers
-	 * with lxcontrolService so effects/triggers/GUI can find it by entity mID.
+	 * with lxcontrolService so patches/triggers/GUI can find it by entity mID.
 	 */
 	class NAPAPI FixtureComponent : public nap::Component
 	{

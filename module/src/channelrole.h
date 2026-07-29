@@ -3,7 +3,7 @@
 namespace lx
 {
 	/**
-	 * Semantic role a fixture channel plays, independent of its DMX address. An Effect parameter
+	 * Semantic role a fixture channel plays, independent of its DMX address. An Patch parameter
 	 * targets a role (+ optional unit index); mapping it to a fixture auto-binds it to the matching
 	 * channel(s). RGB is expressed as Red/Green/Blue + a per-channel UnitIndex (1..6 for the
 	 * Eurolite's six SMD units); PresetColor -> ColorMacro, AutoSound -> SoundMode.

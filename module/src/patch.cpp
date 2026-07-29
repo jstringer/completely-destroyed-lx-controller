@@ -1,48 +1,48 @@
-#include "effect.h"
+#include "patch.h"
 
 #include <algorithm>
 
-RTTI_BEGIN_ENUM(lx::EEffectTargetMode)
-	RTTI_ENUM_VALUE(lx::EEffectTargetMode::Single,		"Single"),
-	RTTI_ENUM_VALUE(lx::EEffectTargetMode::Multiple,	"Multiple")
+RTTI_BEGIN_ENUM(lx::EPatchTargetMode)
+	RTTI_ENUM_VALUE(lx::EPatchTargetMode::Single,		"Single"),
+	RTTI_ENUM_VALUE(lx::EPatchTargetMode::Multiple,	"Multiple")
 RTTI_END_ENUM
 
-RTTI_BEGIN_CLASS(lx::Effect)
-	RTTI_PROPERTY("Name",			&lx::Effect::mName,			nap::rtti::EPropertyMetaData::Required)
-	RTTI_PROPERTY("Parameters",	&lx::Effect::mParameters,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Modulators",		&lx::Effect::mModulators,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("TargetMode",		&lx::Effect::mTargetMode,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("FixtureCount",	&lx::Effect::mFixtureCount,	nap::rtti::EPropertyMetaData::Default)
+RTTI_BEGIN_CLASS(lx::Patch)
+	RTTI_PROPERTY("Name",			&lx::Patch::mName,			nap::rtti::EPropertyMetaData::Required)
+	RTTI_PROPERTY("Parameters",	&lx::Patch::mParameters,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Modulators",		&lx::Patch::mModulators,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("TargetMode",		&lx::Patch::mTargetMode,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("FixtureCount",	&lx::Patch::mFixtureCount,	nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace lx
 {
-	void Effect::trigger()
+	void Patch::trigger()
 	{
 		for (auto& modulator : mModulators)
 			modulator->onTrigger();
 	}
 
 
-	void Effect::stop()
+	void Patch::stop()
 	{
 		for (auto& modulator : mModulators)
 			modulator->onStop();
 	}
 
 
-	void Effect::update(double deltaTime)
+	void Patch::update(double deltaTime)
 	{
-		int slots = (mTargetMode == EEffectTargetMode::Multiple) ? std::max(1, mFixtureCount) : 1;
+		int voices = (mTargetMode == EPatchTargetMode::Multiple) ? std::max(1, mFixtureCount) : 1;
 
 		for (auto& param : mParameters)
-			param->resetToBase(slots);
+			param->resetToBase(voices);
 
 		for (auto& modulator : mModulators)
 		{
 			modulator->update(deltaTime);	// per-frame transport housekeeping (sustain pause, end-stop)
 
-			EffectParameter* target = modulator->mTarget.get();
+			PatchParameter* target = modulator->mTarget.get();
 			if (target == nullptr)
 				continue;
 
@@ -50,9 +50,9 @@ namespace lx
 			int from = modulator->mTargetComponent < 0 ? 0 : modulator->mTargetComponent;
 			int to = modulator->mTargetComponent < 0 ? count - 1 : modulator->mTargetComponent;
 
-			for (int s = 0; s < slots; ++s)
+			for (int s = 0; s < voices; ++s)
 			{
-				float v = modulator->valueForSlot(s);
+				float v = modulator->valueForVoice(s);
 				for (int c = from; c <= to && c < count; ++c)
 				{
 					float cur = target->getComponentValue(s, c);
@@ -70,7 +70,7 @@ namespace lx
 	}
 
 
-	bool Effect::isFinished() const
+	bool Patch::isFinished() const
 	{
 		for (auto& modulator : mModulators)
 		{

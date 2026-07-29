@@ -13,7 +13,7 @@ RTTI_BEGIN_CLASS(lx::MidiBinding)
 	RTTI_PROPERTY("ProgramChange",	&lx::MidiBinding::mProgramChange,	nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("ChannelPressure",	&lx::MidiBinding::mChannelPressure,	nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("PitchBend",		&lx::MidiBinding::mPitchBend,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Controller",		&lx::MidiBinding::mController,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Control",		&lx::MidiBinding::mControl,		nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace lx

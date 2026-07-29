@@ -7,7 +7,7 @@
 #include <string>
 
 // Local Includes
-#include "effectparameter.h"
+#include "patchparameter.h"
 
 namespace nap
 {
@@ -22,11 +22,11 @@ namespace lx
 
 	/**
 	 * Base class for a modulator: a shape that drives a 0..1 value over time and blends it into a target
-	 * EffectParameter. The value comes from a real napsequence curve track (authored by generateCurve()
+	 * PatchParameter. The value comes from a real napsequence curve track (authored by generateCurve()
 	 * via lxcontrolService::authorFloatCurve) that the stock SequencePlayerCurveAdapter samples off the
 	 * SequencePlayer's own time into a sink ParameterFloat. Gate/trigger events map onto the player
 	 * transport (setIsPlaying/setPlayerTime/setIsPaused/setIsLooping/setPlaybackSpeed) in onTrigger()/
-	 * onStop()/update(). value() reads the sink back and maps it to [Min,Max]; Effect::update() blends it.
+	 * onStop()/update(). value() reads the sink back and maps it to [Min,Max]; Patch::update() blends it.
 	 */
 	class NAPAPI Modulator : public nap::Resource
 	{
@@ -49,15 +49,15 @@ namespace lx
 		/** @return the sink value mapped to [Min,Max]. Read on the main thread. */
 		float value() const;
 
-		/** @return this modulator's value for fixture slot `slot` (see Effect::mTargetMode). Base:
-		 *  broadcasts the same value() to every slot; multi-fixture types (Chase, Noise) override. */
-		virtual float valueForSlot(int slot) const	{ return value(); }
-		/** Tells this modulator how many fixture slots it's driving (Effect::mFixtureCount, or 1 for
-		 *  Single mode). Base: no-op; multi-fixture types cache it for use in valueForSlot(). */
-		virtual void setSlotCount(int count)			{ }
+		/** @return this modulator's value for fixture voice `voice` (see Patch::mTargetMode). Base:
+		 *  broadcasts the same value() to every voice; multi-fixture types (Chase, Noise) override. */
+		virtual float valueForVoice(int voice) const	{ return value(); }
+		/** Tells this modulator how many fixture voices it's driving (Patch::mFixtureCount, or 1 for
+		 *  Single mode). Base: no-op; multi-fixture types cache it for use in valueForVoice(). */
+		virtual void setVoiceCount(int count)			{ }
 
 		std::string							mName;						///< Property: 'Name'
-		nap::ResourcePtr<EffectParameter>	mTarget;					///< Property: 'Target'
+		nap::ResourcePtr<PatchParameter>	mTarget;					///< Property: 'Target'
 		int									mTargetComponent = -1;		///< Property: 'TargetComponent' -1 = all
 		float								mMin = 0.0f;				///< Property: 'Min'
 		float								mMax = 1.0f;				///< Property: 'Max'

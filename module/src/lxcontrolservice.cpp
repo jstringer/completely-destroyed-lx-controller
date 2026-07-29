@@ -56,7 +56,7 @@ namespace nap
 	{
 		// Debounced persistence: authoring edits mark content dirty (and reset the timer); flush the write
 		// at most ~2x/second. Because we own user_content.json (it's never handed to the ResourceManager),
-		// this write can no longer trip a hot-reload -- so it's safe to do while effects are animating.
+		// this write can no longer trip a hot-reload -- so it's safe to do while patches are animating.
 		if (mDirty)
 		{
 			mSaveTimer += deltaTime;
@@ -68,20 +68,20 @@ namespace nap
 			}
 		}
 
-		// Drive every effect so its modulators (fed by their player clocks / adapters) blend into the
-		// effect parameters each frame.
-		for (auto& entry : mEffectEntries)
+		// Drive every patch so its modulators (fed by their player clocks / adapters) blend into the
+		// patch parameters each frame.
+		for (auto& entry : mPatchEntries)
 		{
-			if (!entry.mRemoved && entry.mEffect != nullptr)
-				entry.mEffect->update(deltaTime);
+			if (!entry.mRemoved && entry.mPatch != nullptr)
+				entry.mPatch->update(deltaTime);
 		}
 
-		// Reap releasing activations whose effects have all finished (release-linger): their claims
+		// Reap releasing activations whose patches have all finished (release-linger): their claims
 		// stay until then, so a stopped ADSR rings out before the channel reverts.
 		for (auto it = mActivations.begin(); it != mActivations.end(); )
 		{
 			bool finished = it->mReleasing;
-			for (auto* e : it->mEffects)
+			for (auto* e : it->mPatches)
 			{
 				if (finished && !e->isFinished())
 					finished = false;
@@ -178,7 +178,7 @@ namespace nap
 		if (!rtti::DefaultLinkResolver::sResolveLinks(result.mReadObjects, result.mUnresolvedPointers, errorState))
 			return false;
 
-		// Init every resource references-first (params -> modulators -> effects -> triggers -> ...), the
+		// Init every resource references-first (params -> modulators -> patches -> triggers -> ...), the
 		// order the old ResourceManager loadFile path used before rebuildFromLoadedContent ran.
 		std::unordered_set<rtti::Object*> inited;
 		auto initType = [&](const rtti::TypeInfo& base) -> bool {
@@ -193,10 +193,10 @@ namespace nap
 			}
 			return true;
 		};
-		if (!initType(RTTI_OF(lx::EffectParameter)) || !initType(RTTI_OF(lx::Modulator)) ||
-			!initType(RTTI_OF(lx::Effect)) || !initType(RTTI_OF(lx::Controller)) ||
+		if (!initType(RTTI_OF(lx::PatchParameter)) || !initType(RTTI_OF(lx::Modulator)) ||
+			!initType(RTTI_OF(lx::Patch)) || !initType(RTTI_OF(lx::Control)) ||
 			!initType(RTTI_OF(lx::MidiBinding)) || !initType(RTTI_OF(lx::Trigger)) ||
-			!initType(RTTI_OF(lx::ControllerMapping)) || !initType(RTTI_OF(lx::Program)) ||
+			!initType(RTTI_OF(lx::ControlMapping)) || !initType(RTTI_OF(lx::Program)) ||
 			!initType(RTTI_OF(Resource)))
 			return false;
 
@@ -212,32 +212,32 @@ namespace nap
 		for (auto& o : mOwnedContent)
 		{
 			rtti::Object* obj = o.get();
-			if (auto* effect = rtti_cast<lx::Effect>(obj))
+			if (auto* patch = rtti_cast<lx::Patch>(obj))
 			{
-				EffectEntry entry;
-				entry.mEffect = rtti::ObjectPtr<lx::Effect>(effect);
-				for (auto& p : effect->mParameters)
-					entry.mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(p.get()));
-				for (auto& m : effect->mModulators)
+				PatchEntry entry;
+				entry.mPatch = rtti::ObjectPtr<lx::Patch>(patch);
+				for (auto& p : patch->mParameters)
+					entry.mParams.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(p.get()));
+				for (auto& m : patch->mModulators)
 				{
 					ModulatorEntry me;
 					me.mModulator = rtti::ObjectPtr<lx::Modulator>(m.get());
-					rewireModulator(*effect, me);
+					rewireModulator(*patch, me);
 					entry.mModulators.emplace_back(me);
 				}
-				mEffectEntries.emplace_back(std::move(entry));
-				mEffects.emplace_back(rtti::ObjectPtr<lx::Effect>(effect));
+				mPatchEntries.emplace_back(std::move(entry));
+				mPatches.emplace_back(rtti::ObjectPtr<lx::Patch>(patch));
 			}
 			else if (auto* trigger = rtti_cast<lx::Trigger>(obj))
 				mTriggers.emplace_back(rtti::ObjectPtr<lx::Trigger>(trigger));
-			else if (auto* controller = rtti_cast<lx::Controller>(obj))
-				mControllers.emplace_back(rtti::ObjectPtr<lx::Controller>(controller));
+			else if (auto* control = rtti_cast<lx::Control>(obj))
+				mControls.emplace_back(rtti::ObjectPtr<lx::Control>(control));
 			else if (auto* binding = rtti_cast<lx::MidiBinding>(obj))
 				mBindings.emplace_back(rtti::ObjectPtr<lx::MidiBinding>(binding));
 			else if (auto* program = rtti_cast<lx::Program>(obj))
 				mPrograms.emplace_back(rtti::ObjectPtr<lx::Program>(program));
-			else if (auto* mapping = rtti_cast<lx::ControllerMapping>(obj))
-				mControllerMappings.emplace_back(rtti::ObjectPtr<lx::ControllerMapping>(mapping));
+			else if (auto* mapping = rtti_cast<lx::ControlMapping>(obj))
+				mControlMappings.emplace_back(rtti::ObjectPtr<lx::ControlMapping>(mapping));
 		}
 		return true;
 	}
@@ -261,7 +261,7 @@ namespace nap
 	}
 
 
-	void lxcontrolService::rewireModulator(lx::Effect& effect, ModulatorEntry& entry)
+	void lxcontrolService::rewireModulator(lx::Patch& patch, ModulatorEntry& entry)
 	{
 		lx::Modulator* mod = entry.mModulator.get();
 		if (mod == nullptr)
@@ -274,10 +274,10 @@ namespace nap
 			return;
 		}
 
-		// mSlotCount is non-serialized runtime state on Chase/Noise-style modulators; re-propagate it from
-		// the effect's (serialized) TargetMode/FixtureCount, else it silently resets to 1.
-		int slot_count = effect.mTargetMode == lx::EEffectTargetMode::Multiple ? std::max(1, effect.mFixtureCount) : 1;
-		mod->setSlotCount(slot_count);
+		// mVoiceCount is non-serialized runtime state on Chase/Noise-style modulators; re-propagate it from
+		// the patch's (serialized) TargetMode/FixtureCount, else it silently resets to 1.
+		int voice_count = patch.mTargetMode == lx::EPatchTargetMode::Multiple ? std::max(1, patch.mFixtureCount) : 1;
+		mod->setVoiceCount(voice_count);
 
 		// Keep mNextNoiseSeed past every seed already persisted, so a NoiseModulator created fresh this
 		// session never collides with (and silently correlates against) one reloaded from disk.
@@ -312,7 +312,7 @@ namespace nap
 	{
 		// Check both the ResourceManager AND our own issued-id set: createObject registers an object under
 		// its original id, but we reassign mID afterwards, so findObject can't see runtime-renamed objects
-		// (which is how two modulators on one effect used to collide and break user_content.json reload).
+		// (which is how two modulators on one patch used to collide and break user_content.json reload).
 		auto taken = [this](const std::string& id)
 		{
 			return mResourceManager->findObject(id) != nullptr || mIssuedIDs.count(id) > 0;
@@ -331,64 +331,64 @@ namespace nap
 	}
 
 
-	lxcontrolService::EffectEntry* lxcontrolService::findEntry(lx::Effect& effect)
+	lxcontrolService::PatchEntry* lxcontrolService::findEntry(lx::Patch& patch)
 	{
-		for (auto& entry : mEffectEntries)
+		for (auto& entry : mPatchEntries)
 		{
-			if (entry.mEffect.get() == &effect)
+			if (entry.mPatch.get() == &patch)
 				return &entry;
 		}
 		return nullptr;
 	}
 
 
-	lx::Effect* lxcontrolService::createEffect(const std::string& name)
+	lx::Patch* lxcontrolService::createPatch(const std::string& name)
 	{
-		auto effect = mResourceManager->createObject<lx::Effect>();
-		effect->mID = makeUniqueID("Effect_" + name);
-		effect->mName = name;
+		auto patch = mResourceManager->createObject<lx::Patch>();
+		patch->mID = makeUniqueID("Patch_" + name);
+		patch->mName = name;
 
 		utility::ErrorState err;
-		if (!effect->init(err))
+		if (!patch->init(err))
 		{
-			Logger::error("createEffect: %s", err.toString().c_str());
+			Logger::error("createPatch: %s", err.toString().c_str());
 			return nullptr;
 		}
 
-		EffectEntry entry;
-		entry.mEffect = effect;
-		mEffectEntries.emplace_back(entry);
-		mEffects.emplace_back(effect);
+		PatchEntry entry;
+		entry.mPatch = patch;
+		mPatchEntries.emplace_back(entry);
+		mPatches.emplace_back(patch);
 		markDirty();
-		return effect.get();
+		return patch.get();
 	}
 
 
-	lx::EffectParameter* lxcontrolService::addEffectParameter(lx::Effect& effect, rtti::TypeInfo type)
+	lx::PatchParameter* lxcontrolService::addPatchParameter(lx::Patch& patch, rtti::TypeInfo type)
 	{
-		EffectEntry* entry = findEntry(effect);
+		PatchEntry* entry = findEntry(patch);
 		if (entry == nullptr)
 			return nullptr;
 
 		auto obj = mResourceManager->createObject(type);
-		auto* param = rtti_cast<lx::EffectParameter>(obj.get());
+		auto* param = rtti_cast<lx::PatchParameter>(obj.get());
 		if (param == nullptr)
 		{
-			Logger::error("addEffectParameter: type %s is not an EffectParameter", type.get_name().data());
+			Logger::error("addPatchParameter: type %s is not an PatchParameter", type.get_name().data());
 			return nullptr;
 		}
 
-		param->mID = makeUniqueID(effect.mID + "_Param");
+		param->mID = makeUniqueID(patch.mID + "_Param");
 		param->mName = "Param";
 		utility::ErrorState err;
 		if (!param->init(err))
 		{
-			Logger::error("addEffectParameter: %s", err.toString().c_str());
+			Logger::error("addPatchParameter: %s", err.toString().c_str());
 			return nullptr;
 		}
 
-		effect.mParameters.emplace_back(param);
-		entry->mParams.emplace_back(rtti::ObjectPtr<lx::EffectParameter>(param));
+		patch.mParameters.emplace_back(param);
+		entry->mParams.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(param));
 		markDirty();
 		return param;
 	}
@@ -475,10 +475,10 @@ namespace nap
 	}
 
 
-	lx::Modulator* lxcontrolService::addModulator(lx::Effect& effect, rtti::TypeInfo type, lx::EffectParameter* target)
+	lx::Modulator* lxcontrolService::addModulator(lx::Patch& patch, rtti::TypeInfo type, lx::PatchParameter* target)
 	{
-		EffectEntry* effect_entry = findEntry(effect);
-		if (effect_entry == nullptr)
+		PatchEntry* patch_entry = findEntry(patch);
+		if (patch_entry == nullptr)
 			return nullptr;
 
 		auto obj = mResourceManager->createObject(type);
@@ -489,7 +489,7 @@ namespace nap
 			return nullptr;
 		}
 
-		mod->mID = makeUniqueID(effect.mID + "_Mod");
+		mod->mID = makeUniqueID(patch.mID + "_Mod");
 		mod->mName = std::string(type.get_name().data());
 		mod->mTarget = target;
 
@@ -513,47 +513,47 @@ namespace nap
 			Logger::error("addModulator: build graph failed: %s", err.toString().c_str());
 			return nullptr;
 		}
-		mod->setSlotCount(effect.mTargetMode == lx::EEffectTargetMode::Multiple ? std::max(1, effect.mFixtureCount) : 1);
+		mod->setVoiceCount(patch.mTargetMode == lx::EPatchTargetMode::Multiple ? std::max(1, patch.mFixtureCount) : 1);
 
-		effect.mModulators.emplace_back(mod);
-		effect_entry->mModulators.emplace_back(mod_entry);
+		patch.mModulators.emplace_back(mod);
+		patch_entry->mModulators.emplace_back(mod_entry);
 		markDirty();
 		return mod;
 	}
 
 
-	void lxcontrolService::setEffectTargetMode(lx::Effect& effect, lx::EEffectTargetMode mode)
+	void lxcontrolService::setPatchTargetMode(lx::Patch& patch, lx::EPatchTargetMode mode)
 	{
-		effect.mTargetMode = mode;
+		patch.mTargetMode = mode;
 
 		// FixtureCount itself is no longer set here -- it's derived from each Trigger binding's actual
-		// selected fixtures the next time this effect fires (see fireTrigger/syncEffectFixtureCount).
-		// Re-propagate whatever count is currently known so a freshly-toggled Multiple effect previews
-		// sanely (e.g. in the Effects tab's per-slot progress bars) before its first fire.
-		int slot_count = mode == lx::EEffectTargetMode::Multiple ? std::max(1, effect.mFixtureCount) : 1;
-		EffectEntry* entry = findEntry(effect);
+		// selected fixtures the next time this patch fires (see fireTrigger/syncPatchFixtureCount).
+		// Re-propagate whatever count is currently known so a freshly-toggled Multiple patch previews
+		// sanely (e.g. in the Patches tab's per-voice progress bars) before its first fire.
+		int voice_count = mode == lx::EPatchTargetMode::Multiple ? std::max(1, patch.mFixtureCount) : 1;
+		PatchEntry* entry = findEntry(patch);
 		if (entry != nullptr)
 		{
 			for (auto& me : entry->mModulators)
 				if (me.mModulator != nullptr)
-					me.mModulator->setSlotCount(slot_count);
+					me.mModulator->setVoiceCount(voice_count);
 		}
 		markDirty();
 	}
 
 
-	void lxcontrolService::syncEffectFixtureCount(lx::Effect& effect, int matchedCount)
+	void lxcontrolService::syncPatchFixtureCount(lx::Patch& patch, int matchedCount)
 	{
-		if (effect.mTargetMode != lx::EEffectTargetMode::Multiple)
+		if (patch.mTargetMode != lx::EPatchTargetMode::Multiple)
 			return;
 
-		effect.mFixtureCount = std::max(1, matchedCount);
-		EffectEntry* entry = findEntry(effect);
+		patch.mFixtureCount = std::max(1, matchedCount);
+		PatchEntry* entry = findEntry(patch);
 		if (entry != nullptr)
 		{
 			for (auto& me : entry->mModulators)
 				if (me.mModulator != nullptr)
-					me.mModulator->setSlotCount(effect.mFixtureCount);
+					me.mModulator->setVoiceCount(patch.mFixtureCount);
 		}
 		// Deliberately no save() here: this runs on every fireTrigger call (including MIDI-driven,
 		// possibly-frequent ones) and mFixtureCount is a derived/cache value, not authored state worth
@@ -561,13 +561,13 @@ namespace nap
 	}
 
 
-	void lxcontrolService::removeEffect(lx::Effect* effect)
+	void lxcontrolService::removePatch(lx::Patch* patch)
 	{
-		// Delete-path guard: reap any activation that references this effect so no stale claim pins a
+		// Delete-path guard: reap any activation that references this patch so no stale claim pins a
 		// channel to a frozen value.
 		for (auto it = mActivations.begin(); it != mActivations.end(); )
 		{
-			bool references = std::find(it->mEffects.begin(), it->mEffects.end(), effect) != it->mEffects.end();
+			bool references = std::find(it->mPatches.begin(), it->mPatches.end(), patch) != it->mPatches.end();
 			if (references)
 			{
 				reapClaims(it->mId);
@@ -579,9 +579,9 @@ namespace nap
 			}
 		}
 
-		for (auto& entry : mEffectEntries)
+		for (auto& entry : mPatchEntries)
 		{
-			if (entry.mEffect.get() != effect)
+			if (entry.mPatch.get() != patch)
 				continue;
 			for (auto& me : entry.mModulators)
 			{
@@ -591,8 +591,8 @@ namespace nap
 			entry.mRemoved = true;
 			break;
 		}
-		mEffects.erase(std::remove_if(mEffects.begin(), mEffects.end(),
-			[effect](const rtti::ObjectPtr<lx::Effect>& e) { return e.get() == effect; }), mEffects.end());
+		mPatches.erase(std::remove_if(mPatches.begin(), mPatches.end(),
+			[patch](const rtti::ObjectPtr<lx::Patch>& e) { return e.get() == patch; }), mPatches.end());
 		markDirty();
 	}
 
@@ -618,17 +618,13 @@ namespace nap
 	}
 
 
-	lx::Trigger* lxcontrolService::createTrigger(rtti::TypeInfo type, const std::string& name)
+	lx::Trigger* lxcontrolService::createTrigger(lx::ETriggerKind kind, const std::string& name)
 	{
-		auto obj = mResourceManager->createObject(type);
+		auto obj = mResourceManager->createObject(RTTI_OF(lx::Trigger));
 		auto* trigger = rtti_cast<lx::Trigger>(obj.get());
-		if (trigger == nullptr)
-		{
-			Logger::error("createTrigger: type %s is not a Trigger", type.get_name().data());
-			return nullptr;
-		}
 		trigger->mID = makeUniqueID("Trigger_" + name);
 		trigger->mName = name;
+		trigger->mKind = kind;
 		utility::ErrorState err;
 		if (!trigger->init(err))
 		{
@@ -641,7 +637,7 @@ namespace nap
 	}
 
 
-	void lxcontrolService::setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::EffectFixtureBinding>& bindings)
+	void lxcontrolService::setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::PatchFixtureBinding>& bindings)
 	{
 		trigger.mBindings = bindings;
 		markDirty();
@@ -655,10 +651,10 @@ namespace nap
 		mTriggers.erase(std::remove_if(mTriggers.begin(), mTriggers.end(),
 			[trigger](const rtti::ObjectPtr<lx::Trigger>& t) { return t.get() == trigger; }), mTriggers.end());
 
-		// Scrub any now-dangling ControllerMapping referencing this trigger, and drop it from every
+		// Scrub any now-dangling ControlMapping referencing this trigger, and drop it from every
 		// Program's lifecycle-trigger list too (a latent bug pre-dating this refactor: removeTrigger
 		// never scrubbed Program::mTriggers either).
-		eraseControllerMappingsIf([trigger](const lx::ControllerMapping& m) { return m.mTrigger.get() == trigger; });
+		eraseControlMappingsIf([trigger](const lx::ControlMapping& m) { return m.mTrigger.get() == trigger; });
 		for (auto& program : mPrograms)
 		{
 			auto& list = program->mLifecycleTriggers;
@@ -681,51 +677,51 @@ namespace nap
 
 		for (auto& binding : trigger.mBindings)
 		{
-			lx::Effect* effect = binding.mEffect.get();
-			if (effect == nullptr)
+			lx::Patch* patch = binding.mPatch.get();
+			if (patch == nullptr)
 				continue;
-			activation.mEffects.emplace_back(effect);
+			activation.mPatches.emplace_back(patch);
 
 			// Iterate fixtures in physical rig order (by DMX StartChannel), not binding.mFixtureNames' own
 			// order (whatever the checkbox UI happened to accumulate) and not mFixtures' raw registration
 			// order (which reflects component init order, not necessarily objects.json declaration order),
-			// so slot assignment for Multiple-mode effects (Chase order, Noise decorrelation) matches the
+			// so voice assignment for Multiple-mode patches (Chase order, Noise decorrelation) matches the
 			// rig's physical layout.
 			std::vector<lx::FixtureComponentInstance*> ordered_fixtures = getFixturesPhysicalOrder();
 
-			// The effect's fixture count is derived from this binding's actual matched fixtures, not a
+			// The patch's fixture count is derived from this binding's actual matched fixtures, not a
 			// hand-typed property that has to be kept in sync with the checkbox selection (see
-			// syncEffectFixtureCount) -- so slot assignment below never wraps/repeats or leaves a slot at
+			// syncPatchFixtureCount) -- so voice assignment below never wraps/repeats or leaves a voice at
 			// base value due to a stale count; it's always exactly "however many fixtures are bound".
 			int matched_count = 0;
 			for (auto* fixture : ordered_fixtures)
 				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) != binding.mFixtureNames.end())
 					++matched_count;
-			syncEffectFixtureCount(*effect, matched_count);
+			syncPatchFixtureCount(*patch, matched_count);
 
-			int slot_index = 0;
+			int voice_index = 0;
 			for (auto* fixture : ordered_fixtures)
 			{
 				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) == binding.mFixtureNames.end())
 					continue;
 
-				int slot = (effect->mTargetMode == lx::EEffectTargetMode::Multiple) ? slot_index : 0;
+				int voice = (patch->mTargetMode == lx::EPatchTargetMode::Multiple) ? voice_index : 0;
 
 				for (auto* channel : fixture->getChannels())
 				{
-					for (auto& param : effect->mParameters)
+					for (auto& param : patch->mParameters)
 					{
 						int count = param->getComponentCount();
 						for (int c = 0; c < count; ++c)
 						{
 							if (param->getComponentRole(c) == channel->getRole() && param->appliesToUnit(channel->getUnitIndex()))
-								channel->pushClaim(activation.mId, param.get(), c, slot, held);
+								channel->pushClaim(activation.mId, param.get(), c, voice, held);
 						}
 					}
 				}
-				++slot_index;
+				++voice_index;
 			}
-			effect->trigger();
+			patch->trigger();
 		}
 
 		mActivations.emplace_back(activation);
@@ -739,8 +735,8 @@ namespace nap
 		{
 			if (activation.mTrigger != &trigger || activation.mReleasing)
 				continue;
-			for (auto* effect : activation.mEffects)
-				effect->stop();
+			for (auto* patch : activation.mPatches)
+				patch->stop();
 			// This gesture is no longer held: release its claims so any still-held control reclaims the
 			// channel; the released claim then shows only where nothing held remains (it rings out).
 			for (auto* fixture : mFixtures)
@@ -765,11 +761,11 @@ namespace nap
 
 	void lxcontrolService::stopAll()
 	{
-		// Panic: stop every effect, drop every claim, clear all activations -> output is dark this frame.
+		// Panic: stop every patch, drop every claim, clear all activations -> output is dark this frame.
 		for (auto& activation : mActivations)
 		{
-			for (auto* effect : activation.mEffects)
-				effect->stop();
+			for (auto* patch : activation.mPatches)
+				patch->stop();
 			reapClaims(activation.mId);
 		}
 		mActivations.clear();
@@ -786,25 +782,25 @@ namespace nap
 	}
 
 
-	lx::Controller* lxcontrolService::createController(const std::string& name, lx::EControllerMode mode)
+	lx::Control* lxcontrolService::createControl(const std::string& name, lx::EControlMode mode)
 	{
-		auto controller = mResourceManager->createObject<lx::Controller>();
-		controller->mID = makeUniqueID("Controller_" + name);
-		controller->mName = name;
-		controller->mMode = mode;
+		auto control = mResourceManager->createObject<lx::Control>();
+		control->mID = makeUniqueID("Control_" + name);
+		control->mName = name;
+		control->mMode = mode;
 		utility::ErrorState err;
-		if (!controller->init(err))
+		if (!control->init(err))
 		{
-			Logger::error("createController: %s", err.toString().c_str());
+			Logger::error("createControl: %s", err.toString().c_str());
 			return nullptr;
 		}
-		mControllers.emplace_back(controller);
+		mControls.emplace_back(control);
 		markDirty();
-		return controller.get();
+		return control.get();
 	}
 
 
-	lx::MidiBinding* lxcontrolService::createBinding(const MidiEvent& learnedEvent, lx::Controller& controller)
+	lx::MidiBinding* lxcontrolService::createBinding(const MidiEvent& learnedEvent, lx::Control& control)
 	{
 		auto binding = mResourceManager->createObject<lx::MidiBinding>();
 		binding->mID = makeUniqueID("Binding_" + std::to_string(mBindings.size() + 1));
@@ -813,7 +809,7 @@ namespace nap
 		binding->mNumbers = { static_cast<int>(learnedEvent.getNumber()) };
 		switch (learnedEvent.getType())
 		{
-		// A note binding matches both on and off so Momentary controllers can release; Toggle/FireOnly
+		// A note binding matches both on and off so Momentary controls can release; Toggle/FireOnly
 		// ignore off-events, so this is harmless for them.
 		case MidiEvent::Type::noteOn:
 		case MidiEvent::Type::noteOff:			binding->mNoteOn = true; binding->mNoteOff = true;	break;
@@ -824,7 +820,7 @@ namespace nap
 		case MidiEvent::Type::pitchBend:		binding->mPitchBend = true;			break;
 		default:								break;
 		}
-		binding->mController = &controller;
+		binding->mControl = &control;
 
 		utility::ErrorState err;
 		if (!binding->init(err))
@@ -838,13 +834,13 @@ namespace nap
 	}
 
 
-	void lxcontrolService::removeController(lx::Controller* controller)
+	void lxcontrolService::removeControl(lx::Control* control)
 	{
-		mControllers.erase(std::remove_if(mControllers.begin(), mControllers.end(),
-			[controller](const rtti::ObjectPtr<lx::Controller>& c) { return c.get() == controller; }), mControllers.end());
+		mControls.erase(std::remove_if(mControls.begin(), mControls.end(),
+			[control](const rtti::ObjectPtr<lx::Control>& c) { return c.get() == control; }), mControls.end());
 
-		// Scrub any now-dangling ControllerMapping referencing this controller.
-		eraseControllerMappingsIf([controller](const lx::ControllerMapping& m) { return m.mController.get() == controller; });
+		// Scrub any now-dangling ControlMapping referencing this control.
+		eraseControlMappingsIf([control](const lx::ControlMapping& m) { return m.mControl.get() == control; });
 		markDirty();
 	}
 
@@ -888,10 +884,10 @@ namespace nap
 		if (mActiveProgram == program)
 			unloadProgram();
 
-		// Drop every ControllerMapping this program owned from the service's flat cache too.
-		eraseControllerMappingsIf([program](const lx::ControllerMapping& m)
+		// Drop every ControlMapping this program owned from the service's flat cache too.
+		eraseControlMappingsIf([program](const lx::ControlMapping& m)
 		{
-			for (auto& pm : program->mControllerMappings)
+			for (auto& pm : program->mControlMappings)
 				if (pm.get() == &m) return true;
 			return false;
 		});
@@ -902,49 +898,49 @@ namespace nap
 	}
 
 
-	void lxcontrolService::eraseControllerMappingsIf(const std::function<bool(const lx::ControllerMapping&)>& pred)
+	void lxcontrolService::eraseControlMappingsIf(const std::function<bool(const lx::ControlMapping&)>& pred)
 	{
-		mControllerMappings.erase(std::remove_if(mControllerMappings.begin(), mControllerMappings.end(),
-			[&pred](const rtti::ObjectPtr<lx::ControllerMapping>& m) { return pred(*m); }), mControllerMappings.end());
+		mControlMappings.erase(std::remove_if(mControlMappings.begin(), mControlMappings.end(),
+			[&pred](const rtti::ObjectPtr<lx::ControlMapping>& m) { return pred(*m); }), mControlMappings.end());
 		for (auto& program : mPrograms)
 		{
-			auto& list = program->mControllerMappings;
+			auto& list = program->mControlMappings;
 			list.erase(std::remove_if(list.begin(), list.end(),
-				[&pred](const nap::ResourcePtr<lx::ControllerMapping>& m) { return pred(*m); }), list.end());
+				[&pred](const nap::ResourcePtr<lx::ControlMapping>& m) { return pred(*m); }), list.end());
 		}
 	}
 
 
-	lx::ControllerMapping* lxcontrolService::setControllerMapping(lx::Program& program, lx::Controller& controller, lx::Trigger* trigger)
+	lx::ControlMapping* lxcontrolService::setControlMapping(lx::Program& program, lx::Control& control, lx::Trigger* trigger)
 	{
-		// Replace any existing mapping for this (Program, Controller) pair first (also saves).
-		clearControllerMapping(program, controller);
+		// Replace any existing mapping for this (Program, Control) pair first (also saves).
+		clearControlMapping(program, control);
 		if (trigger == nullptr)
 			return nullptr;
 
-		auto mapping = mResourceManager->createObject<lx::ControllerMapping>();
-		mapping->mID = makeUniqueID(program.mID + "_" + controller.mID + "_Mapping");
-		mapping->mController = &controller;
+		auto mapping = mResourceManager->createObject<lx::ControlMapping>();
+		mapping->mID = makeUniqueID(program.mID + "_" + control.mID + "_Mapping");
+		mapping->mControl = &control;
 		mapping->mTrigger = trigger;
 		utility::ErrorState err;
 		if (!mapping->init(err))
 		{
-			Logger::error("setControllerMapping: %s", err.toString().c_str());
+			Logger::error("setControlMapping: %s", err.toString().c_str());
 			return nullptr;
 		}
-		mControllerMappings.emplace_back(mapping);
-		program.mControllerMappings.emplace_back(nap::ResourcePtr<lx::ControllerMapping>(mapping.get()));
+		mControlMappings.emplace_back(mapping);
+		program.mControlMappings.emplace_back(nap::ResourcePtr<lx::ControlMapping>(mapping.get()));
 		markDirty();
 		return mapping.get();
 	}
 
 
-	void lxcontrolService::clearControllerMapping(lx::Program& program, lx::Controller& controller)
+	void lxcontrolService::clearControlMapping(lx::Program& program, lx::Control& control)
 	{
-		eraseControllerMappingsIf([&program, &controller](const lx::ControllerMapping& m)
+		eraseControlMappingsIf([&program, &control](const lx::ControlMapping& m)
 		{
-			if (m.mController.get() != &controller) return false;
-			for (auto& pm : program.mControllerMappings)
+			if (m.mControl.get() != &control) return false;
+			for (auto& pm : program.mControlMappings)
 				if (pm.get() == &m) return true;
 			return false;
 		});
@@ -952,11 +948,11 @@ namespace nap
 	}
 
 
-	lx::Trigger* lxcontrolService::getControllerMapping(const lx::Program& program, const lx::Controller& controller) const
+	lx::Trigger* lxcontrolService::getControlMapping(const lx::Program& program, const lx::Control& control) const
 	{
-		for (auto& pm : program.mControllerMappings)
+		for (auto& pm : program.mControlMappings)
 		{
-			if (pm != nullptr && pm->mController.get() == &controller)
+			if (pm != nullptr && pm->mControl.get() == &control)
 				return pm->mTrigger.get();
 		}
 		return nullptr;
@@ -965,13 +961,13 @@ namespace nap
 
 	void lxcontrolService::loadProgram(lx::Program* program)
 	{
-		// Unload the outgoing program: fire its ExitTriggers (transient look, rings out) and stop the rest.
+		// Unload the outgoing program: fire its Exit triggers (transient look, rings out) and stop the rest.
 		if (mActiveProgram != nullptr)
 		{
 			for (auto& t : mActiveProgram->mLifecycleTriggers)
 			{
 				if (t == nullptr) continue;
-				if (rtti_cast<lx::ExitTrigger>(t.get()) != nullptr)
+				if (t->mKind == lx::ETriggerKind::Exit)
 					fireTrigger(*t);
 				else
 					stopTrigger(*t);
@@ -980,13 +976,13 @@ namespace nap
 
 		mActiveProgram = program;
 
-		// Load the incoming program: fire its EnterTriggers. ControllerTriggers respond via onMidiEvent
+		// Load the incoming program: fire its Enter triggers. Control-kind triggers respond via onMidiEvent
 		// only while this program is active (see the gate there).
 		if (program != nullptr)
 		{
 			for (auto& t : program->mLifecycleTriggers)
 			{
-				if (t != nullptr && rtti_cast<lx::EnterTrigger>(t.get()) != nullptr)
+				if (t != nullptr && t->mKind == lx::ETriggerKind::Enter)
 					fireTrigger(*t);
 			}
 		}
@@ -1001,7 +997,7 @@ namespace nap
 		for (auto& t : mActiveProgram->mLifecycleTriggers)
 		{
 			if (t == nullptr) continue;
-			if (rtti_cast<lx::ExitTrigger>(t.get()) != nullptr)
+			if (t->mKind == lx::ETriggerKind::Exit)
 				fireTrigger(*t);
 			else
 				stopTrigger(*t);
@@ -1013,14 +1009,14 @@ namespace nap
 
 	void lxcontrolService::save()
 	{
-		// Persist only authored data (effects + params + modulators). The per-modulator player graph is
+		// Persist only authored data (patches + params + modulators). The per-modulator player graph is
 		// runtime-only and reconstructed on load by buildModulatorGraph.
 		rtti::ObjectList root_objects;
-		for (auto& entry : mEffectEntries)
+		for (auto& entry : mPatchEntries)
 		{
 			if (entry.mRemoved)
 				continue;
-			root_objects.emplace_back(entry.mEffect.get());
+			root_objects.emplace_back(entry.mPatch.get());
 			for (auto& p : entry.mParams)
 				root_objects.emplace_back(p.get());
 			for (auto& me : entry.mModulators)
@@ -1029,13 +1025,13 @@ namespace nap
 
 		for (auto& trigger : mTriggers)
 			root_objects.emplace_back(trigger.get());
-		for (auto& controller : mControllers)
-			root_objects.emplace_back(controller.get());
+		for (auto& control : mControls)
+			root_objects.emplace_back(control.get());
 		for (auto& binding : mBindings)
 			root_objects.emplace_back(binding.get());
 		for (auto& program : mPrograms)
 			root_objects.emplace_back(program.get());
-		for (auto& mapping : mControllerMappings)
+		for (auto& mapping : mControlMappings)
 			root_objects.emplace_back(mapping.get());
 
 		rtti::JSONWriter writer;
@@ -1064,9 +1060,9 @@ namespace nap
 		mHasLastEvent = true;
 		mMidiEventCounter++;
 
-		// Dispatch to controllers via matching bindings. Which Trigger a Controller fires (if any) is
-		// resolved per active-Program via getControllerMapping() — a direct lookup into that Program's
-		// mControllerMappings, replacing the old fixed controller->mTrigger link.
+		// Dispatch to controls via matching bindings. Which Trigger a Control fires (if any) is
+		// resolved per active-Program via getControlMapping() — a direct lookup into that Program's
+		// mControlMappings, replacing the old fixed control->mTrigger link.
 		bool on_event = false;
 		bool off_event = false;
 		switch (event.getType())
@@ -1081,30 +1077,30 @@ namespace nap
 		{
 			if (!binding->matches(event))
 				continue;
-			lx::Controller* controller = binding->mController.get();
-			if (controller == nullptr || mActiveProgram == nullptr)
+			lx::Control* control = binding->mControl.get();
+			if (control == nullptr || mActiveProgram == nullptr)
 				continue;
 
-			// Program-scoped: a controller only responds to whatever Trigger the active Program maps
+			// Program-scoped: a control only responds to whatever Trigger the active Program maps
 			// it to; no mapping in this Program means this Control does nothing here.
-			lx::Trigger* trig = getControllerMapping(*mActiveProgram, *controller);
+			lx::Trigger* trig = getControlMapping(*mActiveProgram, *control);
 			if (trig == nullptr)
 				continue;
 
-			switch (controller->mMode)
+			switch (control->mMode)
 			{
-			case lx::EControllerMode::Momentary:
-				if (on_event && !controller->mHeld)		{ controller->mHeld = true;  fireTrigger(*trig, /*held*/true); }
-				else if (off_event && controller->mHeld)	{ controller->mHeld = false; stopTrigger(*trig); }
+			case lx::EControlMode::Momentary:
+				if (on_event && !control->mHeld)		{ control->mHeld = true;  fireTrigger(*trig, /*held*/true); }
+				else if (off_event && control->mHeld)	{ control->mHeld = false; stopTrigger(*trig); }
 				break;
-			case lx::EControllerMode::Toggle:
+			case lx::EControlMode::Toggle:
 				if (on_event)
 				{
-					controller->mLatched = !controller->mLatched;
-					if (controller->mLatched) fireTrigger(*trig, /*held*/true); else stopTrigger(*trig);
+					control->mLatched = !control->mLatched;
+					if (control->mLatched) fireTrigger(*trig, /*held*/true); else stopTrigger(*trig);
 				}
 				break;
-			case lx::EControllerMode::FireOnly:
+			case lx::EControlMode::FireOnly:
 				if (on_event) fireTrigger(*trig, /*held*/false);
 				break;
 			}

@@ -1,11 +1,11 @@
-#include "effectparameter.h"
+#include "patchparameter.h"
 
 #include <mathutils.h>
 #include <algorithm>
 
-RTTI_BEGIN_CLASS(lx::EffectParameter)
-	RTTI_PROPERTY("Name",	&lx::EffectParameter::mName,	nap::rtti::EPropertyMetaData::Required)
-	RTTI_PROPERTY("Units",	&lx::EffectParameter::mUnits,	nap::rtti::EPropertyMetaData::Default)
+RTTI_BEGIN_CLASS(lx::PatchParameter)
+	RTTI_PROPERTY("Name",	&lx::PatchParameter::mName,	nap::rtti::EPropertyMetaData::Required)
+	RTTI_PROPERTY("Units",	&lx::PatchParameter::mUnits,	nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 RTTI_BEGIN_CLASS(lx::FloatParameter)
@@ -26,7 +26,7 @@ RTTI_END_CLASS
 
 namespace lx
 {
-	bool EffectParameter::init(nap::utility::ErrorState& errorState)
+	bool PatchParameter::init(nap::utility::ErrorState& errorState)
 	{
 		mCurrentValues.assign(getComponentCount(), 0.0f);
 		resetToBase();
@@ -34,7 +34,7 @@ namespace lx
 	}
 
 
-	bool EffectParameter::appliesToUnit(int unit) const
+	bool PatchParameter::appliesToUnit(int unit) const
 	{
 		if (mUnits.empty())
 			return true;
@@ -42,35 +42,35 @@ namespace lx
 	}
 
 
-	float EffectParameter::getComponentValue(int slot, int c) const
+	float PatchParameter::getComponentValue(int voice, int c) const
 	{
 		int count = getComponentCount();
-		if (slot < 0 || c < 0 || c >= count)
+		if (voice < 0 || c < 0 || c >= count)
 			return 0.0f;
-		int idx = slot * count + c;
+		int idx = voice * count + c;
 		return (idx < static_cast<int>(mCurrentValues.size())) ? mCurrentValues[idx] : getBaseValue(c);
 	}
 
 
-	void EffectParameter::setComponentValue(int slot, int c, float value)
+	void PatchParameter::setComponentValue(int voice, int c, float value)
 	{
 		int count = getComponentCount();
-		if (slot < 0 || c < 0 || c >= count)
+		if (voice < 0 || c < 0 || c >= count)
 			return;
-		int idx = slot * count + c;
+		int idx = voice * count + c;
 		if (static_cast<int>(mCurrentValues.size()) <= idx)
 			mCurrentValues.resize(idx + 1, 0.0f);
 		mCurrentValues[idx] = nap::math::clamp(value, 0.0f, 1.0f);
 	}
 
 
-	void EffectParameter::resetToBase(int slots)
+	void PatchParameter::resetToBase(int voices)
 	{
 		int count = getComponentCount();
-		int total = std::max(1, slots) * count;
+		int total = std::max(1, voices) * count;
 		if (static_cast<int>(mCurrentValues.size()) != total)
 			mCurrentValues.assign(total, 0.0f);
-		for (int s = 0; s < std::max(1, slots); ++s)
+		for (int s = 0; s < std::max(1, voices); ++s)
 			for (int c = 0; c < count; ++c)
 				mCurrentValues[s * count + c] = nap::math::clamp(getBaseValue(c), 0.0f, 1.0f);
 	}

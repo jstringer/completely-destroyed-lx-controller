@@ -13,12 +13,12 @@ RTTI_END_CLASS
 
 namespace lx
 {
-	// Deterministic pure hash of (slot, step, seed) -> [0,1). Splitmix64-style avalanche; no persisted RNG
-	// state needed since the same (slot, step, seed) always maps to the same value. `seed` differentiates
-	// otherwise-identical (slot, step) streams across independent NoiseModulator instances.
-	static float hash01(int slot, uint64_t step, int seed)
+	// Deterministic pure hash of (voice, step, seed) -> [0,1). Splitmix64-style avalanche; no persisted RNG
+	// state needed since the same (voice, step, seed) always maps to the same value. `seed` differentiates
+	// otherwise-identical (voice, step) streams across independent NoiseModulator instances.
+	static float hash01(int voice, uint64_t step, int seed)
 	{
-		uint64_t x = (static_cast<uint64_t>(static_cast<uint32_t>(slot)) << 32) ^ step;
+		uint64_t x = (static_cast<uint64_t>(static_cast<uint32_t>(voice)) << 32) ^ step;
 		x ^= static_cast<uint64_t>(static_cast<uint32_t>(seed)) * 0x9E3779B97F4A7C15ULL;
 		x ^= x >> 33; x *= 0xff51afd7ed558ccdULL;
 		x ^= x >> 33; x *= 0xc4ceb9fe1a85ec53ULL;
@@ -36,7 +36,7 @@ namespace lx
 
 	void NoiseModulator::generateCurve(nap::lxcontrolService& svc)
 	{
-		// Value is computed analytically in valueForSlot() from mElapsed; this dummy curve exists only
+		// Value is computed analytically in valueForVoice() from mElapsed; this dummy curve exists only
 		// to pin mDuration/the sequence duration, matching every other modulator's generateCurve().
 		mDuration = 1.0;
 		using I = nap::math::ECurveInterp;
@@ -71,18 +71,18 @@ namespace lx
 	}
 
 
-	float NoiseModulator::valueForSlot(int slot) const
+	float NoiseModulator::valueForVoice(int voice) const
 	{
 		double t = mElapsed * (double)std::max(mRate, 0.001f);
 		double step_d = std::floor(t);
 		uint64_t step = static_cast<uint64_t>(std::max(step_d, 0.0));
 		float frac = static_cast<float>(t - step_d);
 
-		float a = hash01(slot, step, mSeed);
+		float a = hash01(voice, step, mSeed);
 		if (mSmoothing <= 0.0f)
 			return a;
 
-		float b = hash01(slot, step + 1, mSeed);
+		float b = hash01(voice, step + 1, mSeed);
 		return nap::math::lerp(a, b, smoothstep01(frac));
 	}
 }
