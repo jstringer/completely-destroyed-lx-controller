@@ -110,5 +110,8 @@ namespace nap
 
 		// Programs tab form state
 		char						mNewProgramName[128] = "";
+
+		// Design-language test bed (src/lxstyleguide.cpp). Default on so it's visible on first run.
+		bool						mShowStyleGuide = true;
 	};
 }

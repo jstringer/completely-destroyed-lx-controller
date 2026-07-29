@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <mathutils.h>
 #include "lxtheme.h"
+#include "lxstyleguide.h"
 #include <cstring>
 #include <algorithm>
 
@@ -109,6 +110,7 @@ namespace nap
 		// Bind subsequent ImGui calls to our single window, then queue our GUI.
 		mGuiService->selectWindow(mRenderWindow);
 		drawMainUI();
+		lxstyleguide::draw(&mShowStyleGuide);	// design-language test bed (own window)
 	}
 
 
@@ -179,6 +181,9 @@ namespace nap
 	void lxcontrolApp::drawMainUI()
 	{
 		ImGui::Begin("lxcontrol");
+
+		ImGui::Checkbox("Style Guide", &mShowStyleGuide);
+		ImGui::Separator();
 
 		// Active-program banner (shown on every tab)
 		lx::Program* active = mLxControlService->getActiveProgram();
