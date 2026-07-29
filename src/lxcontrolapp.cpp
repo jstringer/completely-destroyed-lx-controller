@@ -378,18 +378,33 @@ namespace nap
 	}
 
 
+	// A tall labeled display fader (read-only) showing 0..1 output, with value below. Mockup .vf.
+	static void tallFader(const char* label, float v01, const ImVec4& fill)
+	{
+		ImGui::BeginGroup();
+		lxtheme::Fader(label, v01, ImVec2(24, 130), fill);
+		ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
+		ImGui::Text("%s", label);
+		ImGui::PopStyleColor();
+		if (v01 > 0.001f)
+			ImGui::Text("%d", static_cast<int>(v01 * 255.0f + 0.5f));
+		else
+			ImGui::TextDisabled("0");
+		ImGui::EndGroup();
+	}
+
+
 	void lxcontrolApp::drawFixtureOutputStrip(lx::FixtureComponentInstance& fx)
 	{
-		// Dimmer + Strobe as filling faders (real post-arbitration output).
-		lxtheme::Fader("##dim", roleOutput(fx, lx::EChannelRole::Dimmer), ImVec2(20, 70), lxtheme::live());
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Dimmer");
-		ImGui::SameLine();
-		lxtheme::Fader("##strobe", roleOutput(fx, lx::EChannelRole::Strobe), ImVec2(20, 70), lxtheme::accent());
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Strobe");
-		ImGui::SameLine();
+		// Dimmer + Strobe tall faders (real post-arbitration output).
+		tallFader("Dimmer", roleOutput(fx, lx::EChannelRole::Dimmer), lxtheme::live());
+		ImGui::SameLine(0.0f, 20.0f);
+		tallFader("Strobe", roleOutput(fx, lx::EChannelRole::Strobe), lxtheme::accent());
 
-		// Per-unit RGB swatches (units 1..6 for the Eurolite's six SMD units).
-		ImGui::BeginGroup();
+		// Color - 6 units.
+		ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
+		ImGui::Text("Color - 6 units");
+		ImGui::PopStyleColor();
 		int shown = 0;
 		for (int unit = 1; unit <= 6; ++unit)
 		{
@@ -404,34 +419,46 @@ namespace nap
 			}
 			if (!present) continue;
 			ImGui::PushID(unit);
-			lxtheme::Swatch("##u", rgb, 22.0f);
+			lxtheme::Swatch("##u", rgb, 26.0f);
 			ImGui::PopID();
-			if (++shown % 3 != 0) ImGui::SameLine();
+			if (shown < 5) ImGui::SameLine();
+			shown++;
 		}
-		ImGui::EndGroup();
+		if (shown == 0) ImGui::TextDisabled("(no RGB units)");
 
-		// Per-channel output LEDs (lit = channel currently emitting).
-		ImGui::TextDisabled("out");
+		// Mode row (Preset color / sound), shown as chips reflecting current output.
+		ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
+		ImGui::Text("Mode");
+		ImGui::PopStyleColor();
+		lxtheme::Chip("Preset");
 		ImGui::SameLine();
-		for (auto* ch : fx.getChannels())
-		{
-			ImGui::PushID(ch);
-			lxtheme::OutputLed(ch->resolveValue() > 0.02f, lxtheme::live());
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", ch->getChannelName().c_str());
-			ImGui::PopID();
-			ImGui::SameLine();
-		}
-		ImGui::NewLine();
+		lxtheme::Chip(roleOutput(fx, lx::EChannelRole::SoundMode) > 0.02f ? "Sound on" : "Sound off");
 	}
 
 
 	void lxcontrolApp::drawRigTab()
 	{
-		ImGui::TextDisabled("Art-Net output. Universe / DMX mode / IP are start-time only (restart to change).");
-		ImGui::Separator();
+		auto fixtures = mLxControlService->getFixturesPhysicalOrder();
+
+		// --- Art-Net info bar: topology is start-time-only (read-only); derived from the live rig. ---
+		ImGui::BeginChild("artnet", ImVec2(0, 52), true);
+		lxtheme::Chip("Art-Net output");
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Universe [lock]"); ImGui::SameLine(); ImGui::Text("0");
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Send to [lock]"); ImGui::SameLine(); ImGui::Text("auto (broadcast)");
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Start channels [lock]"); ImGui::SameLine();
+		{
+			std::string chans;
+			for (size_t i = 0; i < fixtures.size(); ++i)
+				chans += (i ? " . " : "") + std::to_string(fixtures[i]->getStartChannel());
+			ImGui::Text("%s", chans.empty() ? "-" : chans.c_str());
+		}
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextColored(lxtheme::accent2(), "Refresh"); ImGui::SameLine(); ImGui::Text("44 Hz");
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("[lock] topology (universe / mode / fixtures) set on startup - restart to change");
+		ImGui::EndChild();
+
+		lxtheme::SectionHeader("Fixtures  -  Eurolite Strobe 540 . 22ch");
 
 		// Physical (StartChannel) order aligns with Strobe1/2/3 param groups (StartChannels 0/22/44).
-		auto fixtures = mLxControlService->getFixturesPhysicalOrder();
 		const char* fixture_names[3] = { "Strobe 1", "Strobe 2", "Strobe 3" };
 		ParameterGroup* fixture_groups[3] = { mFixtureParams1.get(), mFixtureParams2.get(), mFixtureParams3.get() };
 		for (int i = 0; i < 3; i++)
@@ -441,21 +468,28 @@ namespace nap
 			ImGui::BeginChild(fixture_names[i], ImVec2(320, 0), true);
 
 			lx::FixtureComponentInstance* fx = (i < static_cast<int>(fixtures.size())) ? fixtures[i] : nullptr;
-			ImGui::TextColored(lxtheme::accent(), "%s", fixture_names[i]);
+
+			// Header: name + live output LED (lit if anything is emitting on this fixture).
+			ImGui::TextColored(lxtheme::text(), "%s", fixture_names[i]);
 			if (fx != nullptr)
 			{
+				bool any_out = false;
+				for (auto* ch : fx->getChannels())
+					if (ch->resolveValue() > 0.02f) { any_out = true; break; }
 				ImGui::SameLine();
 				ImGui::TextDisabled("%s @ ch %d", fx->getDisplayName().c_str(), fx->getStartChannel());
+				ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 16.0f);
+				lxtheme::OutputLed(any_out, lxtheme::live());
 			}
 			ImGui::Separator();
 
 			if (fx != nullptr)
-			{
 				drawFixtureOutputStrip(*fx);
-				ImGui::Separator();
-			}
 
-			drawFixtureParamGroup(*fixture_groups[i]);
+			// Manual base values kept available but out of the way (mockup RIG is a monitor).
+			if (ImGui::CollapsingHeader("Manual base values"))
+				drawFixtureParamGroup(*fixture_groups[i]);
+
 			ImGui::EndChild();
 		}
 	}
