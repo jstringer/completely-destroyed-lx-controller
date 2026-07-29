@@ -10,6 +10,7 @@
 #include <parameternumeric.h>
 #include <imgui/imgui.h>
 #include <mathutils.h>
+#include "lxtheme.h"
 #include <cstring>
 #include <algorithm>
 
@@ -182,7 +183,7 @@ namespace nap
 		// Active-program banner (shown on every tab)
 		lx::Program* active = mLxControlService->getActiveProgram();
 		if (active != nullptr)
-			ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Program: %s", active->mName.c_str());
+			ImGui::TextColored(lxtheme::live(), "Program: %s", active->mName.c_str());
 		else
 			ImGui::TextDisabled("Program: (none loaded - output is dark)");
 		ImGui::Separator();
@@ -873,7 +874,7 @@ namespace nap
 			ImGui::SameLine();
 			if (mLearningControl == c.get())
 			{
-				ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "learning...");
+				ImGui::TextColored(lxtheme::pulse(), "learning...");
 				if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
 				{
 					MidiEvent ev = mLxControlService->getLastMidiEvent();

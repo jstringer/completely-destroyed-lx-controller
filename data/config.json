@@ -1,0 +1,11 @@
+{
+    "Objects": [
+        {
+            "Type": "nap::IMGuiServiceConfiguration",
+            "mID": "IMGuiServiceConfiguration",
+            "Color Scheme": "HyperDark",
+            "Font Size": 16.0,
+            "Scale": 1.0
+        }
+    ]
+}

@@ -1661,24 +1661,6 @@
             "Children": []
         },
         {
-            "Type": "nap::ParameterGUI",
-            "mID": "FixtureParameterGUI",
-            "Serializable": false,
-            "Group": "Strobe1_Params"
-        },
-        {
-            "Type": "nap::ParameterGUI",
-            "mID": "FixtureParameterGUI2",
-            "Serializable": false,
-            "Group": "Strobe2_Params"
-        },
-        {
-            "Type": "nap::ParameterGUI",
-            "mID": "FixtureParameterGUI3",
-            "Serializable": false,
-            "Group": "Strobe3_Params"
-        },
-        {
             "Type": "nap::Entity",
             "mID": "MidiMonitorEntity",
             "Components": [

@@ -13,6 +13,6 @@
     "naplxcontrol"
   ],
   "Data": "data/objects.json",
-  "ServiceConfig": "",
+  "ServiceConfig": "data/config.json",
   "PathMapping": "cache/path_mapping.json"
 }
