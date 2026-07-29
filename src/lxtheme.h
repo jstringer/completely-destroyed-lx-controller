@@ -103,12 +103,25 @@ namespace lxtheme
 
 	// --- Widget helpers -----------------------------------------------------
 
-	/** Accent-colored label + separator; opens a titled block. */
+	/** Bracketed, muted, uppercase section header ( [ LABEL ] ) — the mockup's h3.sec. */
 	inline void SectionHeader(const char* label)
 	{
 		ImGui::Spacing();
-		ImGui::TextColored(accent(), "%s", label);
+		ImGui::PushStyleColor(ImGuiCol_Text, muted());
+		ImGui::Text("[ %s ]", label);
+		ImGui::PopStyleColor();
 		ImGui::Separator();
+	}
+
+	/** A small non-interactive framed tag. `col` overrides the text color (w<=0 = default text2). */
+	inline void Chip(const char* label, const ImVec4& col = ImVec4(0, 0, 0, 0))
+	{
+		ImGui::PushStyleColor(ImGuiCol_Button, bar());
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bar());
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, bar());
+		ImGui::PushStyleColor(ImGuiCol_Text, col.w > 0.0f ? col : text2());
+		ImGui::SmallButton(label);
+		ImGui::PopStyleColor(4);
 	}
 
 	/** Red-tinted button for destructive actions (delete/all-stop). Returns true when clicked. */

@@ -228,60 +228,95 @@ namespace nap
 	}
 
 
+	// Steps mCuedProgram to the previous/next program in the list (cue-select, does NOT load).
+	void lxcontrolApp::cueProgram(int dir)
+	{
+		const auto& progs = mLxControlService->getPrograms();
+		if (progs.empty()) { mCuedProgram = nullptr; return; }
+		int idx = 0;
+		for (int i = 0; i < static_cast<int>(progs.size()); ++i)
+			if (progs[i].get() == mCuedProgram) { idx = i; break; }
+		idx = (idx + dir + static_cast<int>(progs.size())) % static_cast<int>(progs.size());
+		mCuedProgram = progs[idx].get();
+	}
+
 	void lxcontrolApp::drawLiveBar()
 	{
 		lx::Program* active = mLxControlService->getActiveProgram();
 		const size_t voices = mLxControlService->activeVoiceCount();
 
-		// Output state dot + label: honest (dark / N held / loaded-idle), never a phantom "on".
+		// Default the cue to the loaded program the first time / when it points at nothing.
+		if (mCuedProgram == nullptr)
+			mCuedProgram = active;
+
+		// --- Scene selector: [◀] LOADED <name> [▶], + Load when a different program is cued ---
+		if (ImGui::SmallButton("<")) cueProgram(-1);
+		ImGui::SameLine();
+		lxtheme::Chip("LOADED");
+		ImGui::SameLine();
+		if (active != nullptr)
+			ImGui::TextColored(lxtheme::live(), "%s", active->mName.c_str());
+		else
+			ImGui::TextDisabled("- none -");
+		ImGui::SameLine();
+		if (ImGui::SmallButton(">")) cueProgram(+1);
+
+		if (mCuedProgram != nullptr && mCuedProgram != active)
+		{
+			ImGui::SameLine(0.0f, 14.0f);
+			ImGui::TextDisabled("cued:");
+			ImGui::SameLine();
+			ImGui::TextColored(lxtheme::accent2(), "%s", mCuedProgram->mName.c_str());
+			ImGui::SameLine();
+			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2());
+			if (ImGui::SmallButton("Load >")) mLxControlService->loadProgram(mCuedProgram);
+			ImGui::PopStyleColor();
+		}
+
+		// --- Right cluster: All Stop | output state | MIDI activity | mode | style guide ---
+		ImGui::SameLine(0.0f, 28.0f);
+		if (lxtheme::DangerButton("# All Stop"))
+			mLxControlService->stopAll();
+
+		// Honest output state (never a phantom "on").
+		ImGui::SameLine(0.0f, 20.0f);
 		if (voices > 0)
 		{
 			lxtheme::StateDot(lxtheme::live(), true);
 			ImGui::SameLine();
-			ImGui::TextColored(lxtheme::live(), "%d voice%s", static_cast<int>(voices), voices == 1 ? "" : "s");
+			ImGui::TextColored(lxtheme::live2(), "Output - %d held", static_cast<int>(voices));
 		}
 		else
 		{
-			lxtheme::StateDot(ImVec4(0.25f, 0.25f, 0.28f, 1.0f));
+			lxtheme::StateDot(lxtheme::rgb(0x3a2a12));
 			ImGui::SameLine();
 			ImGui::TextDisabled(active != nullptr ? "loaded - idle" : "dark");
 		}
 
-		// Loaded program.
+		// MIDI activity: time since the last message (not a fake "connected" light).
 		ImGui::SameLine(0.0f, 20.0f);
-		if (active != nullptr)
-			ImGui::TextColored(lxtheme::accent(), "Program: %s", active->mName.c_str());
-		else
-			ImGui::TextDisabled("Program: - none -");
-
-		// All Stop (panic).
-		ImGui::SameLine(0.0f, 20.0f);
-		if (lxtheme::DangerButton("# All Stop"))
-			mLxControlService->stopAll();
-
-		// MIDI activity: the last message, not a fake "connected" light (review #3 / findings §6).
-		ImGui::SameLine(0.0f, 20.0f);
-		if (mLxControlService->hasLastMidiEvent())
-		{
-			MidiEvent ev = mLxControlService->getLastMidiEvent();
-			ImGui::TextDisabled("MIDI: ch%d n%d v%d", ev.getChannel(), ev.getNumber(), ev.getValue());
-		}
+		const int ctr = mLxControlService->getMidiEventCounter();
+		if (ctr != mLastMidiCounter) { mLastMidiCounter = ctr; mLastMidiSeen = ImGui::GetTime(); }
+		if (mLastMidiSeen < 0.0)
+			ImGui::TextDisabled("MIDI -");
 		else
 		{
-			ImGui::TextDisabled("MIDI: -");
+			ImGui::TextDisabled("MIDI");
+			ImGui::SameLine();
+			ImGui::TextColored(lxtheme::accent2(), "%.1fs", ImGui::GetTime() - mLastMidiSeen);
 		}
 
-		// Perform/Edit toggle + Style Guide (right-aligned-ish).
+		// Perform/Edit toggle.
 		ImGui::SameLine(0.0f, 24.0f);
 		const bool perform = (mMode == EUiMode::Perform);
-		if (perform) ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::accent());
-		if (ImGui::Button(perform ? "PERFORM" : "EDIT"))
+		if (perform) { ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::rgb(0x2dd4bf, 0.16f)); ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2()); }
+		if (ImGui::Button(perform ? "< EDIT" : "PERFORM >"))
 			mMode = perform ? EUiMode::Edit : EUiMode::Perform;
-		if (perform) ImGui::PopStyleColor();
+		if (perform) ImGui::PopStyleColor(2);
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Toggle Perform (play-only) / Edit (authoring)");
 
-		ImGui::SameLine();
+		ImGui::SameLine(0.0f, 16.0f);
 		ImGui::Checkbox("Style Guide", &mShowStyleGuide);
 	}
 

@@ -46,6 +46,8 @@ namespace nap
 		/** Persistent top bar (all modes): active program, honest output state (activeVoiceCount),
 		 *  ■ All Stop (stopAll), MIDI activity readout, and the Perform/Edit toggle. */
 		void drawLiveBar();
+		/** Cue-select the previous(-1)/next(+1) program into mCuedProgram without loading it. */
+		void cueProgram(int dir);
 		/** Perform mode: a play-only pad grid. Each pad fires its Control's mapped Trigger in the
 		 *  active program; no authoring/editing. Keeps the Live Bar + output readout visible. */
 		void drawPerformGrid();
@@ -131,5 +133,12 @@ namespace nap
 		// Perform vs Edit (the Live Bar toggle). Perform = play-only pad grid; Edit = authoring tabs.
 		enum class EUiMode { Edit, Perform };
 		EUiMode						mMode = EUiMode::Edit;
+
+		// Live Bar / PROGRAMS shared selection: the "cued" (selected-for-edit) program, distinct from the
+		// loaded/active one (getActiveProgram). Cue with the bar's prev/next; Load commits it live.
+		lx::Program*				mCuedProgram = nullptr;
+		// MIDI activity: wall-clock (ImGui::GetTime) of the last seen message, for a "time since" readout.
+		double						mLastMidiSeen = -1.0;
+		int							mLastMidiCounter = 0;
 	};
 }
