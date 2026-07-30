@@ -142,6 +142,19 @@ namespace nap
 		void clearControlMapping(lx::Program& program, lx::Control& control);
 		lx::Trigger* getControlMapping(const lx::Program& program, const lx::Control& control) const;
 
+		// --- Routing (control-first: 1 mapping <-> 1 dedicated Control-kind trigger <-> 1 binding).
+		// The GUI owns the trigger lifecycle so the user never sees/names a Trigger. ---
+		lx::ControlMapping* routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch, const std::vector<std::string>& fixtures);
+		void setRoutingPatch(lx::Trigger& trigger, lx::Patch* patch);				///< rewrites the trigger's single binding's patch (keeps its fixtures)
+		void setRoutingFixtures(lx::Trigger& trigger, const std::vector<std::string>& fixtures);	///< rewrites the single binding's fixtures (keeps its patch)
+		void unroute(lx::Program& program, lx::ControlMapping* mapping);			///< removes the routing + its dedicated trigger
+		// Lifecycle routing (On load / On exit): one Enter/Exit trigger per program per kind.
+		lx::Trigger* getLifecycleTrigger(const lx::Program& program, lx::ETriggerKind kind) const;
+		lx::Trigger* ensureLifecycleTrigger(lx::Program& program, lx::ETriggerKind kind);
+		void clearLifecycle(lx::Program& program, lx::ETriggerKind kind);
+		// Output mix: distinct patch names currently claiming this fixture, winner (held, then newest) first.
+		std::vector<std::string> fixtureClaimants(const lx::FixtureComponentInstance& fx) const;
+
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
 		bool hasLastMidiEvent() const { return mHasLastEvent; }

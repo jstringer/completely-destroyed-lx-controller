@@ -1002,6 +1002,114 @@ namespace nap
 	}
 
 
+	lx::ControlMapping* lxcontrolService::routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch, const std::vector<std::string>& fixtures)
+	{
+		// A routing owns its own Control-kind trigger with exactly one binding (the UI never shows it).
+		lx::Trigger* trig = createTrigger(lx::ETriggerKind::Control, control.mName);
+		if (trig == nullptr)
+			return nullptr;
+		lx::PatchFixtureBinding b;
+		b.mPatch = patch;
+		b.mFixtureNames = fixtures;
+		trig->mBindings = { b };
+		return setControlMapping(program, control, trig);
+	}
+
+
+	void lxcontrolService::setRoutingPatch(lx::Trigger& trigger, lx::Patch* patch)
+	{
+		lx::PatchFixtureBinding b;
+		b.mPatch = patch;
+		if (!trigger.mBindings.empty())
+			b.mFixtureNames = trigger.mBindings[0].mFixtureNames;	// keep fixtures
+		setTriggerBindings(trigger, { b });
+	}
+
+
+	void lxcontrolService::setRoutingFixtures(lx::Trigger& trigger, const std::vector<std::string>& fixtures)
+	{
+		lx::PatchFixtureBinding b;
+		if (!trigger.mBindings.empty())
+			b.mPatch = trigger.mBindings[0].mPatch;					// keep patch
+		b.mFixtureNames = fixtures;
+		setTriggerBindings(trigger, { b });
+	}
+
+
+	void lxcontrolService::unroute(lx::Program& program, lx::ControlMapping* mapping)
+	{
+		if (mapping == nullptr)
+			return;
+		// removeTrigger scrubs every ControlMapping referencing it (and lifecycle lists), so the
+		// dedicated trigger + this mapping both go away.
+		lx::Trigger* trig = mapping->mTrigger.get();
+		if (trig != nullptr)
+			removeTrigger(trig);
+		else if (mapping->mControl != nullptr)
+			clearControlMapping(program, *mapping->mControl.get());
+	}
+
+
+	lx::Trigger* lxcontrolService::getLifecycleTrigger(const lx::Program& program, lx::ETriggerKind kind) const
+	{
+		for (auto& t : program.mLifecycleTriggers)
+			if (t != nullptr && t->mKind == kind)
+				return t.get();
+		return nullptr;
+	}
+
+
+	lx::Trigger* lxcontrolService::ensureLifecycleTrigger(lx::Program& program, lx::ETriggerKind kind)
+	{
+		if (lx::Trigger* existing = getLifecycleTrigger(program, kind))
+			return existing;
+		lx::Trigger* trig = createTrigger(kind, kind == lx::ETriggerKind::Enter ? "OnLoad" : "OnExit");
+		if (trig == nullptr)
+			return nullptr;
+		auto list = program.mLifecycleTriggers;
+		list.emplace_back(nap::ResourcePtr<lx::Trigger>(trig));
+		setProgramLifecycleTriggers(program, list);
+		return trig;
+	}
+
+
+	void lxcontrolService::clearLifecycle(lx::Program& program, lx::ETriggerKind kind)
+	{
+		if (lx::Trigger* t = getLifecycleTrigger(program, kind))
+			removeTrigger(t);	// also drops it from the program's lifecycle list
+	}
+
+
+	std::vector<std::string> lxcontrolService::fixtureClaimants(const lx::FixtureComponentInstance& fx) const
+	{
+		struct C { std::string mName; bool mHeld; uint64_t mId; };
+		std::vector<C> claimants;
+		const std::string eid = fx.getEntityID();
+		for (const auto& act : mActivations)
+		{
+			if (act.mTrigger == nullptr)
+				continue;
+			for (const auto& b : act.mTrigger->mBindings)
+			{
+				if (std::find(b.mFixtureNames.begin(), b.mFixtureNames.end(), eid) == b.mFixtureNames.end())
+					continue;
+				claimants.push_back({ b.mPatch != nullptr ? b.mPatch->mName : std::string("(patch)"), act.mHeld, act.mId });
+			}
+		}
+		// Held first, then newest first -- the same priority resolveValue() arbitrates per channel.
+		std::sort(claimants.begin(), claimants.end(), [](const C& a, const C& b)
+		{
+			if (a.mHeld != b.mHeld) return a.mHeld && !b.mHeld;
+			return a.mId > b.mId;
+		});
+		std::vector<std::string> out;
+		for (auto& c : claimants)
+			if (std::find(out.begin(), out.end(), c.mName) == out.end())
+				out.push_back(c.mName);
+		return out;
+	}
+
+
 	void lxcontrolService::loadProgram(lx::Program* program)
 	{
 		// Unload the outgoing program: fire its Exit triggers (transient look, rings out) and stop the rest.
