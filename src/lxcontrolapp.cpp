@@ -583,7 +583,9 @@ namespace nap
 		{
 			if (i > 0)
 				ImGui::SameLine();
-			ImGui::BeginChild(fixture_names[i], ImVec2(320, 0), true);
+			// Content-height card (not a full-height empty well). Scrolls only if "Manual base values"
+			// is expanded, which is the rare case.
+			ImGui::BeginChild(fixture_names[i], ImVec2(320, 362), true);
 
 			lx::FixtureComponentInstance* fx = (i < static_cast<int>(fixtures.size())) ? fixtures[i] : nullptr;
 
