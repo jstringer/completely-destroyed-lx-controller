@@ -57,8 +57,6 @@ namespace nap
 		 *  post-arbitration output, i.e. honest output state / C3), not a phantom mix. */
 		void drawFixtureOutputStrip(lx::FixtureComponentInstance& fx);
 		void drawPatchesTab();
-		void drawTriggerBindingsEditor(lx::Trigger& trigger);
-		void drawTriggerCreationForm(lx::Program& program);
 		/** PROGRAMS panel 1: the programs list (loaded=gold, cued=selected-for-edit) + New. */
 		void drawProgramsListPanel();
 		/** PROGRAMS panel 2: header + editing band + Routing matrix + Automatic + Output, for one program. */
@@ -102,26 +100,10 @@ namespace nap
 		// addPatchParameter, setPatchTargetMode, ...) call save(), which rewrites user_content.json and
 		// gets hot-reloaded by nap::ResourceManager's directory watch, recreating Patches/Modulators at a
 		// new address next frame -- a pointer-keyed map would silently orphan its entry (plot history
-		// resets, selection resets) on the very next such edit. Same reasoning as mBindPatchIdx/mBindFixtures below.
+		// resets, selection resets) on the very next such edit.
 		char						mNewPatchName[128] = "";
 		std::map<std::string, int>	mModTargetIndex;	// per-patch (by mID) selected target-parameter index
 		int							mAddModType = 0;	// selected modulator type in the "add modulator" dropdown
-
-		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's
-		// viewed from). Keyed by mID rather than pointer: editing bindings rewrites user_content.json, which
-		// nap::ResourceManager's directory watch hot-reloads, recreating the changed Trigger/Program at a new
-		// address - a pointer-keyed map (or ImGui PushID) would silently orphan its entry / reset tree state
-		// on the very next frame.
-		std::map<std::string, int>					mBindPatchIdx;		// per-trigger add-binding patch selection
-		std::map<std::string, std::set<std::string>>	mBindFixtures;	// per-trigger add-binding fixture selection
-
-		// Trigger creation form state, one per Program section (a user may have several Program sections open at once)
-		struct NewTriggerForm
-		{
-			char	mName[128] = "";
-			int		mType = 0;	// 0=Control,1=Enter,2=Exit
-		};
-		std::map<std::string, NewTriggerForm> mNewTriggerFormByProgram;	// keyed by Program::mID, see note above
 
 		// CONTROLS tab form state
 		char						mNewControlName[128] = "";

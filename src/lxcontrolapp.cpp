@@ -994,107 +994,6 @@ namespace nap
 	}
 
 
-	void lxcontrolApp::drawTriggerBindingsEditor(lx::Trigger& trigger)
-	{
-		const auto& patches = mLxControlService->getPatches();
-		// Physical rig order (by StartChannel), matching exactly the order lxcontrolService::fireTrigger
-		// assigns Chase/Noise fixture voices in -- so the voice number previewed below is what a fixture
-		// will actually get, not a guess based on checkbox/registration order.
-		auto ordered_fixtures = mLxControlService->getFixturesPhysicalOrder();
-
-		auto displayNameFor = [&](const std::string& entityID) -> std::string
-		{
-			for (auto* f : ordered_fixtures)
-				if (f->getEntityID() == entityID)
-					return f->getDisplayName();
-			return entityID;	// fixture no longer in the rig; show the raw id rather than dropping it silently
-		};
-
-		if (ImGui::TreeNode("Bindings"))
-		{
-			int bi = 0;
-			bool removed = false;
-			for (auto& b : trigger.mBindings)
-			{
-				ImGui::PushID(bi);
-				std::string fx;
-				for (auto& f : b.mFixtureNames) { fx += displayNameFor(f); fx += " "; }
-				ImGui::BulletText("%s -> %s", b.mPatch != nullptr ? b.mPatch->mName.c_str() : "(none)", fx.c_str());
-				ImGui::SameLine();
-				if (lxagent::SmallButton("Remove"))
-				{
-					auto bindings = trigger.mBindings;
-					bindings.erase(bindings.begin() + bi);
-					mLxControlService->setTriggerBindings(trigger, bindings);
-					removed = true;
-				}
-				ImGui::PopID();
-				if (removed) break;
-				bi++;
-			}
-
-			if (!removed)
-			{
-				if (!patches.empty())
-				{
-					int& eidx = mBindPatchIdx[trigger.mID];
-					std::vector<const char*> elabels;
-					for (auto& e : patches) elabels.emplace_back(e->mName.c_str());
-					eidx = nap::math::clamp(eidx, 0, static_cast<int>(elabels.size()) - 1);
-					ImGui::SetNextItemWidth(160);
-					ImGui::Combo("Patch", &eidx, elabels.data(), static_cast<int>(elabels.size()));
-
-					auto& sel = mBindFixtures[trigger.mID];
-					bool multiple = patches[eidx]->mTargetMode == lx::EPatchTargetMode::Multiple;
-					if (multiple)
-					{
-						ImGui::SameLine();
-						ImGui::TextDisabled("(%d selected -- each gets its own animated voice, any number is fine)", static_cast<int>(sel.size()));
-					}
-
-					// One checkbox per fixture, in physical rig order. For a Multiple-mode patch, show the
-					// voice each checked fixture will actually resolve to (computed the same way fireTrigger
-					// does: position among checked fixtures in physical order) -- this is a preview, not a
-					// separate authored number, so there's nothing here that can fall out of sync.
-					int voice_preview = 0;
-					for (auto* f : ordered_fixtures)
-					{
-						ImGui::PushID(f);
-						std::string eid = f->getEntityID();
-						bool checked = sel.count(eid) > 0;
-						std::string label = f->getDisplayName();
-						if (multiple && checked)
-						{
-							label += " [voice " + std::to_string(voice_preview) + "]";
-							++voice_preview;
-						}
-						if (ImGui::Checkbox(label.c_str(), &checked))
-						{
-							if (checked) sel.insert(eid); else sel.erase(eid);
-						}
-						ImGui::PopID();
-					}
-					if (lxagent::Button("+ Add Binding") && !sel.empty())
-					{
-						auto bindings = trigger.mBindings;
-						lx::PatchFixtureBinding nb;
-						nb.mPatch = patches[eidx].get();
-						for (auto& s : sel) nb.mFixtureNames.emplace_back(s);
-						bindings.emplace_back(nb);
-						mLxControlService->setTriggerBindings(trigger, bindings);
-						sel.clear();
-					}
-				}
-				else
-				{
-					ImGui::TextDisabled("Create an patch first");
-				}
-			}
-			ImGui::TreePop();
-		}
-	}
-
-
 	void lxcontrolApp::drawProgramsListPanel()
 	{
 		lxtheme::SectionHeader("Programs");
@@ -1367,34 +1266,6 @@ namespace nap
 	}
 
 
-	void lxcontrolApp::drawTriggerCreationForm(lx::Program& program)
-	{
-		static const char* type_labels[] = { "Control", "Enter", "Exit" };
-
-		auto& form = mNewTriggerFormByProgram[program.mID];
-		ImGui::InputText("Name##newtrig", form.mName, sizeof(form.mName));
-		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
-		ImGui::Combo("Type##newtrig", &form.mType, type_labels, 3);
-		ImGui::SameLine();
-		if (lxagent::Button("+ New Trigger") && std::strlen(form.mName) > 0)
-		{
-			lx::ETriggerKind kind = form.mType == 1 ? lx::ETriggerKind::Enter
-				: form.mType == 2 ? lx::ETriggerKind::Exit
-				: lx::ETriggerKind::Control;
-			auto* new_trig = mLxControlService->createTrigger(kind, form.mName);
-			// Enter/Exit triggers auto-join this Program's lifecycle list (one-step workflow);
-			// Control-kind triggers are created unassigned - map them via the Control Mappings menu.
-			if (form.mType == 1 || form.mType == 2)
-			{
-				auto list = program.mLifecycleTriggers;
-				list.emplace_back(nap::ResourcePtr<lx::Trigger>(new_trig));
-				mLxControlService->setProgramLifecycleTriggers(program, list);
-			}
-			form.mName[0] = '\0';
-		}
-	}
-
-
 	// Desk vocabulary for EControlMode: Hold=Momentary, Latch=Toggle, Trig=FireOnly (findings §92).
 	static const char* kModeLabels[] = { "Hold", "Latch", "Trig" };
 	static const char* kModeTips[] = {
@@ -1403,8 +1274,6 @@ namespace nap
 		"Trig (FireOnly): each press re-fires; never holds."
 	};
 
-	// Draws one Control row (mode combo + group + Learn/Cancel + Delete-confirm + its bindings).
-	// Returns true if the control was deleted (caller must stop iterating that vector).
 	bool lxcontrolApp::drawControlRow(lx::Control* c)
 	{
 		ImGui::PushID(c);
