@@ -460,9 +460,11 @@ namespace nap
 
 		// Play-only pad grid (mockup .bigpad, aspect ~1.5). One pad per Control, firing its mapped
 		// Trigger; lit=gold when its trigger is active; unbound dimmed. All-Stop lives in the bar.
-		const int cols = 4;
+		// Column count scales to keep pads ~240px wide (they were ~580px at a fixed 4 cols full-bleed).
 		const float avail = ImGui::GetContentRegionAvail().x;
-		const float pad_w = (avail - ImGui::GetStyle().ItemSpacing.x * (cols - 1)) / cols;
+		const float sp = ImGui::GetStyle().ItemSpacing.x;
+		const int cols = nap::math::clamp(static_cast<int>((avail + sp) / (240.0f + sp)), 2, 8);
+		const float pad_w = (avail - sp * (cols - 1)) / cols;
 		const float pad_h = pad_w / 1.5f;
 		int col = 0;
 		for (auto& c : controls)
@@ -610,13 +612,16 @@ namespace nap
 		// Physical (StartChannel) order aligns with Strobe1/2/3 param groups (StartChannels 0/22/44).
 		const char* fixture_names[3] = { "Strobe 1", "Strobe 2", "Strobe 3" };
 		ParameterGroup* fixture_groups[3] = { mFixtureParams1.get(), mFixtureParams2.get(), mFixtureParams3.get() };
+		// Three strips share the full width (1fr x 3), so they fill the window instead of leaving a void.
+		const float rig_gap = ImGui::GetStyle().ItemSpacing.x;
+		const float strip_w = std::max(240.0f, (ImGui::GetContentRegionAvail().x - 2.0f * rig_gap) / 3.0f);
 		for (int i = 0; i < 3; i++)
 		{
 			if (i > 0)
 				ImGui::SameLine();
 			// Content-height card (not a full-height empty well). Scrolls only if "Manual base values"
 			// is expanded, which is the rare case.
-			ImGui::BeginChild(fixture_names[i], ImVec2(320, 362), true);
+			ImGui::BeginChild(fixture_names[i], ImVec2(strip_w, 362), true);
 
 			lx::FixtureComponentInstance* fx = (i < static_cast<int>(fixtures.size())) ? fixtures[i] : nullptr;
 
