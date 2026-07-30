@@ -94,6 +94,9 @@ namespace nap
 		 *  can never drift out of sync with what's actually bound. */
 		void setPatchTargetMode(lx::Patch& patch, lx::EPatchTargetMode mode);
 		void removePatch(lx::Patch* patch);
+		/** Deep-copies a patch (all PatchParameters + Modulators, each modulator's runtime graph rebuilt as
+		 *  on load), so a shared patch can be forked into an independent one. Returns the new patch. */
+		lx::Patch* duplicatePatch(lx::Patch& src);
 		const std::vector<rtti::ObjectPtr<lx::Patch>>& getPatches() const { return mPatches; }
 
 		/**

@@ -14,6 +14,8 @@
 #include <rtti/object.h>
 #include <rtti/jsonwriter.h>
 #include <rtti/writer.h>
+#include <rtti/rttiutilities.h>
+#include <unordered_map>
 #include <sequenceservice.h>
 #include <sequence.h>
 #include <sequencecontrollercurve.h>
@@ -637,6 +639,65 @@ namespace nap
 		mPatches.erase(std::remove_if(mPatches.begin(), mPatches.end(),
 			[patch](const rtti::ObjectPtr<lx::Patch>& e) { return e.get() == patch; }), mPatches.end());
 		markDirty();
+	}
+
+
+	lx::Patch* lxcontrolService::duplicatePatch(lx::Patch& src)
+	{
+		lx::Patch* dst = createPatch(src.mName + " copy");
+		if (dst == nullptr)
+			return nullptr;
+		dst->mTargetMode = src.mTargetMode;
+		dst->mFixtureCount = src.mFixtureCount;
+
+		// Deep-copy parameters (same type, all rtti fields), keeping a source->dst map to remap modulator
+		// targets. copyObject clobbers mID too, so we restore the unique id it just handed us.
+		std::unordered_map<lx::PatchParameter*, lx::PatchParameter*> pmap;
+		for (auto& sp : src.mParameters)
+		{
+			lx::PatchParameter* np = addPatchParameter(*dst, sp->get_type());
+			if (np == nullptr)
+				continue;
+			const std::string id = np->mID;
+			rtti::copyObject(*sp, *np);
+			np->mID = id;
+			pmap[sp.get()] = np;
+		}
+
+		// Deep-copy modulators: create same type, copy shape/blend fields, remap the copied target pointers
+		// onto the dst params, then rebuild the runtime graph exactly as the load path does (rewireModulator).
+		PatchEntry* dentry = findEntry(*dst);
+		for (auto& sm : src.mModulators)
+		{
+			lx::PatchParameter* first = nullptr;
+			if (!sm->mTargets.empty())
+			{
+				auto it = pmap.find(sm->mTargets[0].get());
+				if (it != pmap.end()) first = it->second;
+			}
+			lx::Modulator* nm = addModulator(*dst, sm->get_type(), first);
+			if (nm == nullptr)
+				continue;
+			const std::string id = nm->mID;
+			rtti::copyObject(*sm, *nm);	// shape fields + Min/Max/Blend + mTargets (still point at src params) + mID
+			nm->mID = id;
+
+			nm->mTarget = nullptr;
+			std::vector<nap::ResourcePtr<lx::PatchParameter>> remapped;
+			for (auto& t : nm->mTargets)
+			{
+				auto it = pmap.find(t.get());
+				if (it != pmap.end()) remapped.emplace_back(it->second);
+			}
+			nm->mTargets = remapped;
+
+			if (dentry != nullptr)
+				for (auto& me : dentry->mModulators)
+					if (me.mModulator.get() == nm) { rewireModulator(*dst, me); break; }
+		}
+
+		markDirty();
+		return dst;
 	}
 
 

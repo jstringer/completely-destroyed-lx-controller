@@ -458,6 +458,12 @@ namespace nap
 			return;
 		}
 
+		// Panic Blackout: a big danger button in reach without hunting for the bar's All Stop. stopAll()
+		// drops every claim so output goes dark this frame.
+		if (lxtheme::DangerButton("BLACKOUT - All Stop", ImVec2(-1.0f, 44.0f)))
+			mLxControlService->stopAll();
+		ImGui::Spacing();
+
 		// Play-only pad grid (mockup .bigpad, aspect ~1.5). One pad per Control, firing its mapped
 		// Trigger; lit=gold when its trigger is active; unbound dimmed. All-Stop lives in the bar.
 		// Column count scales to keep pads ~240px wide (they were ~580px at a fixed 4 cols full-bleed).
@@ -709,6 +715,8 @@ namespace nap
 		if (mLxControlService->getPatches().empty())
 			ImGui::TextDisabled("No patches yet. A patch is a light-voice: parameters + modulators.");
 
+		// Deferred fork: duplicatePatch() appends to getPatches(), which would invalidate this range-for.
+		lx::Patch* patch_to_fork = nullptr;
 		for (auto& patch : mLxControlService->getPatches())
 		{
 			ImGui::PushID(patch.get());
@@ -749,10 +757,9 @@ namespace nap
 					ImGui::Text("Used by %d trigger%s - edits apply to all", used_by, used_by == 1 ? "" : "s");
 					ImGui::PopStyleColor();
 					ImGui::SameLine();
-					bool fdis = lxtheme::PushDisabled(true);
-					lxagent::SmallButton("Fork");
-					lxtheme::PopDisabled(fdis);
-					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Deep-copy for this program - not yet implemented");
+					if (lxagent::SmallButton("Fork"))
+						patch_to_fork = patch.get();
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Deep-copy into an independent patch");
 				}
 
 				// Spread + voice count.
@@ -1022,6 +1029,9 @@ namespace nap
 			}
 			ImGui::PopID();
 		}
+
+		if (patch_to_fork != nullptr)
+			mLxControlService->duplicatePatch(*patch_to_fork);
 	}
 
 
