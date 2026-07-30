@@ -298,11 +298,11 @@ namespace nap
 				drawProgramsListPanel();
 				ImGui::EndChild();
 				ImGui::SameLine();
-				ImGui::BeginChild("prog_route", ImVec2(ImGui::GetContentRegionAvail().x - 396.0f, 0), true);
+				ImGui::BeginChild("prog_route", ImVec2(ImGui::GetContentRegionAvail().x - 456.0f, 0), true);
 				drawRoutingPanel(cued);
 				ImGui::EndChild();
 				ImGui::SameLine();
-				ImGui::BeginChild("prog_patch", ImVec2(380, 0), true);
+				ImGui::BeginChild("prog_patch", ImVec2(440, 0), true);
 				ImGui::TextColored(lxtheme::accent(), "PATCH EDITOR");
 				ImGui::Separator();
 				drawPatchesTab();
@@ -641,8 +641,13 @@ namespace nap
 	{
 		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
 		static const char* shape_labels[] = { "Sine", "Ramp", "Triangle", "Square", "Pulse", "Gaussian" };
+		static const char* blend_labels[]    = { "Replace", "Multiply", "Add" };
+		static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
+		static const char* ad_mode_labels[]  = { "OneShot", "LoopWhileSustained" };
 
-		ImGui::InputText("Name", mNewPatchName, sizeof(mNewPatchName));
+		// New patch.
+		ImGui::SetNextItemWidth(-116.0f);
+		ImGui::InputText("##patchname", mNewPatchName, sizeof(mNewPatchName));
 		ImGui::SameLine();
 		if (lxagent::Button("+ New Patch") && std::strlen(mNewPatchName) > 0)
 		{
@@ -659,15 +664,10 @@ namespace nap
 			ImGui::PushID(patch.get());
 			bool open = ImGui::CollapsingHeader(patch->mName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 
-			// "used by N" reverse index: how many Trigger bindings reference this patch (C5 - the
-			// affordance that makes a shared patch's reach visible before you edit/delete it). Inline
-			// scan; no backend needed. Fork (deep-copy) is deferred - see IMPLEMENTATION-PLAN Phase E.
 			int used_by = 0;
 			for (auto& trig : mLxControlService->getTriggers())
 				for (auto& b : trig->mBindings)
 					if (b.mPatch.get() == patch.get()) { used_by++; break; }
-			ImGui::SameLine();
-			ImGui::TextDisabled("(used by %d)", used_by);
 
 			ImGui::SameLine();
 			if (lxtheme::DangerButton("Delete"))
@@ -686,39 +686,50 @@ namespace nap
 					break;
 				}
 				ImGui::SameLine();
-				if (lxagent::Button("Cancel")) ImGui::CloseCurrentPopup();
+				if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
 				ImGui::EndPopup();
 			}
 
 			if (open)
 			{
-				// --- Target mode: how many independent fixture voices this patch computes. FixtureCount
-				// itself is no longer hand-typed here -- it's derived automatically from whichever Trigger
-				// binding fires this patch (see lxcontrolService::fireTrigger/syncPatchFixtureCount), so
-				// "how many fixtures" can never drift out of sync with what's actually checked in a
-				// binding's fixture list. ---
+				// used-by N + Fork (deep-copy deferred).
+				if (used_by > 0)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::live2());
+					ImGui::Text("Used by %d trigger%s - edits apply to all", used_by, used_by == 1 ? "" : "s");
+					ImGui::PopStyleColor();
+					ImGui::SameLine();
+					bool fdis = lxtheme::PushDisabled(true);
+					lxagent::SmallButton("Fork");
+					lxtheme::PopDisabled(fdis);
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Deep-copy for this program - not yet implemented");
+				}
+
+				// Spread + voice count.
 				static const char* target_mode_labels[] = { "Single Fixture", "Multiple Fixtures" };
 				int mode = static_cast<int>(patch->mTargetMode);
+				ImGui::AlignTextToFramePadding(); ImGui::TextDisabled("Spread"); ImGui::SameLine();
 				ImGui::SetNextItemWidth(160);
-				bool mode_changed = ImGui::Combo("Target", &mode, target_mode_labels, 2);
+				if (ImGui::Combo("##spread", &mode, target_mode_labels, 2))
+					mLxControlService->setPatchTargetMode(*patch.get(), static_cast<lx::EPatchTargetMode>(mode));
 				if (mode == static_cast<int>(lx::EPatchTargetMode::Multiple))
 				{
 					ImGui::SameLine();
-					ImGui::TextDisabled("(%d fixture%s -- set by whichever Trigger binding last fired this patch)",
-						patch->mFixtureCount, patch->mFixtureCount == 1 ? "" : "s");
+					std::string vc = std::to_string(patch->mFixtureCount) + (patch->mFixtureCount == 1 ? " voice" : " voices");
+					lxtheme::Chip(vc.c_str());
 				}
-				if (mode_changed)
-					mLxControlService->setPatchTargetMode(*patch.get(), static_cast<lx::EPatchTargetMode>(mode));
 
-				ImGui::Separator();
+				// Playhead preview from the first modulator's live history.
+				if (!patch->mModulators.empty())
+				{
+					auto& hist = mModHistory[patch->mModulators[0]->mID];
+					hist.push_back(patch->mModulators[0]->mSink != nullptr ? patch->mModulators[0]->mSink->mValue : 0.0f);
+					if (hist.size() > 160) hist.erase(hist.begin());
+					lxtheme::PlayheadPreview(hist.data(), static_cast<int>(hist.size()), ImVec2(-1.0f, 50.0f));
+				}
 
-				// --- Parameters ---
-				if (lxagent::Button("Add Float"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
-				ImGui::SameLine();
-				if (lxagent::Button("Add Color"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
-				ImGui::SameLine();
-				if (lxagent::Button("Add Toggle"))	mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
-
+				// --- SOURCE zone: parameters, one per row ---
+				lxtheme::SectionHeader("Source");
 				for (auto& p : patch->mParameters)
 				{
 					ImGui::PushID(p.get());
@@ -726,60 +737,79 @@ namespace nap
 					{
 						int role = static_cast<int>(fp->mRole);
 						ImGui::SetNextItemWidth(120);
-						if (ImGui::Combo("Role", &role, role_labels, 8)) fp->mRole = static_cast<lx::EChannelRole>(role);
-						ImGui::SameLine(); ImGui::SetNextItemWidth(140); ImGui::SliderFloat("Base", &fp->mValue, 0.0f, 1.0f);
+						if (ImGui::Combo("##role", &role, role_labels, 8)) fp->mRole = static_cast<lx::EChannelRole>(role);
+						ImGui::SameLine(); ImGui::SetNextItemWidth(-1.0f);
+						ImGui::SliderFloat("##base", &fp->mValue, 0.0f, 1.0f);
 					}
 					else if (auto* cp = rtti_cast<lx::ColorParameter>(p.get()))
 					{
 						float col[3] = { cp->mRed, cp->mGreen, cp->mBlue };
-						if (ImGui::ColorEdit3("Color", col)) { cp->mRed = col[0]; cp->mGreen = col[1]; cp->mBlue = col[2]; }
+						if (ImGui::ColorEdit3("Color", col, ImGuiColorEditFlags_NoInputs))
+						{ cp->mRed = col[0]; cp->mGreen = col[1]; cp->mBlue = col[2]; }
+						ImGui::SameLine();
+						ImGui::TextDisabled("%d . %d . %d", static_cast<int>(col[0] * 255), static_cast<int>(col[1] * 255), static_cast<int>(col[2] * 255));
 					}
 					else if (auto* tp = rtti_cast<lx::ToggleParameter>(p.get()))
 					{
 						int role = static_cast<int>(tp->mRole);
 						ImGui::SetNextItemWidth(120);
-						if (ImGui::Combo("Role", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
+						if (ImGui::Combo("##trole", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
 						ImGui::SameLine(); ImGui::Checkbox("On", &tp->mValue);
 					}
 					ImGui::PopID();
 				}
+				if (lxagent::Button("+ Float")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
+				ImGui::SameLine(); if (lxagent::Button("+ Color")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
+				ImGui::SameLine(); if (lxagent::Button("+ Toggle")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
 
-				ImGui::Separator();
-
-				// --- Modulators ---
+				// --- MODULATION zone ---
+				lxtheme::SectionHeader("Modulation");
 				int& tgt = mModTargetIndex[patch->mID];
 				std::vector<const char*> plabels;
 				for (auto& p : patch->mParameters) plabels.emplace_back(p->mName.c_str());
-				if (!plabels.empty())
-				{
-					tgt = nap::math::clamp(tgt, 0, static_cast<int>(plabels.size()) - 1);
-					ImGui::SetNextItemWidth(140);
-					ImGui::Combo("Target", &tgt, plabels.data(), static_cast<int>(plabels.size()));
-				}
 				auto add_mod = [&](nap::rtti::TypeInfo type)
 				{
 					if (patch->mParameters.empty()) return;
 					int i = nap::math::clamp(tgt, 0, static_cast<int>(patch->mParameters.size()) - 1);
 					mLxControlService->addModulator(*patch.get(), type, patch->mParameters[i].get());
 				};
-				ImGui::SameLine(); if (lxagent::Button("Add ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
-				ImGui::SameLine(); if (lxagent::Button("Add AD"))   add_mod(RTTI_OF(lx::AdModulator));
-				ImGui::SameLine(); if (lxagent::Button("Add LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
-				ImGui::SameLine(); if (lxagent::Button("Add Step")) add_mod(RTTI_OF(lx::StepModulator));
-				ImGui::SameLine(); if (lxagent::Button("Add Chase")) add_mod(RTTI_OF(lx::ChaseModulator));
-				ImGui::SameLine(); if (lxagent::Button("Add Noise")) add_mod(RTTI_OF(lx::NoiseModulator));
-
-				static const char* blend_labels[]    = { "Replace", "Multiply", "Add" };
-				static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
-				static const char* ad_mode_labels[]  = { "OneShot", "LoopWhileSustained" };
+				if (!plabels.empty())
+				{
+					tgt = nap::math::clamp(tgt, 0, static_cast<int>(plabels.size()) - 1);
+					ImGui::AlignTextToFramePadding(); ImGui::TextDisabled("drives"); ImGui::SameLine();
+					ImGui::SetNextItemWidth(140);
+					ImGui::Combo("##modtarget", &tgt, plabels.data(), static_cast<int>(plabels.size()));
+					if (lxagent::Button("ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
+					ImGui::SameLine(); if (lxagent::Button("AD"))   add_mod(RTTI_OF(lx::AdModulator));
+					ImGui::SameLine(); if (lxagent::Button("LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
+					ImGui::SameLine(); if (lxagent::Button("Step")) add_mod(RTTI_OF(lx::StepModulator));
+					ImGui::SameLine(); if (lxagent::Button("Chase")) add_mod(RTTI_OF(lx::ChaseModulator));
+					ImGui::SameLine(); if (lxagent::Button("Noise")) add_mod(RTTI_OF(lx::NoiseModulator));
+				}
+				else
+				{
+					ImGui::TextDisabled("add a parameter first, then modulators can drive it");
+				}
 
 				for (auto& m : patch->mModulators)
 				{
 					ImGui::PushID(m.get());
 
-					// Chase/Noise drive a distinct value per fixture voice -- a single scalar plot/bar
-					// doesn't represent that, so show one mini progress bar per voice instead, labeled with
-					// the fixture that voice actually resolves to wherever we can determine it.
+					// Card header: kind (violet) + target + Trigger/Stop.
+					const char* kind = "MOD";
+					if (rtti_cast<lx::AdsrModulator>(m.get())) kind = "ADSR";
+					else if (rtti_cast<lx::AdModulator>(m.get())) kind = "AD";
+					else if (rtti_cast<lx::LfoModulator>(m.get())) kind = "LFO";
+					else if (rtti_cast<lx::StepModulator>(m.get())) kind = "STEP";
+					else if (rtti_cast<lx::ChaseModulator>(m.get())) kind = "CHASE";
+					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
+					ImGui::Separator();
+					ImGui::TextColored(lxtheme::mod(), "%s", kind);
+					ImGui::SameLine();
+					ImGui::TextColored(lxtheme::mod2(), "> drives %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
+					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
+					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
+
 					bool is_voice_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
 					if (is_voice_mod)
 					{
@@ -795,19 +825,12 @@ namespace nap
 					}
 					else
 					{
-						// Live shape plot: raw 0..1 sink value over recent frames.
 						auto& hist = mModHistory[m->mID];
 						hist.push_back(m->mSink != nullptr ? m->mSink->mValue : 0.0f);
-						if (hist.size() > 120) hist.erase(hist.begin());	// ponytail: O(n) shift, n=120, negligible
-						ImGui::PlotLines("##plot", hist.data(), static_cast<int>(hist.size()), 0, nullptr, 0.0f, 1.0f, ImVec2(160, 40));
-						ImGui::ProgressBar(m->value(), ImVec2(120, 0));
+						if (hist.size() > 120) hist.erase(hist.begin());
+						lxtheme::ModPlot("##plot", hist.data(), static_cast<int>(hist.size()), ImVec2(-1.0f, 40.0f));
 					}
-					ImGui::SameLine();
-					ImGui::Text("-> %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
-					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
-					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
 
-					// Editing a shape parameter re-authors the curve (main thread -> safe with StandardClock).
 					auto regen = [&]() { m->generateCurve(*mLxControlService); };
 
 					if (auto* adsr = rtti_cast<lx::AdsrModulator>(m.get()))
@@ -825,9 +848,9 @@ namespace nap
 						bool ch = false;
 						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("A", &ad->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
 						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("D", &ad->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						int mode = static_cast<int>(ad->mMode);
+						int amode = static_cast<int>(ad->mMode);
 						ImGui::SetNextItemWidth(150);
-						if (ImGui::Combo("Mode##ad", &mode, ad_mode_labels, 2)) ad->mMode = static_cast<lx::EAdMode>(mode);
+						if (ImGui::Combo("Mode##ad", &amode, ad_mode_labels, 2)) ad->mMode = static_cast<lx::EAdMode>(amode);
 						if (ch) regen();
 					}
 					else if (auto* lfo = rtti_cast<lx::LfoModulator>(m.get()))
@@ -838,9 +861,9 @@ namespace nap
 						ImGui::SameLine(); ImGui::SetNextItemWidth(80);
 						if (ImGui::DragFloat("Hz", &lfo->mFrequency, 0.05f, 0.0f, 30.0f) && lfo->mPlayer != nullptr)
 							lfo->mPlayer->setPlaybackSpeed(lfo->mFrequency);
-						int mode = static_cast<int>(lfo->mMode);
+						int lmode = static_cast<int>(lfo->mMode);
 						ImGui::SameLine(); ImGui::SetNextItemWidth(120);
-						if (ImGui::Combo("Mode##lfo", &mode, lfo_mode_labels, 3)) lfo->mMode = static_cast<lx::ELfoMode>(mode);
+						if (ImGui::Combo("Mode##lfo", &lmode, lfo_mode_labels, 3)) lfo->mMode = static_cast<lx::ELfoMode>(lmode);
 					}
 					else if (auto* step = rtti_cast<lx::StepModulator>(m.get()))
 					{
@@ -859,9 +882,6 @@ namespace nap
 					{
 						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
 						ImGui::SetNextItemWidth(100); ImGui::SliderFloat("Smoothing", &noise->mSmoothing, 0.0f, 1.0f); ImGui::SameLine();
-						// Two Noise modulators with the same Seed produce identical values at every
-						// (voice, step) -- give each a distinct Seed (auto-assigned on Add Noise) to
-						// decorrelate them, e.g. one per R/G/B component of a color.
 						ImGui::SetNextItemWidth(80); ImGui::InputInt("Seed", &noise->mSeed);
 					}
 
@@ -870,7 +890,6 @@ namespace nap
 					if (ImGui::Combo("Blend", &blend, blend_labels, 3)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
 					ImGui::SameLine(); ImGui::SetNextItemWidth(80); ImGui::DragFloat("Min", &m->mMin, 0.01f, 0.0f, 1.0f);
 					ImGui::SameLine(); ImGui::SetNextItemWidth(80); ImGui::DragFloat("Max", &m->mMax, 0.01f, 0.0f, 1.0f);
-					ImGui::Separator();
 					ImGui::PopID();
 				}
 			}

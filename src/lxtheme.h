@@ -171,6 +171,32 @@ namespace lxtheme
 		ImGui::PopStyleColor();
 	}
 
+	/** A framed violet curve (values 0..1) with a filled area + a sweeping playhead line (GetTime-driven).
+	 *  The mockup's patch/modulator "preview". Advances the layout cursor by `size`. */
+	inline void PlayheadPreview(const float* values, int count, const ImVec2& size)
+	{
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		dl->AddRectFilled(p, ImVec2(p.x + size.x, p.y + size.y), ImGui::ColorConvertFloat4ToU32(well()));
+		dl->AddRect(p, ImVec2(p.x + size.x, p.y + size.y), ImGui::ColorConvertFloat4ToU32(border()));
+		if (count > 1)
+		{
+			const ImU32 line = ImGui::ColorConvertFloat4ToU32(mod());
+			const ImU32 fill = ImGui::ColorConvertFloat4ToU32(ImVec4(mod().x, mod().y, mod().z, 0.14f));
+			auto yat = [&](int i) { float v = values[i]; v = v < 0 ? 0 : (v > 1 ? 1 : v); return p.y + size.y * (1.0f - v); };
+			for (int i = 0; i < count - 1; ++i)
+			{
+				const float x0 = p.x + size.x * i / (count - 1), x1 = p.x + size.x * (i + 1) / (count - 1);
+				dl->AddQuadFilled(ImVec2(x0, yat(i)), ImVec2(x1, yat(i + 1)), ImVec2(x1, p.y + size.y), ImVec2(x0, p.y + size.y), fill);
+				dl->AddLine(ImVec2(x0, yat(i)), ImVec2(x1, yat(i + 1)), line, 2.0f);
+			}
+		}
+		const float t = std::fmod(static_cast<float>(ImGui::GetTime()) * 0.4f, 1.0f);
+		const float px = p.x + size.x * t;
+		dl->AddLine(ImVec2(px, p.y), ImVec2(px, p.y + size.y), ImGui::ColorConvertFloat4ToU32(mod2()), 1.5f);
+		ImGui::Dummy(size);
+	}
+
 	/** Filled state dot at the cursor. `pulsing` breathes alpha+radius off ImGui::GetTime() (armed/modulating). */
 	inline void StateDot(const ImVec4& color, bool pulsing = false, float radius = 5.0f)
 	{
