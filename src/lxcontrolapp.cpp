@@ -731,13 +731,14 @@ namespace nap
 					lxtheme::Chip(vc.c_str());
 				}
 
-				// Playhead preview from the first modulator's live history.
+				// Shape preview of the first modulator: its static waveform + a marker at the real
+				// transport phase (scans while playing; loops for looping shapes).
 				if (!patch->mModulators.empty())
 				{
-					auto& hist = mModHistory[patch->mModulators[0]->mID];
-					hist.push_back(patch->mModulators[0]->mSink != nullptr ? patch->mModulators[0]->mSink->mValue : 0.0f);
-					if (hist.size() > 160) hist.erase(hist.begin());
-					lxtheme::PlayheadPreview(hist.data(), static_cast<int>(hist.size()), ImVec2(-1.0f, 50.0f));
+					lx::Modulator* m0 = patch->mModulators[0].get();
+					float shape[128];
+					for (int i = 0; i < 128; ++i) shape[i] = m0->sampleShape(i / 127.0f);
+					lxtheme::PlayheadPreview(shape, 128, m0->playheadPhase(), ImVec2(-1.0f, 50.0f));
 				}
 
 				// --- SOURCE zone: parameters, one per row ---
@@ -837,10 +838,10 @@ namespace nap
 					}
 					else
 					{
-						auto& hist = mModHistory[m->mID];
-						hist.push_back(m->mSink != nullptr ? m->mSink->mValue : 0.0f);
-						if (hist.size() > 120) hist.erase(hist.begin());
-						lxtheme::ModPlot("##plot", hist.data(), static_cast<int>(hist.size()), ImVec2(-1.0f, 40.0f));
+						// Static shape + playhead at the real transport phase (the mockup's modulator preview).
+						float shape[128];
+						for (int i = 0; i < 128; ++i) shape[i] = m->sampleShape(i / 127.0f);
+						lxtheme::PlayheadPreview(shape, 128, m->playheadPhase(), ImVec2(-1.0f, 40.0f));
 					}
 
 					auto regen = [&]() { m->generateCurve(*mLxControlService); };

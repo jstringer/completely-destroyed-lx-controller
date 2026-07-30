@@ -105,7 +105,6 @@ namespace nap
 		// resets, selection resets) on the very next such edit. Same reasoning as mBindPatchIdx/mBindFixtures below.
 		char						mNewPatchName[128] = "";
 		std::map<std::string, int>	mModTargetIndex;	// per-patch (by mID) selected target-parameter index
-		std::map<std::string, std::vector<float>>	mModHistory;	// per-modulator (by mID) live value ring for the shape plot
 
 		// Trigger bindings-editor form state (per-trigger, shared regardless of which Program's section it's
 		// viewed from). Keyed by mID rather than pointer: editing bindings rewrites user_content.json, which

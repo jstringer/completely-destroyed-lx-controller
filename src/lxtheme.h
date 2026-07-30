@@ -175,9 +175,10 @@ namespace lxtheme
 		ImGui::PopStyleColor();
 	}
 
-	/** A framed violet curve (values 0..1) with a filled area + a sweeping playhead line (GetTime-driven).
-	 *  The mockup's patch/modulator "preview". Advances the layout cursor by `size`. */
-	inline void PlayheadPreview(const float* values, int count, const ImVec2& size_arg)
+	/** The mockup's modulator preview: draws the STATIC shape `values` (0..1, one full cycle/envelope)
+	 *  as a violet filled curve, and a playhead marker at `phase01` (the real transport position;
+	 *  pass <0 to hide the marker, e.g. when the modulator isn't playing). `size.x<=0` fills the width. */
+	inline void PlayheadPreview(const float* values, int count, float phase01, const ImVec2& size_arg)
 	{
 		ImVec2 size = size_arg;
 		if (size.x <= 0.0f) size.x = ImGui::GetContentRegionAvail().x;	// -1 => fill width (not raw -1px)
@@ -198,9 +199,12 @@ namespace lxtheme
 				dl->AddLine(ImVec2(x0, yat(i)), ImVec2(x1, yat(i + 1)), line, 2.0f);
 			}
 		}
-		const float t = std::fmod(static_cast<float>(ImGui::GetTime()) * 0.4f, 1.0f);
-		const float px = p.x + size.x * t;
-		dl->AddLine(ImVec2(px, p.y), ImVec2(px, p.y + size.y), ImGui::ColorConvertFloat4ToU32(mod2()), 1.5f);
+		if (phase01 >= 0.0f)
+		{
+			const float ph = phase01 > 1.0f ? 1.0f : phase01;
+			const float px = p.x + size.x * ph;
+			dl->AddLine(ImVec2(px, p.y), ImVec2(px, p.y + size.y), ImGui::ColorConvertFloat4ToU32(mod2()), 1.5f);
+		}
 		ImGui::Dummy(size);
 	}
 
