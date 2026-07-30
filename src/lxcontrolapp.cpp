@@ -1306,6 +1306,29 @@ namespace nap
 		"Latch (Toggle): each press toggles the trigger on / off.",
 		"Trig (FireOnly): each press re-fires; never holds."
 	};
+	static const char* kKindLabels[] = { "Pad", "Knob" };
+
+	// "Note 36 . ch1" style readout: message type + number(s) (+ channel(s) if the binding filters on
+	// them; learned bindings are channel-agnostic so ch is usually omitted). Uses the Latin-1 middot.
+	static std::string bindingLabel(const lx::MidiBinding& b)
+	{
+		const char* type = "MIDI";
+		if (b.mNoteOn || b.mNoteOff)		type = "Note";
+		else if (b.mControlChange)			type = "CC";
+		else if (b.mProgramChange)			type = "PC";
+		else if (b.mPitchBend)				type = "Bend";
+		else if (b.mAftertouch)				type = "AT";
+		else if (b.mChannelPressure)		type = "Press";
+		std::string s = type;
+		if (b.mNumbers.empty()) s += " (any)";
+		else { s += " "; for (size_t i = 0; i < b.mNumbers.size(); ++i) { if (i) s += ","; s += std::to_string(b.mNumbers[i]); } }
+		if (!b.mChannels.empty())
+		{
+			s += " \xC2\xB7 ch";
+			for (size_t i = 0; i < b.mChannels.size(); ++i) { if (i) s += ","; s += std::to_string(b.mChannels[i]); }
+		}
+		return s;
+	}
 
 	bool lxcontrolApp::drawControlRow(lx::Control* c)
 	{
@@ -1313,6 +1336,11 @@ namespace nap
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::TextUnformatted(c->mName.c_str());
+
+		// Kind chip: Pad (teal) vs Knob (violet). Presentational; picked at creation.
+		ImGui::SameLine();
+		lxtheme::Chip(kKindLabels[static_cast<int>(c->mKind)],
+			c->mKind == lx::EControlKind::Knob ? lxtheme::mod2() : lxtheme::accent());
 
 		// Mode: Hold / Latch / Trig, with an explanatory tooltip. Fixed column offsets so the rows
 		// line up as a table (name | mode | binding | Learn) rather than a ragged SameLine flow.
@@ -1326,21 +1354,23 @@ namespace nap
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("%s", kModeTips[mode]);
 
-		// Inline binding readout (mockup "MIDI · Note 36" / "⚠ Not bound"). Device is the card header now.
+		// Inline binding readout (mockup "Note 36" / "! Not bound"). Device is the card header now.
 		int binding_count = 0;
-		std::string first_nums;
+		const lx::MidiBinding* first = nullptr;
 		for (auto& b : mLxControlService->getBindings())
 		{
 			if (b->mControl.get() != c) continue;
-			if (binding_count == 0)
-				for (int n : b->mNumbers) { first_nums += std::to_string(n); first_nums += " "; }
+			if (binding_count == 0) first = b.get();
 			binding_count++;
 		}
 		ImGui::SameLine(245.0f);
 		if (binding_count == 0)
 			ImGui::TextColored(lxtheme::live2(), "! not bound");
 		else
-			ImGui::TextColored(lxtheme::text2(), "MIDI %s", first_nums.empty() ? "(any)" : first_nums.c_str());
+		{
+			ImGui::TextColored(lxtheme::text2(), "%s", bindingLabel(*first).c_str());
+			if (binding_count > 1) { ImGui::SameLine(0.0f, 4.0f); ImGui::TextDisabled("+%d", binding_count - 1); }
+		}
 
 		// Learn, with an explicit Cancel (Esc also cancels - see inputMessageReceived).
 		ImGui::SameLine(455.0f);
@@ -1390,9 +1420,7 @@ namespace nap
 			{
 				if (b->mControl.get() != c) continue;
 				ImGui::PushID(b.get());
-				std::string nums;
-				for (int n : b->mNumbers) { nums += std::to_string(n); nums += " "; }
-				ImGui::BulletText("MIDI num: %s", nums.empty() ? "(any)" : nums.c_str());
+				ImGui::BulletText("%s", bindingLabel(*b).c_str());
 				ImGui::SameLine();
 				if (lxagent::SmallButton("X")) mLxControlService->removeBinding(b.get());
 				ImGui::PopID();
@@ -1415,6 +1443,8 @@ namespace nap
 		// New control form.
 		ImGui::SetNextItemWidth(140);
 		ImGui::InputText("Name##ctrl", mNewControlName, sizeof(mNewControlName));
+		ImGui::SameLine(); ImGui::SetNextItemWidth(80);
+		ImGui::Combo("Kind##ctrl", &mNewControlKind, kKindLabels, 2);
 		ImGui::SameLine(); ImGui::SetNextItemWidth(90);
 		ImGui::Combo("Mode##ctrl", &mNewControlMode, kModeLabels, 3);
 		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
@@ -1423,7 +1453,7 @@ namespace nap
 		if (lxagent::Button("+ Add control") && std::strlen(mNewControlName) > 0)
 		{
 			lx::Control* nc = mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
-			if (nc != nullptr) { nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }
+			if (nc != nullptr) { nc->mKind = static_cast<lx::EControlKind>(mNewControlKind); nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }
 			mNewControlName[0] = '\0';
 		}
 

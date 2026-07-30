@@ -108,6 +108,7 @@ namespace nap
 		// CONTROLS tab form state
 		char						mNewControlName[128] = "";
 		int							mNewControlMode = 0;	// 0=Hold(Momentary),1=Latch(Toggle),2=Trig(FireOnly)
+		int							mNewControlKind = 0;	// 0=Pad, 1=Knob
 		char						mNewControlGroup[64] = "";	// device group for the next created control
 		lx::Control*				mLearningControl = nullptr;	// control awaiting a learned MIDI event
 		int							mLearnStartCounter = 0;
