@@ -765,10 +765,14 @@ namespace nap
 				}
 
 				// Live "current" readout of this patch's sources (post-modulation values, updated each
-				// frame by Patch::update) -- more useful than a single modulator's shape here.
+				// frame by Patch::update). Horizontal meters (value = fill width, with a % readout) so the
+				// bar's long axis actually encodes the value; one meter/swatch per fixture voice in
+				// Multiple-spread mode (a single bar can't represent per-fixture values).
 				if (!patch->mParameters.empty())
 				{
 					lxtheme::SectionHeader("Current");
+					const int voices = (patch->mTargetMode == lx::EPatchTargetMode::Multiple)
+						? nap::math::clamp(patch->mFixtureCount, 1, 32) : 1;
 					for (auto& p : patch->mParameters)
 					{
 						ImGui::PushID(p.get());
@@ -777,19 +781,39 @@ namespace nap
 						ImGui::TextUnformatted(patchParamLabel(p.get()).c_str());
 						ImGui::PopStyleColor();
 						ImGui::SameLine(150.0f);
+
 						if (rtti_cast<lx::ColorParameter>(p.get()))
 						{
-							float rgb[3] = { p->getComponentValue(0, 0), p->getComponentValue(0, 1), p->getComponentValue(0, 2) };
-							lxtheme::Swatch("##cur", rgb, 16.0f);
-							ImGui::SameLine();
-							ImGui::TextDisabled("%d . %d . %d", static_cast<int>(rgb[0] * 255), static_cast<int>(rgb[1] * 255), static_cast<int>(rgb[2] * 255));
+							for (int s = 0; s < voices; ++s)
+							{
+								ImGui::PushID(s);
+								float rgb[3] = { p->getComponentValue(s, 0), p->getComponentValue(s, 1), p->getComponentValue(s, 2) };
+								lxtheme::Swatch("##cur", rgb, 18.0f);
+								if (voices > 1 && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", describePatchVoice(patch.get(), s).c_str());
+								ImGui::PopID();
+								if (s + 1 < voices) ImGui::SameLine();
+							}
 						}
 						else
 						{
-							float v = p->getComponentValue(0, 0);
-							lxtheme::Fader("##cur", v, ImVec2(140, 12), lxtheme::live());
-							ImGui::SameLine();
-							ImGui::Text("%.2f", v);
+							ImGui::PushStyleColor(ImGuiCol_PlotHistogram, lxtheme::live());
+							if (voices == 1)
+							{
+								ImGui::ProgressBar(p->getComponentValue(0, 0), ImVec2(-1.0f, 14.0f));
+							}
+							else
+							{
+								for (int s = 0; s < voices; ++s)
+								{
+									ImGui::PushID(s);
+									float v = p->getComponentValue(s, 0);
+									ImGui::ProgressBar(v, ImVec2(70.0f, 14.0f));
+									if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s = %.2f", describePatchVoice(patch.get(), s).c_str(), v);
+									ImGui::PopID();
+									if (s + 1 < voices) ImGui::SameLine();
+								}
+							}
+							ImGui::PopStyleColor();
 						}
 						ImGui::PopID();
 					}
