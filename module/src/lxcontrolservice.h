@@ -83,7 +83,9 @@ namespace nap
 		// --- Patches ---
 		lx::Patch* createPatch(const std::string& name);
 		lx::PatchParameter* addPatchParameter(lx::Patch& patch, rtti::TypeInfo type);
+		void removePatchParameter(lx::Patch& patch, lx::PatchParameter* param);
 		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type, lx::PatchParameter* target);
+		void removeModulator(lx::Patch& patch, lx::Modulator* mod);
 		/** Sets whether this patch computes one shared value (Single) or a distinct value per bound
 		 *  fixture (Multiple), and re-propagates the currently-known fixture count to every modulator it
 		 *  owns (a no-op for modulator types that don't use voices, e.g. ADSR/AD/LFO/Step). The fixture

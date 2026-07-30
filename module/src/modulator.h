@@ -64,7 +64,8 @@ namespace lx
 		virtual void setVoiceCount(int count)			{ }
 
 		std::string							mName;						///< Property: 'Name'
-		nap::ResourcePtr<PatchParameter>	mTarget;					///< Property: 'Target'
+		nap::ResourcePtr<PatchParameter>	mTarget;					///< Property: 'Target' LEGACY single target; init() migrates it into mTargets
+		std::vector<nap::ResourcePtr<PatchParameter>>	mTargets;		///< Property: 'Targets' every PatchParameter this modulator drives (mod-matrix)
 		int									mTargetComponent = -1;		///< Property: 'TargetComponent' -1 = all
 		float								mMin = 0.0f;				///< Property: 'Min'
 		float								mMax = 1.0f;				///< Property: 'Max'

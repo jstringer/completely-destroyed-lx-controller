@@ -491,7 +491,8 @@ namespace nap
 
 		mod->mID = makeUniqueID(patch.mID + "_Mod");
 		mod->mName = std::string(type.get_name().data());
-		mod->mTarget = target;
+		if (target != nullptr)
+			mod->mTargets.emplace_back(target);
 
 		// Auto-assign a fresh seed so two independently-added NoiseModulators (e.g. one per R/G/B
 		// component of a color) decorrelate by default instead of both defaulting to Seed=0 and producing
@@ -519,6 +520,48 @@ namespace nap
 		patch_entry->mModulators.emplace_back(mod_entry);
 		markDirty();
 		return mod;
+	}
+
+
+	void lxcontrolService::removeModulator(lx::Patch& patch, lx::Modulator* mod)
+	{
+		if (mod == nullptr)
+			return;
+		PatchEntry* entry = findEntry(patch);
+		if (entry != nullptr)
+		{
+			for (auto& me : entry->mModulators)
+				if (me.mModulator.get() == mod && me.mPlayer != nullptr)
+					me.mPlayer->setIsPlaying(false);
+			entry->mModulators.erase(std::remove_if(entry->mModulators.begin(), entry->mModulators.end(),
+				[mod](const ModulatorEntry& me) { return me.mModulator.get() == mod; }), entry->mModulators.end());
+		}
+		patch.mModulators.erase(std::remove_if(patch.mModulators.begin(), patch.mModulators.end(),
+			[mod](const nap::ResourcePtr<lx::Modulator>& m) { return m.get() == mod; }), patch.mModulators.end());
+		markDirty();
+	}
+
+
+	void lxcontrolService::removePatchParameter(lx::Patch& patch, lx::PatchParameter* param)
+	{
+		if (param == nullptr)
+			return;
+		// Scrub the parameter from every modulator's target list so nothing points at a freed source.
+		for (auto& m : patch.mModulators)
+		{
+			auto& tv = m->mTargets;
+			tv.erase(std::remove_if(tv.begin(), tv.end(),
+				[param](const nap::ResourcePtr<lx::PatchParameter>& t) { return t.get() == param; }), tv.end());
+			if (m->mTarget.get() == param)
+				m->mTarget = nullptr;
+		}
+		PatchEntry* entry = findEntry(patch);
+		if (entry != nullptr)
+			entry->mParams.erase(std::remove_if(entry->mParams.begin(), entry->mParams.end(),
+				[param](const rtti::ObjectPtr<lx::PatchParameter>& p) { return p.get() == param; }), entry->mParams.end());
+		patch.mParameters.erase(std::remove_if(patch.mParameters.begin(), patch.mParameters.end(),
+			[param](const nap::ResourcePtr<lx::PatchParameter>& p) { return p.get() == param; }), patch.mParameters.end());
+		markDirty();
 	}
 
 

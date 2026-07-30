@@ -670,6 +670,18 @@ namespace nap
 	}
 
 
+	// Human label for a source parameter (its role / kind), so combos + "drives X" read meaningfully
+	// instead of the default "Param". Float/Toggle -> role name; Color -> "Color".
+	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
+	static std::string patchParamLabel(lx::PatchParameter* p)
+	{
+		if (p == nullptr) return "(none)";
+		if (auto* fp = rtti_cast<lx::FloatParameter>(p)) return kRoleLabels[nap::math::clamp(static_cast<int>(fp->mRole), 0, 7)];
+		if (rtti_cast<lx::ColorParameter>(p)) return "Color";
+		if (auto* tp = rtti_cast<lx::ToggleParameter>(p)) return std::string(kRoleLabels[nap::math::clamp(static_cast<int>(tp->mRole), 0, 7)]) + " (tgl)";
+		return p->mName;
+	}
+
 	void lxcontrolApp::drawPatchesTab()
 	{
 		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
@@ -752,18 +764,40 @@ namespace nap
 					lxtheme::Chip(vc.c_str());
 				}
 
-				// Shape preview of the first modulator: its static waveform + a marker at the real
-				// transport phase (scans while playing; loops for looping shapes).
-				if (!patch->mModulators.empty())
+				// Live "current" readout of this patch's sources (post-modulation values, updated each
+				// frame by Patch::update) -- more useful than a single modulator's shape here.
+				if (!patch->mParameters.empty())
 				{
-					lx::Modulator* m0 = patch->mModulators[0].get();
-					float shape[128];
-					for (int i = 0; i < 128; ++i) shape[i] = m0->sampleShape(i / 127.0f);
-					lxtheme::PlayheadPreview(shape, 128, m0->playheadPhase(), ImVec2(-1.0f, 50.0f));
+					lxtheme::SectionHeader("Current");
+					for (auto& p : patch->mParameters)
+					{
+						ImGui::PushID(p.get());
+						ImGui::AlignTextToFramePadding();
+						ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
+						ImGui::TextUnformatted(patchParamLabel(p.get()).c_str());
+						ImGui::PopStyleColor();
+						ImGui::SameLine(150.0f);
+						if (rtti_cast<lx::ColorParameter>(p.get()))
+						{
+							float rgb[3] = { p->getComponentValue(0, 0), p->getComponentValue(0, 1), p->getComponentValue(0, 2) };
+							lxtheme::Swatch("##cur", rgb, 16.0f);
+							ImGui::SameLine();
+							ImGui::TextDisabled("%d . %d . %d", static_cast<int>(rgb[0] * 255), static_cast<int>(rgb[1] * 255), static_cast<int>(rgb[2] * 255));
+						}
+						else
+						{
+							float v = p->getComponentValue(0, 0);
+							lxtheme::Fader("##cur", v, ImVec2(140, 12), lxtheme::live());
+							ImGui::SameLine();
+							ImGui::Text("%.2f", v);
+						}
+						ImGui::PopID();
+					}
 				}
 
-				// --- SOURCE zone: parameters, one per row ---
+				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
 				lxtheme::SectionHeader("Source");
+				bool src_removed = false;
 				for (auto& p : patch->mParameters)
 				{
 					ImGui::PushID(p.get());
@@ -772,7 +806,7 @@ namespace nap
 						int role = static_cast<int>(fp->mRole);
 						ImGui::SetNextItemWidth(120);
 						if (ImGui::Combo("##role", &role, role_labels, 8)) fp->mRole = static_cast<lx::EChannelRole>(role);
-						ImGui::SameLine(); ImGui::SetNextItemWidth(-1.0f);
+						ImGui::SameLine(); ImGui::SetNextItemWidth(-52.0f);
 						ImGui::SliderFloat("##base", &fp->mValue, 0.0f, 1.0f);
 					}
 					else if (auto* cp = rtti_cast<lx::ColorParameter>(p.get()))
@@ -790,40 +824,31 @@ namespace nap
 						if (ImGui::Combo("##trole", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
 						ImGui::SameLine(); ImGui::Checkbox("On", &tp->mValue);
 					}
+					ImGui::SameLine();
+					if (lxtheme::DangerButton("Del")) { mLxControlService->removePatchParameter(*patch.get(), p.get()); src_removed = true; }
 					ImGui::PopID();
+					if (src_removed) break;	// mParameters mutated
 				}
 				if (lxagent::Button("+ Float")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
 				ImGui::SameLine(); if (lxagent::Button("+ Color")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
 				ImGui::SameLine(); if (lxagent::Button("+ Toggle")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
 
-				// --- MODULATION zone ---
+				// --- MODULATION zone: add via a type dropdown + Add button ---
 				lxtheme::SectionHeader("Modulation");
-				int& tgt = mModTargetIndex[patch->mID];
-				std::vector<const char*> plabels;
-				for (auto& p : patch->mParameters) plabels.emplace_back(p->mName.c_str());
-				auto add_mod = [&](nap::rtti::TypeInfo type)
-				{
-					if (patch->mParameters.empty()) return;
-					int i = nap::math::clamp(tgt, 0, static_cast<int>(patch->mParameters.size()) - 1);
-					mLxControlService->addModulator(*patch.get(), type, patch->mParameters[i].get());
-				};
-				if (!plabels.empty())
-				{
-					tgt = nap::math::clamp(tgt, 0, static_cast<int>(plabels.size()) - 1);
-					ImGui::AlignTextToFramePadding(); ImGui::TextDisabled("drives"); ImGui::SameLine();
-					ImGui::SetNextItemWidth(140);
-					ImGui::Combo("##modtarget", &tgt, plabels.data(), static_cast<int>(plabels.size()));
-					if (lxagent::Button("ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
-					ImGui::SameLine(); if (lxagent::Button("AD"))   add_mod(RTTI_OF(lx::AdModulator));
-					ImGui::SameLine(); if (lxagent::Button("LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
-					ImGui::SameLine(); if (lxagent::Button("Step")) add_mod(RTTI_OF(lx::StepModulator));
-					ImGui::SameLine(); if (lxagent::Button("Chase")) add_mod(RTTI_OF(lx::ChaseModulator));
-					ImGui::SameLine(); if (lxagent::Button("Noise")) add_mod(RTTI_OF(lx::NoiseModulator));
-				}
-				else
-				{
-					ImGui::TextDisabled("add a parameter first, then modulators can drive it");
-				}
+				static const char* mod_type_labels[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise" };
+				const nap::rtti::TypeInfo mod_types[] = {
+					RTTI_OF(lx::AdsrModulator), RTTI_OF(lx::AdModulator), RTTI_OF(lx::LfoModulator),
+					RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator) };
+				ImGui::SetNextItemWidth(130);
+				ImGui::Combo("##addmodtype", &mAddModType, mod_type_labels, 6);
+				ImGui::SameLine();
+				const bool can_add_mod = !patch->mParameters.empty();
+				bool addmod_dis = lxtheme::PushDisabled(!can_add_mod);
+				if (lxagent::Button("+ Add modulator") && can_add_mod)
+					mLxControlService->addModulator(*patch.get(), mod_types[nap::math::clamp(mAddModType, 0, 5)], patch->mParameters[0].get());
+				lxtheme::PopDisabled(addmod_dis);
+				if (!can_add_mod && ImGui::IsItemHovered())
+					ImGui::SetTooltip("Add a source parameter first");
 
 				for (auto& m : patch->mModulators)
 				{
@@ -839,10 +864,49 @@ namespace nap
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
 					ImGui::Separator();
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
-					ImGui::SameLine();
-					ImGui::TextColored(lxtheme::mod2(), "> drives %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
 					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
+					ImGui::SameLine();
+					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); ImGui::PopID(); break; }
+
+					// Mod-matrix: this modulator drives every target in mTargets. Chips (+ x to remove),
+					// then a combo to add another source parameter as a target.
+					ImGui::AlignTextToFramePadding();
+					ImGui::TextColored(lxtheme::mod2(), "drives");
+					int remove_ti = -1;
+					for (size_t ti = 0; ti < m->mTargets.size(); ++ti)
+					{
+						ImGui::SameLine();
+						ImGui::PushID(static_cast<int>(ti));
+						lxtheme::Chip(patchParamLabel(m->mTargets[ti].get()).c_str(), lxtheme::mod2());
+						ImGui::SameLine(0.0f, 2.0f);
+						if (lxagent::SmallButton("x")) remove_ti = static_cast<int>(ti);
+						ImGui::PopID();
+					}
+					if (remove_ti >= 0) { m->mTargets.erase(m->mTargets.begin() + remove_ti); mLxControlService->markDirty(); }
+					{
+						// Params not yet targeted -> a "+ add" combo.
+						std::vector<lx::PatchParameter*> avail;
+						std::vector<std::string> avail_lbls;
+						for (auto& p : patch->mParameters)
+						{
+							bool already = false;
+							for (auto& t : m->mTargets) if (t.get() == p.get()) { already = true; break; }
+							if (!already) { avail.emplace_back(p.get()); avail_lbls.emplace_back(patchParamLabel(p.get())); }
+						}
+						if (!avail.empty())
+						{
+							std::vector<const char*> items; items.emplace_back("+ add");
+							for (auto& s : avail_lbls) items.emplace_back(s.c_str());
+							int sel = 0;
+							ImGui::SameLine(); ImGui::SetNextItemWidth(110);
+							if (ImGui::Combo("##addtarget", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
+							{
+								m->mTargets.emplace_back(avail[sel - 1]);
+								mLxControlService->markDirty();
+							}
+						}
+					}
 
 					bool is_voice_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
 					if (is_voice_mod)

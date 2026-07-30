@@ -42,28 +42,32 @@ namespace lx
 		{
 			modulator->update(deltaTime);	// per-frame transport housekeeping (sustain pause, end-stop)
 
-			PatchParameter* target = modulator->mTarget.get();
-			if (target == nullptr)
-				continue;
-
-			int count = target->getComponentCount();
-			int from = modulator->mTargetComponent < 0 ? 0 : modulator->mTargetComponent;
-			int to = modulator->mTargetComponent < 0 ? count - 1 : modulator->mTargetComponent;
-
-			for (int s = 0; s < voices; ++s)
+			// Mod-matrix: one modulator drives every PatchParameter in its target list.
+			for (auto& target_ref : modulator->mTargets)
 			{
-				float v = modulator->valueForVoice(s);
-				for (int c = from; c <= to && c < count; ++c)
+				PatchParameter* target = target_ref.get();
+				if (target == nullptr)
+					continue;
+
+				int count = target->getComponentCount();
+				int from = modulator->mTargetComponent < 0 ? 0 : modulator->mTargetComponent;
+				int to = modulator->mTargetComponent < 0 ? count - 1 : modulator->mTargetComponent;
+
+				for (int s = 0; s < voices; ++s)
 				{
-					float cur = target->getComponentValue(s, c);
-					float blended = cur;
-					switch (modulator->mBlend)
+					float v = modulator->valueForVoice(s);
+					for (int c = from; c <= to && c < count; ++c)
 					{
-					case EModulatorBlend::Replace:	blended = v;		break;
-					case EModulatorBlend::Multiply:	blended = cur * v;	break;
-					case EModulatorBlend::Add:		blended = cur + v;	break;
+						float cur = target->getComponentValue(s, c);
+						float blended = cur;
+						switch (modulator->mBlend)
+						{
+						case EModulatorBlend::Replace:	blended = v;		break;
+						case EModulatorBlend::Multiply:	blended = cur * v;	break;
+						case EModulatorBlend::Add:		blended = cur + v;	break;
+						}
+						target->setComponentValue(s, c, blended);	// clamps 0..1
 					}
-					target->setComponentValue(s, c, blended);	// clamps 0..1
 				}
 			}
 		}
