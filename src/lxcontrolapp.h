@@ -68,6 +68,9 @@ namespace nap
 		 *  must stop iterating the controls vector that frame). */
 		bool drawControlRow(lx::Control* c);
 		void drawFixtureParamGroup(ParameterGroup& group);
+		/** Agent bridge (src/lxagent.h): serve one non-click verb, and the state dump every ack carries. */
+		void handleAgentCommand(const std::string& verb, const std::string& arg);
+		std::string agentStatus() const;
 		/** Best-effort label for a Multiple-mode patch's fixture voice in the modulator preview: finds any
 		 *  Trigger binding targeting this patch and resolves which physically-ordered fixture landed in
 		 *  `voice` (mirrors lxcontrolService::fireTrigger's own assignment). Falls back to "Voice N" if no
@@ -130,8 +133,8 @@ namespace nap
 		// Programs tab form state
 		char						mNewProgramName[128] = "";
 
-		// Design-language test bed (src/lxstyleguide.cpp). Default on so it's visible on first run.
-		bool						mShowStyleGuide = true;
+		// Design-language test bed (src/lxstyleguide.cpp). Opt-in overlay; toggled from the Live Bar.
+		bool						mShowStyleGuide = false;
 
 		// Perform vs Edit (the Live Bar toggle). Perform = play-only pad grid; Edit = authoring tabs.
 		enum class EUiMode { Edit, Perform };
@@ -143,5 +146,8 @@ namespace nap
 		// MIDI activity: wall-clock (ImGui::GetTime) of the last seen message, for a "time since" readout.
 		double						mLastMidiSeen = -1.0;
 		int							mLastMidiCounter = 0;
+
+		// Which authoring tab drew this frame; reported in the agent bridge's state dump (src/lxagent.h).
+		std::string					mActiveTab = "RIG";
 	};
 }

@@ -12,6 +12,7 @@
 #include <mathutils.h>
 #include "lxtheme.h"
 #include "lxstyleguide.h"
+#include "lxagent.h"
 #include <cstring>
 #include <algorithm>
 
@@ -108,10 +109,86 @@ namespace nap
 		nap::DefaultInputRouter input_router(true);
 		mInputService->processWindowEvents(*mRenderWindow, input_router, { &mScene->getRootEntity() });
 
+		// Agent bridge (src/lxagent.h): take at most one queued command, BEFORE the GUI is queued, so a
+		// click/tab lands in this very frame's widgets. No-op when nothing is driving the app.
+		const auto cmd = lxagent::poll();
+		if (!cmd.first.empty())
+			handleAgentCommand(cmd.first, cmd.second);
+
 		// Bind subsequent ImGui calls to our single window, then queue our GUI.
 		mGuiService->selectWindow(mRenderWindow);
 		drawMainUI();
 		lxstyleguide::draw(&mShowStyleGuide);	// design-language test bed (own window)
+
+		// Answer the bridge now that the frame is queued: HIT/MISS + state + every clickable label.
+		lxagent::finish(agentStatus());
+	}
+
+
+	// Verbs the bridge itself can't serve (click/tab are consumed in lxagent::poll). Anything reachable
+	// as a button is deliberately NOT duplicated here -- cue/load/fire/learn are `click` targets.
+	void lxcontrolApp::handleAgentCommand(const std::string& verb, const std::string& arg)
+	{
+		if (verb == "mode")
+		{
+			mMode = arg == "perform" ? EUiMode::Perform : EUiMode::Edit;
+			lxagent::hit();
+		}
+		else if (verb == "text")	// text <patch|control|group|program> <value> -- fills a creation form
+		{
+			const size_t sp = arg.find(' ');
+			const std::string field = arg.substr(0, sp);
+			const std::string value = sp == std::string::npos ? std::string() : arg.substr(sp + 1);
+			char* dst = nullptr;
+			size_t cap = 0;
+			if (field == "patch")			{ dst = mNewPatchName;		cap = sizeof(mNewPatchName); }
+			else if (field == "control")	{ dst = mNewControlName;	cap = sizeof(mNewControlName); }
+			else if (field == "group")		{ dst = mNewControlGroup;	cap = sizeof(mNewControlGroup); }
+			else if (field == "program")	{ dst = mNewProgramName;	cap = sizeof(mNewProgramName); }
+			if (dst != nullptr)
+			{
+				std::strncpy(dst, value.c_str(), cap - 1);
+				dst[cap - 1] = '\0';
+				lxagent::hit();
+			}
+		}
+		else if (verb == "styleguide")
+		{
+			mShowStyleGuide = arg != "off";
+			lxagent::hit();
+		}
+		else if (verb == "resize")
+		{
+			int w = 0, h = 0;
+			if (std::sscanf(arg.c_str(), "%d %d", &w, &h) == 2 && w > 0 && h > 0)
+			{
+				mRenderWindow->setSize({ w, h });
+				lxagent::hit();
+			}
+		}
+		else if (verb == "stopall")
+		{
+			mLxControlService->stopAll();
+			lxagent::hit();
+		}
+		else if (verb == "state")
+		{
+			lxagent::hit();	// no-op: the ack is itself the state dump
+		}
+	}
+
+
+	// The state lines appended to every bridge ack.
+	std::string lxcontrolApp::agentStatus() const
+	{
+		lx::Program* active = mLxControlService->getActiveProgram();
+		std::string s;
+		s += "MODE: " + std::string(mMode == EUiMode::Perform ? "Perform" : "Edit") + "\n";
+		s += "TAB: " + (mMode == EUiMode::Perform ? std::string("-") : mActiveTab) + "\n";
+		s += "PROGRAM: " + (active != nullptr ? active->mID : std::string("<none>"))
+			+ "  CUED: " + (mCuedProgram != nullptr ? mCuedProgram->mID : std::string("<none>")) + "\n";
+		s += "VOICES: " + std::to_string(mLxControlService->activeVoiceCount()) + "\n";
+		return s;
 	}
 
 
@@ -182,7 +259,16 @@ namespace nap
 	void lxcontrolApp::drawMainUI()
 	{
 		lxtheme::applyStyle();	// own the full terminal/luminous style each frame (wins over the SDK scheme)
-		ImGui::Begin("lxcontrol");
+
+		// Full-bleed chassis: pin the main window to the whole viewport (no titlebar/move/resize) so the
+		// UI fills the OS window instead of floating with black margins. The Style Guide stays a separate
+		// opt-in overlay (off by default).
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+		const ImGuiWindowFlags chassis_flags =
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoSavedSettings;
+		ImGui::Begin("lxcontrol", nullptr, chassis_flags);
 
 		drawLiveBar();
 		ImGui::Separator();
@@ -197,13 +283,15 @@ namespace nap
 		// Edit mode: the three authoring surfaces RIG / PROGRAMS / CONTROLS.
 		if (ImGui::BeginTabBar("MainTabs"))
 		{
-			if (ImGui::BeginTabItem("RIG"))
+			if (ImGui::BeginTabItem("RIG", nullptr, lxagent::tabFlags("RIG")))
 			{
+				mActiveTab = "RIG";
 				drawRigTab();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("PROGRAMS"))
+			if (ImGui::BeginTabItem("PROGRAMS", nullptr, lxagent::tabFlags("PROGRAMS")))
 			{
+				mActiveTab = "PROGRAMS";
 				// 3-panel workspace: programs list | routing+automatic+output | shared patch editor.
 				lx::Program* cued = mCuedProgram != nullptr ? mCuedProgram : mLxControlService->getActiveProgram();
 				ImGui::BeginChild("prog_list", ImVec2(190, 0), true);
@@ -221,8 +309,9 @@ namespace nap
 				ImGui::EndChild();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("CONTROLS"))
+			if (ImGui::BeginTabItem("CONTROLS", nullptr, lxagent::tabFlags("CONTROLS")))
 			{
+				mActiveTab = "CONTROLS";
 				drawControlsTab();
 				ImGui::EndTabItem();
 			}
@@ -254,7 +343,7 @@ namespace nap
 			mCuedProgram = active;
 
 		// --- Scene selector: [◀] LOADED <name> [▶], + Load when a different program is cued ---
-		if (ImGui::SmallButton("<")) cueProgram(-1);
+		if (lxagent::SmallButton("<")) cueProgram(-1);
 		ImGui::SameLine();
 		lxtheme::Chip("LOADED");
 		ImGui::SameLine();
@@ -263,7 +352,7 @@ namespace nap
 		else
 			ImGui::TextDisabled("- none -");
 		ImGui::SameLine();
-		if (ImGui::SmallButton(">")) cueProgram(+1);
+		if (lxagent::SmallButton(">")) cueProgram(+1);
 
 		if (mCuedProgram != nullptr && mCuedProgram != active)
 		{
@@ -273,7 +362,7 @@ namespace nap
 			ImGui::TextColored(lxtheme::accent2(), "%s", mCuedProgram->mName.c_str());
 			ImGui::SameLine();
 			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2());
-			if (ImGui::SmallButton("Load >")) mLxControlService->loadProgram(mCuedProgram);
+			if (lxagent::SmallButton("Load >")) mLxControlService->loadProgram(mCuedProgram);
 			ImGui::PopStyleColor();
 		}
 
@@ -314,7 +403,7 @@ namespace nap
 		ImGui::SameLine(0.0f, 24.0f);
 		const bool perform = (mMode == EUiMode::Perform);
 		if (perform) { ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::rgb(0x2dd4bf, 0.16f)); ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2()); }
-		if (ImGui::Button(perform ? "< EDIT" : "PERFORM >"))
+		if (lxagent::Button(perform ? "< EDIT" : "PERFORM >"))
 			mMode = perform ? EUiMode::Edit : EUiMode::Perform;
 		if (perform) ImGui::PopStyleColor(2);
 		if (ImGui::IsItemHovered())
@@ -380,7 +469,7 @@ namespace nap
 
 			// Two-line pad label (cue name + sublabel) inside a fixed-size button.
 			std::string label = c->mName + "\n" + fx;
-			if (ImGui::Button(label.c_str(), ImVec2(pad_w, pad_h)) && bound)
+			if (lxagent::Button(label.c_str(), ImVec2(pad_w, pad_h)) && bound)
 				mLxControlService->fireTrigger(*trig);
 
 			lxtheme::PopDisabled(dis);
@@ -555,7 +644,7 @@ namespace nap
 
 		ImGui::InputText("Name", mNewPatchName, sizeof(mNewPatchName));
 		ImGui::SameLine();
-		if (ImGui::Button("+ New Patch") && std::strlen(mNewPatchName) > 0)
+		if (lxagent::Button("+ New Patch") && std::strlen(mNewPatchName) > 0)
 		{
 			mLxControlService->createPatch(mNewPatchName);
 			mNewPatchName[0] = '\0';
@@ -597,7 +686,7 @@ namespace nap
 					break;
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+				if (lxagent::Button("Cancel")) ImGui::CloseCurrentPopup();
 				ImGui::EndPopup();
 			}
 
@@ -624,11 +713,11 @@ namespace nap
 				ImGui::Separator();
 
 				// --- Parameters ---
-				if (ImGui::Button("Add Float"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
+				if (lxagent::Button("Add Float"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
 				ImGui::SameLine();
-				if (ImGui::Button("Add Color"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
+				if (lxagent::Button("Add Color"))		mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
 				ImGui::SameLine();
-				if (ImGui::Button("Add Toggle"))	mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
+				if (lxagent::Button("Add Toggle"))	mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
 
 				for (auto& p : patch->mParameters)
 				{
@@ -673,12 +762,12 @@ namespace nap
 					int i = nap::math::clamp(tgt, 0, static_cast<int>(patch->mParameters.size()) - 1);
 					mLxControlService->addModulator(*patch.get(), type, patch->mParameters[i].get());
 				};
-				ImGui::SameLine(); if (ImGui::Button("Add ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
-				ImGui::SameLine(); if (ImGui::Button("Add AD"))   add_mod(RTTI_OF(lx::AdModulator));
-				ImGui::SameLine(); if (ImGui::Button("Add LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
-				ImGui::SameLine(); if (ImGui::Button("Add Step")) add_mod(RTTI_OF(lx::StepModulator));
-				ImGui::SameLine(); if (ImGui::Button("Add Chase")) add_mod(RTTI_OF(lx::ChaseModulator));
-				ImGui::SameLine(); if (ImGui::Button("Add Noise")) add_mod(RTTI_OF(lx::NoiseModulator));
+				ImGui::SameLine(); if (lxagent::Button("Add ADSR")) add_mod(RTTI_OF(lx::AdsrModulator));
+				ImGui::SameLine(); if (lxagent::Button("Add AD"))   add_mod(RTTI_OF(lx::AdModulator));
+				ImGui::SameLine(); if (lxagent::Button("Add LFO"))  add_mod(RTTI_OF(lx::LfoModulator));
+				ImGui::SameLine(); if (lxagent::Button("Add Step")) add_mod(RTTI_OF(lx::StepModulator));
+				ImGui::SameLine(); if (lxagent::Button("Add Chase")) add_mod(RTTI_OF(lx::ChaseModulator));
+				ImGui::SameLine(); if (lxagent::Button("Add Noise")) add_mod(RTTI_OF(lx::NoiseModulator));
 
 				static const char* blend_labels[]    = { "Replace", "Multiply", "Add" };
 				static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
@@ -715,8 +804,8 @@ namespace nap
 					}
 					ImGui::SameLine();
 					ImGui::Text("-> %s", m->mTarget != nullptr ? m->mTarget->mName.c_str() : "(none)");
-					ImGui::SameLine(); if (ImGui::SmallButton("Trigger")) m->onTrigger();
-					ImGui::SameLine(); if (ImGui::SmallButton("Stop")) m->onStop();
+					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
+					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
 
 					// Editing a shape parameter re-authors the curve (main thread -> safe with StandardClock).
 					auto regen = [&]() { m->generateCurve(*mLxControlService); };
@@ -817,7 +906,7 @@ namespace nap
 				for (auto& f : b.mFixtureNames) { fx += displayNameFor(f); fx += " "; }
 				ImGui::BulletText("%s -> %s", b.mPatch != nullptr ? b.mPatch->mName.c_str() : "(none)", fx.c_str());
 				ImGui::SameLine();
-				if (ImGui::SmallButton("Remove"))
+				if (lxagent::SmallButton("Remove"))
 				{
 					auto bindings = trigger.mBindings;
 					bindings.erase(bindings.begin() + bi);
@@ -870,7 +959,7 @@ namespace nap
 						}
 						ImGui::PopID();
 					}
-					if (ImGui::Button("+ Add Binding") && !sel.empty())
+					if (lxagent::Button("+ Add Binding") && !sel.empty())
 					{
 						auto bindings = trigger.mBindings;
 						lx::PatchFixtureBinding nb;
@@ -915,7 +1004,7 @@ namespace nap
 		ImGui::Separator();
 		ImGui::SetNextItemWidth(-1.0f);
 		ImGui::InputText("##newprog", mNewProgramName, sizeof(mNewProgramName));
-		if (ImGui::Button("+ New program", ImVec2(-1.0f, 0.0f)) && std::strlen(mNewProgramName) > 0)
+		if (lxagent::Button("+ New program", ImVec2(-1.0f, 0.0f)) && std::strlen(mNewProgramName) > 0)
 		{
 			lx::Program* np = mLxControlService->createProgram(mNewProgramName);
 			if (np != nullptr) mCuedProgram = np;
@@ -950,7 +1039,7 @@ namespace nap
 		else
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2());
-			if (ImGui::SmallButton("Load >")) mLxControlService->loadProgram(prog);
+			if (lxagent::SmallButton("Load >")) mLxControlService->loadProgram(prog);
 			ImGui::PopStyleColor();
 		}
 		ImGui::SameLine();
@@ -968,7 +1057,7 @@ namespace nap
 				return;	// prog is gone; bail this frame
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+			if (lxagent::Button("Cancel")) ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 		}
 
@@ -1001,10 +1090,10 @@ namespace nap
 			// Row head: trigger name (+ active dot), Test fire/stop, Delete.
 			if (active_t) { lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine(); }
 			ImGui::TextColored(active_t ? lxtheme::live2() : lxtheme::text(), "%s", t->mName.c_str());
-			ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t);
-			ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*t);
+			ImGui::SameLine(); if (lxagent::SmallButton("Fire")) mLxControlService->fireTrigger(*t);
+			ImGui::SameLine(); if (lxagent::SmallButton("Stop")) mLxControlService->stopTrigger(*t);
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Del##trig")) { mLxControlService->removeTrigger(t); ImGui::PopID(); break; }
+			if (lxagent::SmallButton("Del##trig")) { mLxControlService->removeTrigger(t); ImGui::PopID(); break; }
 
 			// Patch -> fixtures summary for this trigger (from its bindings).
 			for (auto& b : t->mBindings)
@@ -1053,7 +1142,7 @@ namespace nap
 						}
 					}
 					ImGui::SameLine();
-					if (ImGui::SmallButton("x") && cur != nullptr) { mLxControlService->clearControlMapping(*prog, *cur); mutated = true; }
+					if (lxagent::SmallButton("x") && cur != nullptr) { mLxControlService->clearControlMapping(*prog, *cur); mutated = true; }
 					ImGui::PopID();
 					if (mutated) break;
 				}
@@ -1064,7 +1153,7 @@ namespace nap
 						if (std::find(mapped_in_program.begin(), mapped_in_program.end(), c.get()) == mapped_in_program.end()) { next_avail = c.get(); break; }
 					bool can_add = (next_avail != nullptr);
 					bool dis = lxtheme::PushDisabled(!can_add);
-					if (ImGui::SmallButton("+ route a control") && can_add)
+					if (lxagent::SmallButton("+ route a control") && can_add)
 						mLxControlService->setControlMapping(*prog, *next_avail, t);
 					lxtheme::PopDisabled(dis);
 					if (!can_add && ImGui::IsItemHovered())
@@ -1102,10 +1191,10 @@ namespace nap
 			}
 			ImGui::SameLine();
 			lxtheme::Chip(t->mKind == lx::ETriggerKind::Enter ? "On load" : "On exit");
-			ImGui::SameLine(); if (ImGui::SmallButton("Fire")) mLxControlService->fireTrigger(*t.get());
-			ImGui::SameLine(); if (ImGui::SmallButton("Stop")) mLxControlService->stopTrigger(*t.get());
+			ImGui::SameLine(); if (lxagent::SmallButton("Fire")) mLxControlService->fireTrigger(*t.get());
+			ImGui::SameLine(); if (lxagent::SmallButton("Stop")) mLxControlService->stopTrigger(*t.get());
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Del##life")) { mLxControlService->removeTrigger(t.get()); ImGui::PopID(); break; }
+			if (lxagent::SmallButton("Del##life")) { mLxControlService->removeTrigger(t.get()); ImGui::PopID(); break; }
 			if (member) drawTriggerBindingsEditor(*t.get());
 			ImGui::PopID();
 		}
@@ -1139,7 +1228,7 @@ namespace nap
 		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
 		ImGui::Combo("Type##newtrig", &form.mType, type_labels, 3);
 		ImGui::SameLine();
-		if (ImGui::Button("+ New Trigger") && std::strlen(form.mName) > 0)
+		if (lxagent::Button("+ New Trigger") && std::strlen(form.mName) > 0)
 		{
 			lx::ETriggerKind kind = form.mType == 1 ? lx::ETriggerKind::Enter
 				: form.mType == 2 ? lx::ETriggerKind::Exit
@@ -1205,7 +1294,7 @@ namespace nap
 		{
 			ImGui::TextColored(lxtheme::pulse(), "learning...");
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Cancel"))
+			if (lxagent::SmallButton("Cancel"))
 				mLearningControl = nullptr;
 			else if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
 			{
@@ -1214,7 +1303,7 @@ namespace nap
 				mLearningControl = nullptr;
 			}
 		}
-		else if (ImGui::SmallButton("Learn"))
+		else if (lxagent::SmallButton("Learn"))
 		{
 			mLearningControl = c;
 			mLearnStartCounter = mLxControlService->getMidiEventCounter();
@@ -1235,7 +1324,7 @@ namespace nap
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Cancel"))
+			if (lxagent::Button("Cancel"))
 				ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 		}
@@ -1251,7 +1340,7 @@ namespace nap
 				for (int n : b->mNumbers) { nums += std::to_string(n); nums += " "; }
 				ImGui::BulletText("MIDI num: %s", nums.empty() ? "(any)" : nums.c_str());
 				ImGui::SameLine();
-				if (ImGui::SmallButton("X")) mLxControlService->removeBinding(b.get());
+				if (lxagent::SmallButton("X")) mLxControlService->removeBinding(b.get());
 				ImGui::PopID();
 			}
 		}
@@ -1277,7 +1366,7 @@ namespace nap
 		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
 		ImGui::InputText("Device##ctrl", mNewControlGroup, sizeof(mNewControlGroup));
 		ImGui::SameLine();
-		if (ImGui::Button("+ Add control") && std::strlen(mNewControlName) > 0)
+		if (lxagent::Button("+ Add control") && std::strlen(mNewControlName) > 0)
 		{
 			lx::Control* nc = mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
 			if (nc != nullptr) { nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }

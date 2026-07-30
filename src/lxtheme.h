@@ -1,6 +1,7 @@
 #pragma once
 
 #include <imgui/imgui.h>
+#include "lxagent.h"
 #include <cmath>
 #include <string>
 
@@ -131,7 +132,7 @@ namespace lxtheme
 		ImGui::PushStyleColor(ImGuiCol_Button,			ImVec4(d.x * 0.55f, d.y * 0.20f, d.z * 0.20f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered,	ImVec4(d.x * 0.80f, d.y * 0.30f, d.z * 0.30f, 1.0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive,	d);
-		const bool clicked = ImGui::Button(label, size);
+		const bool clicked = lxagent::Button(label, size);	// agent-clickable by label (All Stop, deletes)
 		ImGui::PopStyleColor(3);
 		return clicked;
 	}

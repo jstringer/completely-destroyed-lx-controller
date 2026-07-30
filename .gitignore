@@ -8,3 +8,6 @@ data/user_content.json
 
 # runtime session sidecar (active-program state)
 data/user_content.session
+
+# agent bridge runtime files (src/lxagent.h)
+.agent/
