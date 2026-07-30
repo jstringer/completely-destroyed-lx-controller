@@ -363,8 +363,8 @@ namespace nap
 		if (mCuedProgram == nullptr)
 			mCuedProgram = active;
 
-		// --- Scene selector: [◀] LOADED <name> [▶], + Load when a different program is cued ---
-		if (lxagent::SmallButton("<")) cueProgram(-1);
+		// --- LEFT: scene selector -- « LOADED <name> », + Load when a different program is cued ---
+		if (lxagent::SmallButton("\xC2\xAB")) cueProgram(-1);	// « (U+00AB, Latin-1, in the default atlas)
 		ImGui::SameLine();
 		lxtheme::Chip("LOADED");
 		ImGui::SameLine();
@@ -373,7 +373,7 @@ namespace nap
 		else
 			ImGui::TextDisabled("- none -");
 		ImGui::SameLine();
-		if (lxagent::SmallButton(">")) cueProgram(+1);
+		if (lxagent::SmallButton("\xC2\xBB")) cueProgram(+1);	// »
 
 		if (mCuedProgram != nullptr && mCuedProgram != active)
 		{
@@ -383,12 +383,12 @@ namespace nap
 			ImGui::TextColored(lxtheme::accent2(), "%s", mCuedProgram->mName.c_str());
 			ImGui::SameLine();
 			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::accent2());
-			if (lxagent::SmallButton("Load >")) mLxControlService->loadProgram(mCuedProgram);
+			if (lxagent::SmallButton("Load")) mLxControlService->loadProgram(mCuedProgram);
 			ImGui::PopStyleColor();
 		}
 
-		// --- Right cluster: All Stop | output state | MIDI activity | mode | style guide ---
-		ImGui::SameLine(0.0f, 28.0f);
+		// --- RIGHT cluster (right-aligned): All Stop | output | MIDI | mode | style guide ---
+		ImGui::SameLine(std::max(360.0f, ImGui::GetContentRegionMax().x - 640.0f));
 		if (lxtheme::DangerButton("# All Stop"))
 			mLxControlService->stopAll();
 
