@@ -773,6 +773,7 @@ namespace nap
 					lxtheme::SectionHeader("Current");
 					const int voices = (patch->mTargetMode == lx::EPatchTargetMode::Multiple)
 						? nap::math::clamp(patch->mFixtureCount, 1, 32) : 1;
+					const float rowH = ImGui::GetFrameHeight();	// full frame height: fits the % overlay + aligns with the label
 					for (auto& p : patch->mParameters)
 					{
 						ImGui::PushID(p.get());
@@ -788,7 +789,7 @@ namespace nap
 							{
 								ImGui::PushID(s);
 								float rgb[3] = { p->getComponentValue(s, 0), p->getComponentValue(s, 1), p->getComponentValue(s, 2) };
-								lxtheme::Swatch("##cur", rgb, 18.0f);
+								lxtheme::Swatch("##cur", rgb, rowH);
 								if (voices > 1 && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", describePatchVoice(patch.get(), s).c_str());
 								ImGui::PopID();
 								if (s + 1 < voices) ImGui::SameLine();
@@ -799,7 +800,7 @@ namespace nap
 							ImGui::PushStyleColor(ImGuiCol_PlotHistogram, lxtheme::live());
 							if (voices == 1)
 							{
-								ImGui::ProgressBar(p->getComponentValue(0, 0), ImVec2(-1.0f, 14.0f));
+								ImGui::ProgressBar(p->getComponentValue(0, 0), ImVec2(-1.0f, rowH));
 							}
 							else
 							{
@@ -807,7 +808,7 @@ namespace nap
 								{
 									ImGui::PushID(s);
 									float v = p->getComponentValue(s, 0);
-									ImGui::ProgressBar(v, ImVec2(70.0f, 14.0f));
+									ImGui::ProgressBar(v, ImVec2(78.0f, rowH));
 									if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s = %.2f", describePatchVoice(patch.get(), s).c_str(), v);
 									ImGui::PopID();
 									if (s + 1 < voices) ImGui::SameLine();
