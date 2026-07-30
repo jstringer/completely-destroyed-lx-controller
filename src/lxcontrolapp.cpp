@@ -1161,7 +1161,9 @@ namespace nap
 			if (ctrl == nullptr || trig == nullptr) continue;
 			ImGui::PushID(m->mID.c_str());
 
-			if (mLxControlService->isTriggerActive(*trig)) { lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine(); }
+			// Fixed column offsets so routing rows line up as a table: [dot] Control -> Patch [fx] actions.
+			if (mLxControlService->isTriggerActive(*trig)) lxtheme::StateDot(lxtheme::live(), true);
+			else ImGui::Dummy(ImVec2(10.0f, ImGui::GetFrameHeight()));
 
 			// [Control v]: this row's control + any control not routed elsewhere in the program.
 			std::vector<lx::Control*> cavail; std::vector<const char*> clabels; int cidx = 0;
@@ -1172,7 +1174,7 @@ namespace nap
 				if (c.get() == ctrl) cidx = static_cast<int>(cavail.size());
 				cavail.emplace_back(c.get()); clabels.emplace_back(c->mName.c_str());
 			}
-			ImGui::SetNextItemWidth(110);
+			ImGui::SameLine(28.0f); ImGui::SetNextItemWidth(110);
 			if (ImGui::Combo("##ctrl", &cidx, clabels.data(), static_cast<int>(clabels.size())) && cavail[cidx] != ctrl)
 			{
 				// Retarget which control fires this routing. This mutates mControlMappings, so bail the
@@ -1186,12 +1188,12 @@ namespace nap
 			// Unbound-control warning.
 			if (!controlBound(ctrl))
 			{
-				ImGui::SameLine();
+				ImGui::SameLine(150.0f);
 				ImGui::TextColored(lxtheme::live2(), "!unbound");
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("This control has no MIDI binding - Learn one in CONTROLS");
 			}
 
-			ImGui::SameLine(); ImGui::TextColored(lxtheme::muted(), "->");
+			ImGui::SameLine(215.0f); ImGui::TextColored(lxtheme::muted(), "->");
 
 			// [Patch v] (edits the routing's single binding).
 			lx::Patch* curp = trig->mBindings.empty() ? nullptr : trig->mBindings[0].mPatch.get();
@@ -1201,12 +1203,12 @@ namespace nap
 				plabels.emplace_back(patches[i]->mName.c_str());
 				if (patches[i].get() == curp) pidx = i + 1;
 			}
-			ImGui::SameLine(); ImGui::SetNextItemWidth(120);
+			ImGui::SameLine(240.0f); ImGui::SetNextItemWidth(120);
 			if (ImGui::Combo("##patch", &pidx, plabels.data(), static_cast<int>(plabels.size())))
 				mLxControlService->setRoutingPatch(*trig, pidx == 0 ? nullptr : patches[pidx - 1].get());
 
 			// Fixture chips + test + remove.
-			ImGui::SameLine();
+			ImGui::SameLine(375.0f);
 			fixtureChips(trig);
 			if (lxagent::SmallButton("Fire")) mLxControlService->fireTrigger(*trig);
 			ImGui::SameLine(); if (lxagent::SmallButton("Stop")) mLxControlService->stopTrigger(*trig);
@@ -1311,9 +1313,10 @@ namespace nap
 		ImGui::AlignTextToFramePadding();
 		ImGui::TextUnformatted(c->mName.c_str());
 
-		// Mode: Hold / Latch / Trig, with an explanatory tooltip.
+		// Mode: Hold / Latch / Trig, with an explanatory tooltip. Fixed column offsets so the rows
+		// line up as a table (name | mode | binding | Learn) rather than a ragged SameLine flow.
 		int mode = static_cast<int>(c->mMode);
-		ImGui::SameLine(); ImGui::SetNextItemWidth(80);
+		ImGui::SameLine(150.0f); ImGui::SetNextItemWidth(80);
 		if (ImGui::Combo("##mode", &mode, kModeLabels, 3))
 		{
 			c->mMode = static_cast<lx::EControlMode>(mode);
@@ -1332,14 +1335,14 @@ namespace nap
 				for (int n : b->mNumbers) { first_nums += std::to_string(n); first_nums += " "; }
 			binding_count++;
 		}
-		ImGui::SameLine();
+		ImGui::SameLine(245.0f);
 		if (binding_count == 0)
-			ImGui::TextColored(lxtheme::live2(), "! not bound - Learn");
+			ImGui::TextColored(lxtheme::live2(), "! not bound");
 		else
 			ImGui::TextColored(lxtheme::text2(), "MIDI %s", first_nums.empty() ? "(any)" : first_nums.c_str());
 
 		// Learn, with an explicit Cancel (Esc also cancels - see inputMessageReceived).
-		ImGui::SameLine();
+		ImGui::SameLine(455.0f);
 		if (mLearningControl == c)
 		{
 			ImGui::TextColored(lxtheme::pulse(), "learning...");
