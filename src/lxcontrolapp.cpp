@@ -467,10 +467,20 @@ namespace nap
 			}
 			const bool dis = lxtheme::PushDisabled(!bound);
 
-			// Two-line pad label (cue name + sublabel) inside a fixed-size button.
-			std::string label = c->mName + "\n" + fx;
+			// The button carries the folded "name fx" label (bridge-addressable) but its own text is
+			// hidden; we draw the cue name + muted fx sublabel top-left ourselves (mockup .bigpad),
+			// since ImGui::Button centers multi-line text.
+			const ImVec2 p = ImGui::GetCursorScreenPos();
+			const std::string label = c->mName + "\n" + fx;
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 0, 0));
 			if (lxagent::Button(label.c_str(), ImVec2(pad_w, pad_h)) && bound)
 				mLxControlService->fireTrigger(*trig);
+			ImGui::PopStyleColor();
+
+			ImDrawList* dl = ImGui::GetWindowDrawList();
+			dl->AddText(ImVec2(p.x + 12, p.y + 12), ImGui::ColorConvertFloat4ToU32(live ? lxtheme::live2() : lxtheme::text()), c->mName.c_str());
+			dl->AddText(ImVec2(p.x + 12, p.y + 12 + ImGui::GetTextLineHeight() + 4),
+				ImGui::ColorConvertFloat4ToU32(bound ? lxtheme::muted() : lxtheme::live2()), fx.c_str());
 
 			lxtheme::PopDisabled(dis);
 			if (live) ImGui::PopStyleColor(2);
