@@ -32,6 +32,8 @@ namespace lxtheme
 	inline ImVec4 border()	{ return rgb(0x183640); }
 	inline ImVec4 borderHi(){ return rgb(0x22505c); }
 	inline ImVec4 btnbg()	{ return rgb(0x0c141a); }	// button background
+	inline ImVec4 slab()	{ return rgb(0x0e1821); }	// elevation block (borderless fill)
+	inline ImVec4 slab2()	{ return rgb(0x132330); }	// alternate slab fill (stacked-neighbour contrast)
 	// Text
 	inline ImVec4 text()	{ return rgb(0xe3f4f7); }
 	inline ImVec4 text2()	{ return rgb(0x9dbdc5); }
@@ -105,16 +107,33 @@ namespace lxtheme
 
 	// --- Widget helpers -----------------------------------------------------
 
-	/** Bracketed, muted, UPPERCASE section header ( [ LABEL ] ) — the mockup's h3.sec. */
-	inline void SectionHeader(const char* label)
+	/** Compact-density toggle (driven from the Live Bar). Shrinks slab gutters + spine insets for a
+	 *  tighter, laptop-FOH layout. Read by gutter()/SlabEnd(). */
+	inline bool&  compact() { static bool v = false; return v; }
+	inline float  gutter()  { return compact() ? 2.0f : 6.0f; }
+
+	/** Knocked-out label plate (the section-boundary marker that replaces "[ LABEL ]" + a horizontal
+	 *  rule): the UPPERCASE label drawn in the ground colour on a solid `fill` block. Pure draw / no
+	 *  Button, so it never reads as a clickable Chip. Advances the layout cursor. */
+	inline void Plate(const char* label, const ImVec4& fill)
 	{
 		std::string up(label);
 		for (char& ch : up) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+		const ImVec2 ts = ImGui::CalcTextSize(up.c_str());
+		const float px = 9.0f, py = 3.0f;
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		dl->AddRectFilled(p, ImVec2(p.x + ts.x + px * 2.0f, p.y + ts.y + py * 2.0f), ImGui::ColorConvertFloat4ToU32(fill));
+		dl->AddText(ImVec2(p.x + px, p.y + py), ImGui::ColorConvertFloat4ToU32(bg()), up.c_str());
+		ImGui::Dummy(ImVec2(ts.x + px * 2.0f, ts.y + py * 2.0f));
+	}
+
+	/** UPPERCASE section header as a neutral label-plate -- NO horizontal rule. Role-coloured sections
+	 *  (Source/Modulation) call Plate(label, accent) directly for a coloured plate. */
+	inline void SectionHeader(const char* label)
+	{
 		ImGui::Spacing();
-		ImGui::PushStyleColor(ImGuiCol_Text, muted());
-		ImGui::Text("[ %s ]", up.c_str());
-		ImGui::PopStyleColor();
-		ImGui::Separator();
+		Plate(label, text2());
 	}
 
 	/** A small drawn padlock at the cursor (muted), for read-only markers. Advances the layout cursor. */
@@ -143,6 +162,11 @@ namespace lxtheme
 		inline ImVec2& cardMin() { static ImVec2 v; return v; }
 		inline float&  cardW()   { static float v = 0.0f; return v; }
 		inline float&  cardPad() { static float v = 0.0f; return v; }
+		inline ImVec2& slabMin()   { static ImVec2 v; return v; }
+		inline float&  slabW()     { static float v = 0.0f; return v; }
+		inline ImU32&  slabFill()  { static ImU32 v = 0; return v; }
+		inline ImU32&  slabSpine() { static ImU32 v = 0; return v; }
+		inline float&  slabPad()   { static float v = 0.0f; return v; }
 	}
 	inline void CardBegin(float width = -1.0f, float pad = 10.0f)
 	{
@@ -164,6 +188,43 @@ namespace lxtheme
 		ImGui::GetWindowDrawList()->AddRect(mn, ImVec2(mn.x + detail::cardW(), bottom),
 			ImGui::ColorConvertFloat4ToU32(border()), 0.0f, 0, 1.0f);
 		ImGui::Spacing();
+	}
+
+	/** Borderless elevation slab (the "color as structure" primitive). Fills the block with `fill` and
+	 *  draws a capped `spine` (a 4px role-coloured left mark, inset top & bottom so stacked spines never
+	 *  fuse into one rail). Both are drawn BEHIND the content via draw-list channel splitting, since the
+	 *  block height isn't known until layout is done. Usage: SlabBegin(fill, spine); ...content...; SlabEnd();
+	 *  ponytail: single-level -- slabs are never nested (one splitter at a time in ImGui 1.76). */
+	inline void SlabBegin(const ImVec4& fill, const ImVec4& spine, float pad = 9.0f)
+	{
+		detail::slabMin()   = ImGui::GetCursorScreenPos();
+		detail::slabW()     = ImGui::GetContentRegionAvail().x;
+		detail::slabFill()  = ImGui::ColorConvertFloat4ToU32(fill);
+		detail::slabSpine() = ImGui::ColorConvertFloat4ToU32(spine);
+		detail::slabPad()   = pad;
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		dl->ChannelsSplit(2);
+		dl->ChannelsSetCurrent(1);				// content on the front channel
+		ImGui::BeginGroup();
+		ImGui::Indent(pad + 8.0f);				// clear the 4px spine + a gap
+		ImGui::Dummy(ImVec2(0.0f, pad * 0.5f));
+	}
+	inline void SlabEnd()
+	{
+		const float pad = detail::slabPad();
+		ImGui::Dummy(ImVec2(0.0f, pad * 0.5f));
+		ImGui::Unindent(pad + 8.0f);
+		ImGui::EndGroup();
+		const ImVec2 mn = detail::slabMin();
+		const float  bottom = ImGui::GetItemRectMax().y;
+		const float  w = detail::slabW();
+		const float  inset = compact() ? 5.0f : 9.0f;
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		dl->ChannelsSetCurrent(0);				// fill + spine behind the content
+		dl->AddRectFilled(mn, ImVec2(mn.x + w, bottom), detail::slabFill());
+		dl->AddRectFilled(ImVec2(mn.x, mn.y + inset), ImVec2(mn.x + 4.0f, bottom - inset), detail::slabSpine());
+		dl->ChannelsMerge();
+		ImGui::Dummy(ImVec2(0.0f, gutter()));	// gutter beat to the next slab
 	}
 
 	/** A small non-interactive framed tag. `col` overrides the text color (w<=0 = default text2). */

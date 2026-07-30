@@ -833,7 +833,8 @@ namespace nap
 				}
 
 				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
-				lxtheme::SectionHeader("Source");
+				lxtheme::Plate("Source", lxtheme::accent());
+				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
 				bool src_removed = false;
 				for (auto& p : patch->mParameters)
 				{
@@ -870,9 +871,11 @@ namespace nap
 				if (lxagent::Button("+ Float")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
 				ImGui::SameLine(); if (lxagent::Button("+ Color")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
 				ImGui::SameLine(); if (lxagent::Button("+ Toggle")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
+				lxtheme::SlabEnd();		// close SOURCE slab
 
 				// --- MODULATION zone: add via a type dropdown + Add button ---
-				lxtheme::SectionHeader("Modulation");
+				lxtheme::Plate("Modulation", lxtheme::mod());
+				int mod_index = 0;
 				static const char* mod_type_labels[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise" };
 				const nap::rtti::TypeInfo mod_types[] = {
 					RTTI_OF(lx::AdsrModulator), RTTI_OF(lx::AdModulator), RTTI_OF(lx::LfoModulator),
@@ -900,12 +903,12 @@ namespace nap
 					else if (rtti_cast<lx::StepModulator>(m.get())) kind = "STEP";
 					else if (rtti_cast<lx::ChaseModulator>(m.get())) kind = "CHASE";
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
-					lxtheme::CardBegin();
+					lxtheme::SlabBegin((mod_index & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::mod());
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
 					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
 					ImGui::SameLine();
-					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::CardEnd(); ImGui::PopID(); break; }
+					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::SlabEnd(); ImGui::PopID(); break; }
 
 					// Mod-matrix: this modulator drives every target in mTargets. Chips (+ x to remove),
 					// then a combo to add another source parameter as a target.
@@ -1023,7 +1026,8 @@ namespace nap
 					if (lxtheme::LabeledCombo("Blend", &blend, blend_labels, 3, 100)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
 					ImGui::SameLine(); lxtheme::LabeledDrag("Min", &m->mMin, 0.01f, 0.0f, 1.0f, 70.0f);
 					ImGui::SameLine(); lxtheme::LabeledDrag("Max", &m->mMax, 0.01f, 0.0f, 1.0f, 70.0f);
-					lxtheme::CardEnd();
+					lxtheme::SlabEnd();
+					++mod_index;
 					ImGui::PopID();
 				}
 			}
