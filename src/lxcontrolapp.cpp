@@ -893,12 +893,12 @@ namespace nap
 					else if (rtti_cast<lx::StepModulator>(m.get())) kind = "STEP";
 					else if (rtti_cast<lx::ChaseModulator>(m.get())) kind = "CHASE";
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
-					ImGui::Separator();
+					lxtheme::CardBegin();
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
 					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
 					ImGui::SameLine();
-					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); ImGui::PopID(); break; }
+					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::CardEnd(); ImGui::PopID(); break; }
 
 					// Mod-matrix: this modulator drives every target in mTargets. Chips (+ x to remove),
 					// then a combo to add another source parameter as a target.
@@ -1016,6 +1016,7 @@ namespace nap
 					if (lxtheme::LabeledCombo("Blend", &blend, blend_labels, 3, 100)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
 					ImGui::SameLine(); lxtheme::LabeledDrag("Min", &m->mMin, 0.01f, 0.0f, 1.0f, 70.0f);
 					ImGui::SameLine(); lxtheme::LabeledDrag("Max", &m->mMax, 0.01f, 0.0f, 1.0f, 70.0f);
+					lxtheme::CardEnd();
 					ImGui::PopID();
 				}
 			}
@@ -1449,9 +1450,9 @@ namespace nap
 			for (const auto& g : groups)
 			{
 				ImGui::PushID(g.c_str());
-				// Device card header (Controller chip + name + activity), then its control rows. Drawn
-				// flat (not a nested child) so every card reliably shows and auto-sizes to its rows.
+				// Bordered device card: header (Controller chip + name + activity), then its control rows.
 				ImGui::Spacing();
+				lxtheme::CardBegin();
 				lxtheme::Chip("Controller");
 				ImGui::SameLine();
 				ImGui::TextColored(lxtheme::text(), "%s", g.empty() ? "(ungrouped)" : g.c_str());
@@ -1466,6 +1467,7 @@ namespace nap
 					if (c->mGroup != g) continue;
 					if (drawControlRow(c.get())) { deleted = true; break; }
 				}
+				lxtheme::CardEnd();
 				ImGui::PopID();
 				if (deleted) { ImGui::EndChild(); return; }	// controls mutated
 			}
