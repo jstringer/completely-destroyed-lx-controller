@@ -163,6 +163,31 @@ namespace lxtheme
 		return ImGui::Combo(id.c_str(), current, items, count);
 	}
 
+	// --- Left-labelled inputs (ImGui draws widget labels on the RIGHT; these put the label on the LEFT) ---
+	inline bool LabeledDrag(const char* label, float* v, float speed, float lo, float hi, float w = 64.0f, const char* fmt = "%.3f")
+	{
+		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
+		ImGui::SetNextItemWidth(w);
+		return ImGui::DragFloat((std::string("##") + label).c_str(), v, speed, lo, hi, fmt);
+	}
+	inline bool LabeledSlider(const char* label, float* v, float lo, float hi, float w = 90.0f)
+	{
+		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
+		ImGui::SetNextItemWidth(w);
+		return ImGui::SliderFloat((std::string("##") + label).c_str(), v, lo, hi);
+	}
+	inline bool LabeledInt(const char* label, int* v, float w = 84.0f)
+	{
+		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
+		ImGui::SetNextItemWidth(w);
+		return ImGui::InputInt((std::string("##") + label).c_str(), v);
+	}
+	inline bool LabeledCheck(const char* label, bool* v)
+	{
+		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
+		return ImGui::Checkbox((std::string("##") + label).c_str(), v);
+	}
+
 	/** Violet line plot for a modulator's value history (values expected 0..1). `size.x<=0` fills the
 	 *  available width (ImGui::PlotLines only auto-fills on x==0, not on -1). */
 	inline void ModPlot(const char* label, const float* values, int count, const ImVec2& size = ImVec2(480, 50))

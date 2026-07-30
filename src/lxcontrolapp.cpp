@@ -812,7 +812,8 @@ namespace nap
 					else if (auto* cp = rtti_cast<lx::ColorParameter>(p.get()))
 					{
 						float col[3] = { cp->mRed, cp->mGreen, cp->mBlue };
-						if (ImGui::ColorEdit3("Color", col, ImGuiColorEditFlags_NoInputs))
+						ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted("Color"); ImGui::SameLine();
+						if (ImGui::ColorEdit3("##color", col, ImGuiColorEditFlags_NoInputs))
 						{ cp->mRed = col[0]; cp->mGreen = col[1]; cp->mBlue = col[2]; }
 						ImGui::SameLine();
 						ImGui::TextDisabled("%d . %d . %d", static_cast<int>(col[0] * 255), static_cast<int>(col[1] * 255), static_cast<int>(col[2] * 255));
@@ -822,7 +823,7 @@ namespace nap
 						int role = static_cast<int>(tp->mRole);
 						ImGui::SetNextItemWidth(120);
 						if (ImGui::Combo("##trole", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
-						ImGui::SameLine(); ImGui::Checkbox("On", &tp->mValue);
+						ImGui::SameLine(); lxtheme::LabeledCheck("On", &tp->mValue);
 					}
 					ImGui::SameLine();
 					if (lxtheme::DangerButton("Del")) { mLxControlService->removePatchParameter(*patch.get(), p.get()); src_removed = true; }
@@ -934,60 +935,57 @@ namespace nap
 					if (auto* adsr = rtti_cast<lx::AdsrModulator>(m.get()))
 					{
 						bool ch = false;
-						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("A", &adsr->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("D", &adsr->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("S", &adsr->mSustain, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("R", &adsr->mRelease, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						ImGui::Checkbox("Loop", &adsr->mLoop);
+						ch |= lxtheme::LabeledDrag("A", &adsr->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledDrag("D", &adsr->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledDrag("S", &adsr->mSustain, 0.01f, 0.0f, 1.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledDrag("R", &adsr->mRelease, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledCheck("Loop", &adsr->mLoop);
 						if (ch) regen();
 					}
 					else if (auto* ad = rtti_cast<lx::AdModulator>(m.get()))
 					{
 						bool ch = false;
-						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("A", &ad->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(64); ch |= ImGui::DragFloat("D", &ad->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledDrag("A", &ad->mAttack, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledDrag("D", &ad->mDecay, 0.01f, 0.0f, 10.0f); ImGui::SameLine();
 						int amode = static_cast<int>(ad->mMode);
-						ImGui::SetNextItemWidth(150);
-						if (ImGui::Combo("Mode##ad", &amode, ad_mode_labels, 2)) ad->mMode = static_cast<lx::EAdMode>(amode);
+						if (lxtheme::LabeledCombo("Mode", &amode, ad_mode_labels, 2, 150)) ad->mMode = static_cast<lx::EAdMode>(amode);
 						if (ch) regen();
 					}
 					else if (auto* lfo = rtti_cast<lx::LfoModulator>(m.get()))
 					{
 						int shape = static_cast<int>(lfo->mShape);
-						ImGui::SetNextItemWidth(110);
-						if (ImGui::Combo("Shape", &shape, shape_labels, 6)) { lfo->mShape = static_cast<lx::ELfoShape>(shape); regen(); }
-						ImGui::SameLine(); ImGui::SetNextItemWidth(80);
-						if (ImGui::DragFloat("Hz", &lfo->mFrequency, 0.05f, 0.0f, 30.0f) && lfo->mPlayer != nullptr)
+						if (lxtheme::LabeledCombo("Shape", &shape, shape_labels, 6, 110)) { lfo->mShape = static_cast<lx::ELfoShape>(shape); regen(); }
+						ImGui::SameLine();
+						if (lxtheme::LabeledDrag("Hz", &lfo->mFrequency, 0.05f, 0.0f, 30.0f, 80.0f) && lfo->mPlayer != nullptr)
 							lfo->mPlayer->setPlaybackSpeed(lfo->mFrequency);
+						ImGui::SameLine();
 						int lmode = static_cast<int>(lfo->mMode);
-						ImGui::SameLine(); ImGui::SetNextItemWidth(120);
-						if (ImGui::Combo("Mode##lfo", &lmode, lfo_mode_labels, 3)) lfo->mMode = static_cast<lx::ELfoMode>(lmode);
+						if (lxtheme::LabeledCombo("Mode", &lmode, lfo_mode_labels, 3, 120)) lfo->mMode = static_cast<lx::ELfoMode>(lmode);
 					}
 					else if (auto* step = rtti_cast<lx::StepModulator>(m.get()))
 					{
 						bool ch = false;
-						ImGui::SetNextItemWidth(80); ch |= ImGui::DragFloat("Rate", &step->mRate, 0.1f, 0.1f, 30.0f); ImGui::SameLine();
-						ch |= ImGui::Checkbox("Glide", &step->mGlide);
+						ch |= lxtheme::LabeledDrag("Rate", &step->mRate, 0.1f, 0.1f, 30.0f, 80.0f); ImGui::SameLine();
+						ch |= lxtheme::LabeledCheck("Glide", &step->mGlide);
 						if (ch) regen();
 					}
 					else if (auto* chase = rtti_cast<lx::ChaseModulator>(m.get()))
 					{
-						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &chase->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(80); ImGui::SliderFloat("PulseWidth", &chase->mPulseWidth, 0.01f, 1.0f); ImGui::SameLine();
-						ImGui::Checkbox("Glide", &chase->mGlide);
+						lxtheme::LabeledDrag("Rate", &chase->mRate, 0.05f, 0.0f, 30.0f, 80.0f); ImGui::SameLine();
+						lxtheme::LabeledSlider("PulseWidth", &chase->mPulseWidth, 0.01f, 1.0f, 80.0f); ImGui::SameLine();
+						lxtheme::LabeledCheck("Glide", &chase->mGlide);
 					}
 					else if (auto* noise = rtti_cast<lx::NoiseModulator>(m.get()))
 					{
-						ImGui::SetNextItemWidth(80); ImGui::DragFloat("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(100); ImGui::SliderFloat("Smoothing", &noise->mSmoothing, 0.0f, 1.0f); ImGui::SameLine();
-						ImGui::SetNextItemWidth(80); ImGui::InputInt("Seed", &noise->mSeed);
+						lxtheme::LabeledDrag("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f, 80.0f); ImGui::SameLine();
+						lxtheme::LabeledSlider("Smoothing", &noise->mSmoothing, 0.0f, 1.0f, 100.0f); ImGui::SameLine();
+						lxtheme::LabeledInt("Seed", &noise->mSeed, 80.0f);
 					}
 
 					int blend = static_cast<int>(m->mBlend);
-					ImGui::SetNextItemWidth(100);
-					if (ImGui::Combo("Blend", &blend, blend_labels, 3)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
-					ImGui::SameLine(); ImGui::SetNextItemWidth(80); ImGui::DragFloat("Min", &m->mMin, 0.01f, 0.0f, 1.0f);
-					ImGui::SameLine(); ImGui::SetNextItemWidth(80); ImGui::DragFloat("Max", &m->mMax, 0.01f, 0.0f, 1.0f);
+					if (lxtheme::LabeledCombo("Blend", &blend, blend_labels, 3, 100)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
+					ImGui::SameLine(); lxtheme::LabeledDrag("Min", &m->mMin, 0.01f, 0.0f, 1.0f, 70.0f);
+					ImGui::SameLine(); lxtheme::LabeledDrag("Max", &m->mMax, 0.01f, 0.0f, 1.0f, 70.0f);
 					ImGui::PopID();
 				}
 			}
