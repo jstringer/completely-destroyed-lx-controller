@@ -163,18 +163,25 @@ namespace lxtheme
 		return ImGui::Combo(id.c_str(), current, items, count);
 	}
 
-	/** Violet line plot for a modulator's value history (values expected 0..1). */
+	/** Violet line plot for a modulator's value history (values expected 0..1). `size.x<=0` fills the
+	 *  available width (ImGui::PlotLines only auto-fills on x==0, not on -1). */
 	inline void ModPlot(const char* label, const float* values, int count, const ImVec2& size = ImVec2(480, 50))
 	{
+		ImVec2 sz = size;
+		if (sz.x <= 0.0f) sz.x = ImGui::GetContentRegionAvail().x;
+		if (sz.y <= 0.0f) sz.y = 40.0f;
 		ImGui::PushStyleColor(ImGuiCol_PlotLines, mod());
-		ImGui::PlotLines(label, values, count, 0, nullptr, 0.0f, 1.0f, size);
+		ImGui::PlotLines(label, values, count, 0, nullptr, 0.0f, 1.0f, sz);
 		ImGui::PopStyleColor();
 	}
 
 	/** A framed violet curve (values 0..1) with a filled area + a sweeping playhead line (GetTime-driven).
 	 *  The mockup's patch/modulator "preview". Advances the layout cursor by `size`. */
-	inline void PlayheadPreview(const float* values, int count, const ImVec2& size)
+	inline void PlayheadPreview(const float* values, int count, const ImVec2& size_arg)
 	{
+		ImVec2 size = size_arg;
+		if (size.x <= 0.0f) size.x = ImGui::GetContentRegionAvail().x;	// -1 => fill width (not raw -1px)
+		if (size.y <= 0.0f) size.y = 50.0f;
 		const ImVec2 p = ImGui::GetCursorScreenPos();
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		dl->AddRectFilled(p, ImVec2(p.x + size.x, p.y + size.y), ImGui::ColorConvertFloat4ToU32(well()));
