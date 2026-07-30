@@ -139,6 +139,9 @@ namespace nap
 		enum class EUiMode { Edit, Perform };
 		EUiMode						mMode = EUiMode::Edit;
 
+		// PROGRAMS tab: width of the PATCH EDITOR panel, dragged via the splitter between routing and it.
+		float						mPatchPanelWidth = 600.0f;
+
 		// Live Bar / PROGRAMS shared selection: the "cued" (selected-for-edit) program, distinct from the
 		// loaded/active one (getActiveProgram). Cue with the bar's prev/next; Load commits it live.
 		lx::Program*				mCuedProgram = nullptr;

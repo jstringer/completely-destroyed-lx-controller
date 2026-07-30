@@ -293,16 +293,37 @@ namespace nap
 			{
 				mActiveTab = "PROGRAMS";
 				// 3-panel workspace: programs list | routing+automatic+output | shared patch editor.
+				// The patch editor's left edge is a draggable splitter (mPatchPanelWidth).
 				lx::Program* cued = mCuedProgram != nullptr ? mCuedProgram : mLxControlService->getActiveProgram();
-				ImGui::BeginChild("prog_list", ImVec2(190, 0), true);
+				const float sp = ImGui::GetStyle().ItemSpacing.x;
+				const float total = ImGui::GetContentRegionAvail().x;
+				const float rowH = ImGui::GetContentRegionAvail().y;
+				const float listW = 190.0f;
+				const float splitW = 6.0f;
+				mPatchPanelWidth = nap::math::clamp(mPatchPanelWidth, 320.0f, std::max(360.0f, total - listW - 320.0f));
+				float routeW = total - listW - mPatchPanelWidth - splitW - 3.0f * sp;
+				if (routeW < 200.0f) routeW = 200.0f;
+
+				ImGui::BeginChild("prog_list", ImVec2(listW, rowH), true);
 				drawProgramsListPanel();
 				ImGui::EndChild();
 				ImGui::SameLine();
-				ImGui::BeginChild("prog_route", ImVec2(ImGui::GetContentRegionAvail().x - 456.0f, 0), true);
+				ImGui::BeginChild("prog_route", ImVec2(routeW, rowH), true);
 				drawRoutingPanel(cued);
 				ImGui::EndChild();
+
+				// Draggable splitter (no imgui_internal): an InvisibleButton grip that adjusts the width.
 				ImGui::SameLine();
-				ImGui::BeginChild("prog_patch", ImVec2(440, 0), true);
+				ImGui::InvisibleButton("##patch_splitter", ImVec2(splitW, rowH));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+				if (ImGui::IsItemActive())
+					mPatchPanelWidth -= ImGui::GetIO().MouseDelta.x;	// drag left = wider patch editor
+				ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
+					ImGui::ColorConvertFloat4ToU32((ImGui::IsItemActive() || ImGui::IsItemHovered()) ? lxtheme::accent() : lxtheme::border()));
+
+				ImGui::SameLine();
+				ImGui::BeginChild("prog_patch", ImVec2(mPatchPanelWidth, rowH), true);
 				ImGui::TextColored(lxtheme::accent(), "PATCH EDITOR");
 				ImGui::Separator();
 				drawPatchesTab();
