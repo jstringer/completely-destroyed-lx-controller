@@ -1296,18 +1296,21 @@ namespace nap
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("%s", kModeTips[mode]);
 
-		// Device group (live-editable; re-buckets next frame).
-		char gbuf[64];
-		std::strncpy(gbuf, c->mGroup.c_str(), sizeof(gbuf) - 1);
-		gbuf[sizeof(gbuf) - 1] = '\0';
-		ImGui::SameLine(); ImGui::SetNextItemWidth(110);
-		if (ImGui::InputText("##group", gbuf, sizeof(gbuf)))
+		// Inline binding readout (mockup "MIDI · Note 36" / "⚠ Not bound"). Device is the card header now.
+		int binding_count = 0;
+		std::string first_nums;
+		for (auto& b : mLxControlService->getBindings())
 		{
-			c->mGroup = gbuf;
-			mLxControlService->markDirty();
+			if (b->mControl.get() != c) continue;
+			if (binding_count == 0)
+				for (int n : b->mNumbers) { first_nums += std::to_string(n); first_nums += " "; }
+			binding_count++;
 		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Device group (blank = ungrouped)");
+		ImGui::SameLine();
+		if (binding_count == 0)
+			ImGui::TextColored(lxtheme::live2(), "! not bound - Learn");
+		else
+			ImGui::TextColored(lxtheme::text2(), "MIDI %s", first_nums.empty() ? "(any)" : first_nums.c_str());
 
 		// Learn, with an explicit Cancel (Esc also cancels - see inputMessageReceived).
 		ImGui::SameLine();
@@ -1417,7 +1420,8 @@ namespace nap
 			for (const auto& g : groups)
 			{
 				ImGui::PushID(g.c_str());
-				// Device card header (Controller chip + name + activity).
+				// Device card header (Controller chip + name + activity), then its control rows. Drawn
+				// flat (not a nested child) so every card reliably shows and auto-sizes to its rows.
 				ImGui::Spacing();
 				lxtheme::Chip("Controller");
 				ImGui::SameLine();
@@ -1445,8 +1449,12 @@ namespace nap
 		lxtheme::SectionHeader("Devices");
 		std::string port_names = mMidiPort->getPortNames();
 		lxtheme::Chip(port_names.empty() ? "(none) - startup snapshot" : port_names.c_str());
-		ImGui::TextDisabled("napmidi has no hot-plug enumeration - this is the startup snapshot.");
-		ImGui::TextDisabled("Silence > 30s may mean a device was unplugged.");
+		ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
+		ImGui::PushTextWrapPos(0.0f);	// wrap at the child's right edge so sentences don't clip
+		ImGui::TextWrapped("napmidi has no hot-plug enumeration - this is the startup snapshot.");
+		ImGui::TextWrapped("Silence > 30s may mean a device was unplugged.");
+		ImGui::PopTextWrapPos();
+		ImGui::PopStyleColor();
 
 		lxtheme::SectionHeader("Incoming");
 		ImGui::BeginChild("MidiLog", ImVec2(0, 160), true);
