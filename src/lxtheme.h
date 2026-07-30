@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include "lxagent.h"
 #include <cmath>
+#include <cctype>
 #include <string>
 
 /**
@@ -104,14 +105,33 @@ namespace lxtheme
 
 	// --- Widget helpers -----------------------------------------------------
 
-	/** Bracketed, muted, uppercase section header ( [ LABEL ] ) — the mockup's h3.sec. */
+	/** Bracketed, muted, UPPERCASE section header ( [ LABEL ] ) — the mockup's h3.sec. */
 	inline void SectionHeader(const char* label)
 	{
+		std::string up(label);
+		for (char& ch : up) ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
 		ImGui::Spacing();
 		ImGui::PushStyleColor(ImGuiCol_Text, muted());
-		ImGui::Text("[ %s ]", label);
+		ImGui::Text("[ %s ]", up.c_str());
 		ImGui::PopStyleColor();
 		ImGui::Separator();
+	}
+
+	/** A small drawn padlock at the cursor (muted), for read-only markers. Advances the layout cursor. */
+	inline void Lock()
+	{
+		const float h = ImGui::GetTextLineHeight();
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		const ImU32 col = ImGui::ColorConvertFloat4ToU32(muted());
+		const float w = h * 0.60f;
+		const float bx = p.x + (h - w) * 0.5f;
+		const float by = p.y + h * 0.48f;			// body top
+		const float pi = 3.14159265f;
+		dl->AddRectFilled(ImVec2(bx, by), ImVec2(bx + w, p.y + h * 0.92f), col, 1.0f);	// body
+		dl->PathArcTo(ImVec2(bx + w * 0.5f, by), w * 0.30f, pi, pi * 2.0f, 10);	// shackle (top half)
+		dl->PathStroke(col, false, 1.4f);
+		ImGui::Dummy(ImVec2(h * 0.75f, h));
 	}
 
 	/** A small non-interactive framed tag. `col` overrides the text color (w<=0 = default text2). */

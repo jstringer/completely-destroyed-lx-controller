@@ -594,9 +594,9 @@ namespace nap
 		// --- Art-Net info bar: topology is start-time-only (read-only); derived from the live rig. ---
 		ImGui::BeginChild("artnet", ImVec2(0, 52), true);
 		lxtheme::Chip("Art-Net output");
-		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Universe [lock]"); ImGui::SameLine(); ImGui::Text("0");
-		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Send to [lock]"); ImGui::SameLine(); ImGui::Text("auto (broadcast)");
-		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Start channels [lock]"); ImGui::SameLine();
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Universe"); ImGui::SameLine(0.0f, 4.0f); lxtheme::Lock(); ImGui::SameLine(); ImGui::Text("0");
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Send to"); ImGui::SameLine(0.0f, 4.0f); lxtheme::Lock(); ImGui::SameLine(); ImGui::Text("auto (broadcast)");
+		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("Start channels"); ImGui::SameLine(0.0f, 4.0f); lxtheme::Lock(); ImGui::SameLine();
 		{
 			std::string chans;
 			for (size_t i = 0; i < fixtures.size(); ++i)
@@ -604,7 +604,7 @@ namespace nap
 			ImGui::Text("%s", chans.empty() ? "-" : chans.c_str());
 		}
 		ImGui::SameLine(0.0f, 18.0f); ImGui::TextColored(lxtheme::accent2(), "Refresh"); ImGui::SameLine(); ImGui::Text("44 Hz");
-		ImGui::SameLine(0.0f, 18.0f); ImGui::TextDisabled("[lock] topology (universe / mode / fixtures) set on startup - restart to change");
+		ImGui::SameLine(0.0f, 18.0f); lxtheme::Lock(); ImGui::SameLine(); ImGui::TextDisabled("topology (universe / mode / fixtures) set on startup - restart to change");
 		ImGui::EndChild();
 
 		lxtheme::SectionHeader("Fixtures  -  Eurolite Strobe 540 . 22ch");
