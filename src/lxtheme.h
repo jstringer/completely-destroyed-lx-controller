@@ -133,7 +133,7 @@ namespace lxtheme
 	inline void SectionHeader(const char* label)
 	{
 		ImGui::Spacing();
-		Plate(label, text2());
+		Plate(label, muted());		// calm neutral fill (reads soft on void, softer still on a slab)
 	}
 
 	/** A small drawn padlock at the cursor (muted), for read-only markers. Advances the layout cursor. */
@@ -153,41 +153,13 @@ namespace lxtheme
 		ImGui::Dummy(ImVec2(h * 0.75f, h));
 	}
 
-	/** Bordered card around a block of content. Draws a 1px border enclosing the content with internal
-	 *  padding. Usage: CardBegin();  ...content...  CardEnd();  -- width<=0 fills the available width.
-	 *  ponytail: single-level state, cards here are never nested. Uses BeginGroup + a border rect drawn
-	 *  on End (the reliable 1.76 pattern -- AlwaysAutoResize children dropped cards). */
 	namespace detail
 	{
-		inline ImVec2& cardMin() { static ImVec2 v; return v; }
-		inline float&  cardW()   { static float v = 0.0f; return v; }
-		inline float&  cardPad() { static float v = 0.0f; return v; }
 		inline ImVec2& slabMin()   { static ImVec2 v; return v; }
 		inline float&  slabW()     { static float v = 0.0f; return v; }
 		inline ImU32&  slabFill()  { static ImU32 v = 0; return v; }
 		inline ImU32&  slabSpine() { static ImU32 v = 0; return v; }
 		inline float&  slabPad()   { static float v = 0.0f; return v; }
-	}
-	inline void CardBegin(float width = -1.0f, float pad = 10.0f)
-	{
-		detail::cardPad() = pad;
-		detail::cardMin() = ImGui::GetCursorScreenPos();
-		detail::cardW()   = width > 0.0f ? width : ImGui::GetContentRegionAvail().x;
-		ImGui::BeginGroup();
-		ImGui::Indent(pad);
-		ImGui::Dummy(ImVec2(0.0f, pad * 0.4f));
-	}
-	inline void CardEnd()
-	{
-		const float pad = detail::cardPad();
-		ImGui::Dummy(ImVec2(0.0f, pad * 0.4f));
-		ImGui::Unindent(pad);
-		ImGui::EndGroup();
-		const ImVec2 mn = detail::cardMin();
-		const float  bottom = ImGui::GetItemRectMax().y;
-		ImGui::GetWindowDrawList()->AddRect(mn, ImVec2(mn.x + detail::cardW(), bottom),
-			ImGui::ColorConvertFloat4ToU32(border()), 0.0f, 0, 1.0f);
-		ImGui::Spacing();
 	}
 
 	/** Borderless elevation slab (the "color as structure" primitive). Fills the block with `fill` and

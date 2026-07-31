@@ -271,7 +271,7 @@ namespace nap
 		ImGui::Begin("lxcontrol", nullptr, chassis_flags);
 
 		drawLiveBar();
-		ImGui::Separator();
+		ImGui::Spacing();
 
 		if (mMode == EUiMode::Perform)
 		{
@@ -324,8 +324,7 @@ namespace nap
 
 				ImGui::SameLine();
 				ImGui::BeginChild("prog_patch", ImVec2(mPatchPanelWidth, rowH), true);
-				ImGui::TextColored(lxtheme::accent(), "PATCH EDITOR");
-				ImGui::Separator();
+				lxtheme::Plate("Patch Editor", lxtheme::accent());
 				drawPatchesTab();
 				ImGui::EndChild();
 				ImGui::EndTabItem();
@@ -431,6 +430,12 @@ namespace nap
 			ImGui::SetTooltip("Toggle Perform (play-only) / Edit (authoring)");
 
 		ImGui::SameLine(0.0f, 16.0f);
+		if (lxagent::Button(lxtheme::compact() ? "Compact" : "Comfort"))
+			lxtheme::compact() = !lxtheme::compact();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Density: Comfort (roomy) / Compact (tight slab gutters for laptop FOH)");
+
+		ImGui::SameLine(0.0f, 16.0f);
 		ImGui::Checkbox("Style Guide", &mShowStyleGuide);
 	}
 
@@ -489,11 +494,10 @@ namespace nap
 				fx = "unbound";
 
 			ImGui::PushID(c.get());
-			if (live)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button, lxtheme::rgb(0xf5b301, 0.20f));
-				ImGui::PushStyleColor(ImGuiCol_Border, lxtheme::live());
-			}
+			// Live cue floods its whole face gold (black text); idle pads sit recessed in the well.
+			ImGui::PushStyleColor(ImGuiCol_Button, live ? lxtheme::live() : lxtheme::well());
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, live ? lxtheme::live2() : lxtheme::bar());
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, live ? lxtheme::live2() : lxtheme::rgb(0x22505c, 0.5f));
 			const bool dis = lxtheme::PushDisabled(!bound);
 
 			// The button carries the folded "name fx" label (bridge-addressable) but its own text is
@@ -507,12 +511,12 @@ namespace nap
 			ImGui::PopStyleColor();
 
 			ImDrawList* dl = ImGui::GetWindowDrawList();
-			dl->AddText(ImVec2(p.x + 12, p.y + 12), ImGui::ColorConvertFloat4ToU32(live ? lxtheme::live2() : lxtheme::text()), c->mName.c_str());
+			dl->AddText(ImVec2(p.x + 12, p.y + 12), ImGui::ColorConvertFloat4ToU32(live ? lxtheme::bg() : lxtheme::text()), c->mName.c_str());
 			dl->AddText(ImVec2(p.x + 12, p.y + 12 + ImGui::GetTextLineHeight() + 4),
-				ImGui::ColorConvertFloat4ToU32(bound ? lxtheme::muted() : lxtheme::live2()), fx.c_str());
+				ImGui::ColorConvertFloat4ToU32(live ? lxtheme::rgb(0x05080b, 0.72f) : (bound ? lxtheme::muted() : lxtheme::live2())), fx.c_str());
 
 			lxtheme::PopDisabled(dis);
-			if (live) ImGui::PopStyleColor(2);
+			ImGui::PopStyleColor(3);
 			if (!bound && ImGui::IsItemHovered())
 				ImGui::SetTooltip("Unbound in this program - route it in Edit / PROGRAMS");
 			ImGui::PopID();
@@ -627,23 +631,33 @@ namespace nap
 				ImGui::SameLine();
 			// Content-height card (not a full-height empty well). Scrolls only if "Manual base values"
 			// is expanded, which is the rare case.
-			ImGui::BeginChild(fixture_names[i], ImVec2(strip_w, 362), true);
+			// Borderless slab strip; a capped left spine encodes live (gold) vs dark (dim).
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, lxtheme::slab());
+			ImGui::BeginChild(fixture_names[i], ImVec2(strip_w, 362), false);
+			ImGui::PopStyleColor();
 
 			lx::FixtureComponentInstance* fx = (i < static_cast<int>(fixtures.size())) ? fixtures[i] : nullptr;
+			bool any_out = false;
+			if (fx != nullptr)
+				for (auto* ch : fx->getChannels())
+					if (ch->resolveValue() > 0.02f) { any_out = true; break; }
+
+			{
+				const ImVec2 wp = ImGui::GetWindowPos();
+				ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(wp.x, wp.y + 10.0f), ImVec2(wp.x + 4.0f, wp.y + 352.0f),
+					ImGui::ColorConvertFloat4ToU32(any_out ? lxtheme::live() : lxtheme::border()));
+			}
 
 			// Header: name + live output LED (lit if anything is emitting on this fixture).
 			ImGui::TextColored(lxtheme::text(), "%s", fixture_names[i]);
 			if (fx != nullptr)
 			{
-				bool any_out = false;
-				for (auto* ch : fx->getChannels())
-					if (ch->resolveValue() > 0.02f) { any_out = true; break; }
 				ImGui::SameLine();
 				ImGui::TextDisabled("%s @ ch %d", fx->getDisplayName().c_str(), fx->getStartChannel());
 				ImGui::SameLine(ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX() - 16.0f);
 				lxtheme::OutputLed(any_out, lxtheme::live());
 			}
-			ImGui::Separator();
+			ImGui::Spacing();
 
 			if (fx != nullptr)
 				drawFixtureOutputStrip(*fx);
@@ -710,7 +724,7 @@ namespace nap
 			mLxControlService->createPatch(mNewPatchName);
 			mNewPatchName[0] = '\0';
 		}
-		ImGui::Separator();
+		ImGui::Spacing();
 
 		if (mLxControlService->getPatches().empty())
 			ImGui::TextDisabled("No patches yet. A patch is a light-voice: parameters + modulators.");
@@ -1060,7 +1074,7 @@ namespace nap
 			ImGui::PopID();
 		}
 
-		ImGui::Separator();
+		ImGui::Spacing();
 		ImGui::SetNextItemWidth(-1.0f);
 		ImGui::InputText("##newprog", mNewProgramName, sizeof(mNewProgramName));
 		if (lxagent::Button("+ New program", ImVec2(-1.0f, 0.0f)) && std::strlen(mNewProgramName) > 0)
@@ -1167,7 +1181,8 @@ namespace nap
 		};
 
 		// --- ROUTING: one control-first row per mapping (Control -> Patch -> fixtures + test) ---
-		lxtheme::SectionHeader("Routing");
+		ImGui::Spacing();
+		lxtheme::Plate("Routing", lxtheme::accent());
 		lx::ControlMapping* unroute_target = nullptr;
 		for (auto& m : prog->mControlMappings)
 		{
@@ -1230,7 +1245,6 @@ namespace nap
 			ImGui::SameLine(); if (lxtheme::DangerButton("x")) unroute_target = m.get();
 
 			ImGui::PopID();
-			ImGui::Separator();
 		}
 		if (unroute_target != nullptr) mLxControlService->unroute(*prog, unroute_target);
 
@@ -1494,16 +1508,16 @@ namespace nap
 			for (const auto& g : groups)
 			{
 				ImGui::PushID(g.c_str());
-				// Bordered device card: header (Controller chip + name + activity), then its control rows.
+				// Device card as a teal-spined slab: header (Controller chip + name + activity) + control rows.
 				ImGui::Spacing();
-				lxtheme::CardBegin();
+				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
 				lxtheme::Chip("Controller");
 				ImGui::SameLine();
 				ImGui::TextColored(lxtheme::text(), "%s", g.empty() ? "(ungrouped)" : g.c_str());
 				ImGui::SameLine();
 				if (since < 0.0) ImGui::TextDisabled("   no messages yet");
 				else ImGui::TextDisabled("   last msg %.1fs", since);
-				ImGui::Separator();
+				ImGui::Spacing();
 
 				bool deleted = false;
 				for (auto& c : controls)
@@ -1511,7 +1525,7 @@ namespace nap
 					if (c->mGroup != g) continue;
 					if (drawControlRow(c.get())) { deleted = true; break; }
 				}
-				lxtheme::CardEnd();
+				lxtheme::SlabEnd();
 				ImGui::PopID();
 				if (deleted) { ImGui::EndChild(); return; }	// controls mutated
 			}
