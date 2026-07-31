@@ -631,10 +631,9 @@ namespace nap
 				ImGui::SameLine();
 			// Content-height card (not a full-height empty well). Scrolls only if "Manual base values"
 			// is expanded, which is the rare case.
-			// Borderless slab strip; a capped left spine encodes live (gold) vs dark (dim).
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, lxtheme::slab());
-			ImGui::BeginChild(fixture_names[i], ImVec2(strip_w, 362), false);
-			ImGui::PopStyleColor();
+			// Plain bordered monitor strip. A gold spine appears ONLY when this fixture is live (state);
+			// idle fixtures carry no spine, so the emitting one is instantly obvious.
+			ImGui::BeginChild(fixture_names[i], ImVec2(strip_w, 362), true);
 
 			lx::FixtureComponentInstance* fx = (i < static_cast<int>(fixtures.size())) ? fixtures[i] : nullptr;
 			bool any_out = false;
@@ -642,10 +641,11 @@ namespace nap
 				for (auto* ch : fx->getChannels())
 					if (ch->resolveValue() > 0.02f) { any_out = true; break; }
 
+			if (any_out)
 			{
 				const ImVec2 wp = ImGui::GetWindowPos();
-				ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(wp.x, wp.y + 10.0f), ImVec2(wp.x + 4.0f, wp.y + 352.0f),
-					ImGui::ColorConvertFloat4ToU32(any_out ? lxtheme::live() : lxtheme::border()));
+				ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(wp.x + 1.0f, wp.y + 1.0f), ImVec2(wp.x + 4.0f, wp.y + 361.0f),
+					ImGui::ColorConvertFloat4ToU32(lxtheme::live()));
 			}
 
 			// Header: name + live output LED (lit if anything is emitting on this fixture).
@@ -796,7 +796,8 @@ namespace nap
 				// Multiple-spread mode (a single bar can't represent per-fixture values).
 				if (!patch->mParameters.empty())
 				{
-					lxtheme::SectionHeader("Current");
+					lxtheme::Plate("Current", lxtheme::muted());
+					lxtheme::SlabBegin(lxtheme::slab(), lxtheme::muted());
 					const int voices = (patch->mTargetMode == lx::EPatchTargetMode::Multiple)
 						? nap::math::clamp(patch->mFixtureCount, 1, 32) : 1;
 					const float rowH = ImGui::GetFrameHeight();	// full frame height: fits the % overlay + aligns with the label
@@ -844,6 +845,7 @@ namespace nap
 						}
 						ImGui::PopID();
 					}
+					lxtheme::SlabEnd();
 				}
 
 				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
@@ -1066,11 +1068,17 @@ namespace nap
 			ImGui::PushID(prog.get());
 			bool is_active = (prog.get() == active);
 			bool is_sel = (prog.get() == mCuedProgram);
+			const ImVec2 row0 = ImGui::GetCursorScreenPos();
 			if (is_active) { lxtheme::StateDot(lxtheme::live(), true); ImGui::SameLine(); }
 			ImGui::PushStyleColor(ImGuiCol_Text, is_active ? lxtheme::live() : (is_sel ? lxtheme::text() : lxtheme::text2()));
 			if (ImGui::Selectable(prog->mName.c_str(), is_sel))
 				mCuedProgram = prog.get();
 			ImGui::PopStyleColor();
+			// Selection spine: the cued (selected-for-edit) program carries a teal spine -- the canonical
+			// "spine marks the selected item in a list" use.
+			if (is_sel)
+				ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(row0.x - 6.0f, row0.y),
+					ImVec2(row0.x - 3.0f, ImGui::GetItemRectMax().y), ImGui::ColorConvertFloat4ToU32(lxtheme::accent()));
 			ImGui::PopID();
 		}
 
@@ -1508,9 +1516,9 @@ namespace nap
 			for (const auto& g : groups)
 			{
 				ImGui::PushID(g.c_str());
-				// Device card as a teal-spined slab: header (Controller chip + name + activity) + control rows.
+				// Device group: header (Controller chip + name + activity) + its control rows. No slab/spine
+				// -- a device isn't a parameter-collection and (usually) has nothing to differentiate against.
 				ImGui::Spacing();
-				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
 				lxtheme::Chip("Controller");
 				ImGui::SameLine();
 				ImGui::TextColored(lxtheme::text(), "%s", g.empty() ? "(ungrouped)" : g.c_str());
@@ -1525,7 +1533,6 @@ namespace nap
 					if (c->mGroup != g) continue;
 					if (drawControlRow(c.get())) { deleted = true; break; }
 				}
-				lxtheme::SlabEnd();
 				ImGui::PopID();
 				if (deleted) { ImGui::EndChild(); return; }	// controls mutated
 			}

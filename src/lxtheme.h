@@ -162,10 +162,11 @@ namespace lxtheme
 		inline float&  slabPad()   { static float v = 0.0f; return v; }
 	}
 
-	/** Borderless elevation slab (the "color as structure" primitive). Fills the block with `fill` and
-	 *  draws a capped `spine` (a 4px role-coloured left mark, inset top & bottom so stacked spines never
-	 *  fuse into one rail). Both are drawn BEHIND the content via draw-list channel splitting, since the
-	 *  block height isn't known until layout is done. Usage: SlabBegin(fill, spine); ...content...; SlabEnd();
+	/** Borderless elevation slab for a COLLECTION of related fields. Fills the block with `fill` and draws
+	 *  a full-height 4px `spine` (pass a transparent colour for no spine). Use a spine only where it MEANS
+	 *  something: a collection distinguished from sibling collections in whitespace, a selected list item,
+	 *  or a live/active state -- not on everything. Fill + spine are drawn BEHIND the content via draw-list
+	 *  channel splitting (block height isn't known until layout). Usage: SlabBegin(fill,spine); ...; SlabEnd();
 	 *  ponytail: single-level -- slabs are never nested (one splitter at a time in ImGui 1.76). */
 	inline void SlabBegin(const ImVec4& fill, const ImVec4& spine, float pad = 9.0f)
 	{
@@ -190,11 +191,10 @@ namespace lxtheme
 		const ImVec2 mn = detail::slabMin();
 		const float  bottom = ImGui::GetItemRectMax().y;
 		const float  w = detail::slabW();
-		const float  inset = compact() ? 5.0f : 9.0f;
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		dl->ChannelsSetCurrent(0);				// fill + spine behind the content
 		dl->AddRectFilled(mn, ImVec2(mn.x + w, bottom), detail::slabFill());
-		dl->AddRectFilled(ImVec2(mn.x, mn.y + inset), ImVec2(mn.x + 4.0f, bottom - inset), detail::slabSpine());
+		dl->AddRectFilled(mn, ImVec2(mn.x + 4.0f, bottom), detail::slabSpine());		// full-height spine
 		dl->ChannelsMerge();
 		ImGui::Dummy(ImVec2(0.0f, gutter()));	// gutter beat to the next slab
 	}
