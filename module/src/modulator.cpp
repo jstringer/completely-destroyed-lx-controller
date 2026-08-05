@@ -23,6 +23,11 @@ RTTI_BEGIN_CLASS(lx::Modulator)
 	RTTI_PROPERTY("Blend",			&lx::Modulator::mBlend,				nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
+// Abstract (pure virtual inputs()), so it must not be registered with a default constructor -- rttr would
+// try to instantiate it. Registration is still needed for rtti_cast / RTTI_OF to see the base.
+RTTI_BEGIN_CLASS_NO_DEFAULT_CONSTRUCTOR(lx::FieldModulator)
+RTTI_END_CLASS
+
 namespace lx
 {
 	bool Modulator::init(nap::utility::ErrorState& errorState)

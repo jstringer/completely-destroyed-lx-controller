@@ -89,6 +89,34 @@ namespace lx
 	};
 
 
+	/**
+	 * A spatial modulator: computed analytically per frame from position + time, never sampled from an
+	 * authored napsequence curve. That is exactly why its inputs CAN be modulated -- nothing has to be
+	 * re-authored when one changes. Curve modulators (ADSR/AD/LFO/Step) bake their shape into a real
+	 * sequence track, so their shape params stay authored: changing one calls generateCurve(), which
+	 * rewrites track segments and cannot run per frame.
+	 */
+	class NAPAPI FieldModulator : public Modulator
+	{
+		RTTI_ENABLE(Modulator)
+	public:
+		/** @return every modulatable input, in display order. Each is a PatchParameter so the existing
+		 *  mod-matrix (Modulator::mTargets) can target it with no new target type at all. */
+		virtual std::vector<PatchParameter*> inputs() = 0;
+
+	protected:
+		/** @return input `in`'s 0..1 value mapped into [lo,hi]. Reads the parameter's authored base -- pass 1
+		 *  of Patch::update has already written any driven value into it. Falls back to `lo` if unwired. */
+		float inputValue(const nap::ResourcePtr<FloatParameter>& in, float lo, float hi) const
+		{
+			if (in == nullptr)
+				return lo;
+			const float t = in->mValue < 0.0f ? 0.0f : (in->mValue > 1.0f ? 1.0f : in->mValue);
+			return lo + (hi - lo) * t;
+		}
+	};
+
+
 	/** @return the normalised position of source `index` of `count`, using the modulator's own convention
 	 *  (see Modulator::cyclicPositions). count <= 1 collapses to 0 -- which is exactly the case that used
 	 *  to be called "Single" spread mode. */

@@ -3,6 +3,7 @@
 #include "fixturecomponent.h"
 #include "fixturechannelcomponent.h"
 #include "noisemodulator.h"
+#include "chasemodulator.h"
 
 // External Includes
 #include <nap/core.h>
@@ -282,9 +283,53 @@ namespace nap
 			return;
 		}
 
-		// Nothing else to re-propagate: a modulator no longer caches a voice count. Source positions are
-		// handed to value(pos01, component) at evaluation time, so there is no per-patch runtime state that
-		// could silently reset to 1 on load.
+		// Re-register (or back-fill) this Field modulator's input parameters so they persist again and any
+		// input added since the file was written gets created rather than staying null.
+		ensureFieldInputs(*mod, entry);
+	}
+
+
+	void lxcontrolService::ensureFieldInputs(lx::Modulator& mod, ModulatorEntry& entry)
+	{
+		auto* field = rtti_cast<lx::FieldModulator>(&mod);
+		if (field == nullptr)
+			return;
+
+		// Wire each declared-but-null input slot. Role Generic on purpose: no rig channel maps Generic, so
+		// an input can never be claimed by a fixture even if it leaked into a patch's parameter list.
+		auto make = [&](nap::ResourcePtr<lx::FloatParameter>& slot, const char* name, float base)
+		{
+			if (slot != nullptr)
+			{
+				entry.mInputs.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(slot.get()));
+				return;
+			}
+			auto p = mResourceManager->createObject<lx::FloatParameter>();
+			p->mID = makeUniqueID(mod.mID + "_" + name);
+			p->mName = name;
+			p->mRole = lx::EChannelRole::Generic;
+			p->mValue = base;
+			utility::ErrorState err;
+			if (!p->init(err))
+			{
+				Logger::error("ensureFieldInputs: %s", err.toString().c_str());
+				return;
+			}
+			slot = p.get();
+			entry.mInputs.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(p.get()));
+		};
+
+		if (auto* chase = rtti_cast<lx::ChaseModulator>(field))
+		{
+			make(chase->mRateInput, "Rate", 0.12f);			// ~1 Hz within [0.05, 8]
+			make(chase->mPulseWidthInput, "PulseWidth", 0.3f);
+		}
+		else if (auto* noise = rtti_cast<lx::NoiseModulator>(field))
+		{
+			make(noise->mRateInput, "Rate", 0.25f);			// ~2 Hz within [0.05, 8]
+			make(noise->mDensityInput, "Density", 0.35f);	// ~9 cells within [1, 24]
+			make(noise->mSmoothingInput, "Smoothing", 0.5f);
+		}
 	}
 
 
@@ -621,6 +666,7 @@ namespace nap
 			Logger::error("addModulator: build graph failed: %s", err.toString().c_str());
 			return nullptr;
 		}
+		ensureFieldInputs(*mod, mod_entry);
 		patch.mModulators.emplace_back(mod);
 		patch_entry->mModulators.emplace_back(mod_entry);
 		markDirty();
@@ -1333,7 +1379,11 @@ namespace nap
 			for (auto& p : entry.mParams)
 				root_objects.emplace_back(p.get());
 			for (auto& me : entry.mModulators)
+			{
 				root_objects.emplace_back(me.mModulator.get());
+				for (auto& in : me.mInputs)		// Field inputs: Default-pointer targets, must be listed
+					root_objects.emplace_back(in.get());
+			}
 		}
 
 		for (auto& trigger : mTriggers)

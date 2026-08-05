@@ -66,6 +66,15 @@ namespace lxstyleguide
 		}, 1, ImVec2(-1.0f, 18.0f));
 		ImGui::TextDisabled("moving hard pulse - edges must not smear while animating");
 
+		// --- Modulatable Field inputs --------------------------------------
+		ImGui::Spacing();
+		lxtheme::Plate("Field inputs", lxtheme::mod());
+		ImGui::Spacing();
+		static float rate = 0.25f, density = 0.6f;
+		lxtheme::InputRow("Rate", &rate, nullptr);				// authored: slider
+		lxtheme::InputRow("Density", &density, "AD");			// driven: violet stub, no slider
+		ImGui::TextDisabled("a driven input hides its slider - pass 1 would overwrite it every frame");
+
 		// --- Palette -------------------------------------------------------
 		lxtheme::SectionHeader("Palette");
 		paletteRow("accent", lxtheme::accent(), false);	paletteRow("live",   lxtheme::live(),   true);

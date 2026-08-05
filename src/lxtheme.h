@@ -369,6 +369,46 @@ namespace lxtheme
 		ImGui::Dummy(size);
 	}
 
+	/**
+	 * One modulatable Field input: uppercase label, its value, then EITHER a slider (authored) or a violet
+	 * driven-by marker when a Curve modulator owns it.
+	 *
+	 * Hiding the slider is correctness, not decoration: pass 1 of Patch::update overwrites a driven input
+	 * every frame, so an editable slider there would visibly fight the modulator.
+	 * @return true when the slider changed.
+	 */
+	inline bool InputRow(const char* label, float* v01, const char* drivenBy)
+	{
+		ImGui::AlignTextToFramePadding();
+		ImGui::PushStyleColor(ImGuiCol_Text, drivenBy != nullptr ? mod2() : muted());
+		ImGui::TextUnformatted(label);
+		ImGui::PopStyleColor();
+		ImGui::SameLine(122.0f);	// clears the longest input label ("Smoothing") in the mono face
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("%.2f", *v01);
+		ImGui::SameLine(176.0f);
+
+		if (drivenBy != nullptr)
+		{
+			// 4px violet stub + the driver's name: the spine grammar, at row scale.
+			const ImVec2 p = ImGui::GetCursorScreenPos();
+			const float h = ImGui::GetTextLineHeight();
+			ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + 4.0f, p.y + h),
+				ImGui::ColorConvertFloat4ToU32(mod()));
+			ImGui::Dummy(ImVec2(10.0f, h));
+			ImGui::SameLine();
+			ImGui::TextColored(mod2(), "driven by %s", drivenBy);
+			return false;
+		}
+
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::PushStyleColor(ImGuiCol_SliderGrab, mod());
+		const std::string id = std::string("##in") + label;
+		const bool changed = ImGui::SliderFloat(id.c_str(), v01, 0.0f, 1.0f, "");
+		ImGui::PopStyleColor();
+		return changed;
+	}
+
 	/** Filled state dot at the cursor. `pulsing` breathes alpha+radius off ImGui::GetTime() (armed/modulating). */
 	inline void StateDot(const ImVec4& color, bool pulsing = false, float radius = 5.0f)
 	{

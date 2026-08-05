@@ -6,9 +6,9 @@
 #include <cmath>
 
 RTTI_BEGIN_CLASS(lx::ChaseModulator)
-	RTTI_PROPERTY("Rate",		&lx::ChaseModulator::mRate,			nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("PulseWidth",	&lx::ChaseModulator::mPulseWidth,	nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Glide",		&lx::ChaseModulator::mGlide,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("RateInput",			&lx::ChaseModulator::mRateInput,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("PulseWidthInput",	&lx::ChaseModulator::mPulseWidthInput,	nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Glide",				&lx::ChaseModulator::mGlide,			nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace lx
@@ -36,7 +36,7 @@ namespace lx
 		Modulator::onTrigger();
 		if (mPlayer == nullptr)
 			return;
-		mPlayer->setPlaybackSpeed(mRate);
+		mPlayer->setPlaybackSpeed(inputValue(mRateInput, 0.05f, 8.0f));
 		mPlayer->setIsLooping(true);
 		if (!mPlayer->getIsPlaying())
 			mPlayer->setPlayerTime(0.0);
@@ -57,9 +57,13 @@ namespace lx
 		if (mPlayer == nullptr)
 			return 0.0f;
 
+		// Rate drives the player's playback speed, so a driven Rate has to be pushed every frame -- the
+		// transport is stateful, unlike PulseWidth which is read fresh below.
+		mPlayer->setPlaybackSpeed(inputValue(mRateInput, 0.05f, 8.0f));
+
 		double t = mPlayer->getPlayerTime();
 		double phase = wrapFrac(t - static_cast<double>(pos01));
-		float pw = nap::math::clamp(mPulseWidth, 0.01f, 1.0f);
+		float pw = nap::math::clamp(inputValue(mPulseWidthInput, 0.01f, 1.0f), 0.01f, 1.0f);
 
 		if (!mGlide)
 			return phase < pw ? 1.0f : 0.0f;

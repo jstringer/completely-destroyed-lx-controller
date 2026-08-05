@@ -832,6 +832,18 @@ namespace nap
 	// instead of the default "Param". Float/Toggle -> role name; Color -> "Color".
 	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
 
+	/** @return the name of the modulator driving `input`, or nullptr when it is authored by hand.
+	 *  ponytail: O(mods x targets) per input per frame -- both are single digits on any real patch. Index it
+	 *  only if a patch ever grows dozens of modulators. */
+	static const char* driverOf(const lx::Patch& patch, const lx::PatchParameter* input)
+	{
+		for (auto& m : patch.mModulators)
+			for (auto& t : m->mTargets)
+				if (t.get() == input)
+					return m->mName.c_str();
+		return nullptr;
+	}
+
 	/** @return how many value components a modulator's field spans: 3 if it drives a colour, else 1. Picks
 	 *  the widest target so a Noise on Colour previews as RGB rather than a grey ramp. */
 	static int modTargetComponents(lx::Modulator* m)
@@ -846,7 +858,14 @@ namespace nap
 	static std::string patchParamLabel(lx::PatchParameter* p)
 	{
 		if (p == nullptr) return "(none)";
-		if (auto* fp = rtti_cast<lx::FloatParameter>(p)) return kRoleLabels[nap::math::clamp(static_cast<int>(fp->mRole), 0, 7)];
+		// A Field input carries role Generic and a real name ("Rate"), so name it rather than printing
+		// "Generic" -- this is what makes a "drives [Rate]" chip legible.
+		if (auto* fp = rtti_cast<lx::FloatParameter>(p))
+		{
+			if (fp->mRole == lx::EChannelRole::Generic && !fp->mName.empty())
+				return fp->mName;
+			return kRoleLabels[nap::math::clamp(static_cast<int>(fp->mRole), 0, 7)];
+		}
 		if (rtti_cast<lx::ColorParameter>(p)) return "Color";
 		if (auto* tp = rtti_cast<lx::ToggleParameter>(p)) return std::string(kRoleLabels[nap::math::clamp(static_cast<int>(tp->mRole), 0, 7)]) + " (tgl)";
 		return p->mName;
@@ -1017,6 +1036,11 @@ namespace nap
 					else if (rtti_cast<lx::ChaseModulator>(m.get())) kind = "CHASE";
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
 					lxtheme::SlabBegin((mod_index & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::mod());
+					// Family plate before the kind. Both families stay violet -- they are told apart by their
+					// PREVIEW (strip across position vs curve with a playhead), not by a fourth hue.
+					const bool is_field_mod = rtti_cast<lx::FieldModulator>(m.get()) != nullptr;
+					lxtheme::Plate(is_field_mod ? "Field" : "Curve", is_field_mod ? lxtheme::mod() : lxtheme::mod2());
+					ImGui::SameLine();
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
 					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
@@ -1039,14 +1063,29 @@ namespace nap
 					}
 					if (remove_ti >= 0) { m->mTargets.erase(m->mTargets.begin() + remove_ti); mLxControlService->markDirty(); }
 					{
-						// Params not yet targeted -> a "+ add" combo.
+						// Not-yet-targeted source params AND other Field modulators' inputs -> a "+ add" combo.
+						// A Curve landing on "Noise . Rate" is the same code path as one landing on Dimmer,
+						// which is the whole reason inputs are PatchParameters.
 						std::vector<lx::PatchParameter*> avail;
 						std::vector<std::string> avail_lbls;
-						for (auto& p : patch->mParameters)
+						auto offer = [&](lx::PatchParameter* p, const std::string& label)
 						{
-							bool already = false;
-							for (auto& t : m->mTargets) if (t.get() == p.get()) { already = true; break; }
-							if (!already) { avail.emplace_back(p.get()); avail_lbls.emplace_back(patchParamLabel(p.get())); }
+							if (p == nullptr)
+								return;
+							for (auto& t : m->mTargets) if (t.get() == p) return;	// already targeted
+							avail.emplace_back(p);
+							avail_lbls.emplace_back(label);
+						};
+						for (auto& p : patch->mParameters)
+							offer(p.get(), patchParamLabel(p.get()));
+						for (auto& other : patch->mModulators)
+						{
+							if (other.get() == m.get())
+								continue;	// no self-modulation: it would fight its own pass-1 write
+							if (auto* of = rtti_cast<lx::FieldModulator>(other.get()))
+								for (auto* in : of->inputs())
+									if (in != nullptr)
+										offer(in, other->mName + " . " + in->mName);
 						}
 						if (!avail.empty())
 						{
@@ -1119,16 +1158,20 @@ namespace nap
 						ch |= lxtheme::LabeledCheck("Glide", &step->mGlide);
 						if (ch) regen();
 					}
-					else if (auto* chase = rtti_cast<lx::ChaseModulator>(m.get()))
+					// Field modulators: one InputRow per modulatable input. A row whose input is targeted by
+					// another modulator shows "driven by X" instead of a slider.
+					if (auto* field = rtti_cast<lx::FieldModulator>(m.get()))
 					{
-						lxtheme::LabeledDrag("Rate", &chase->mRate, 0.05f, 0.0f, 30.0f, 80.0f); ImGui::SameLine();
-						lxtheme::LabeledSlider("PulseWidth", &chase->mPulseWidth, 0.01f, 1.0f, 80.0f); ImGui::SameLine();
-						lxtheme::LabeledCheck("Glide", &chase->mGlide);
-					}
-					else if (auto* noise = rtti_cast<lx::NoiseModulator>(m.get()))
-					{
-						lxtheme::LabeledDrag("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f, 80.0f); ImGui::SameLine();
-						lxtheme::LabeledSlider("Smoothing", &noise->mSmoothing, 0.0f, 1.0f, 100.0f);
+						for (auto* in : field->inputs())
+						{
+							auto* fp = rtti_cast<lx::FloatParameter>(in);
+							if (fp == nullptr)
+								continue;
+							if (lxtheme::InputRow(fp->mName.c_str(), &fp->mValue, driverOf(*patch.get(), in)))
+								mLxControlService->markDirty();
+						}
+						if (auto* chase = rtti_cast<lx::ChaseModulator>(field))
+							lxtheme::LabeledCheck("Glide", &chase->mGlide);
 					}
 
 					int blend = static_cast<int>(m->mBlend);

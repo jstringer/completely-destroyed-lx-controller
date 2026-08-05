@@ -200,6 +200,9 @@ namespace nap
 			rtti::ObjectPtr<SequencePlayerCurveOutput>	mOutput;	// stock curve output -> sink parameter
 			rtti::ObjectPtr<ParameterFloat>				mSink;
 			rtti::ObjectPtr<SequenceEditor>				mEditor;	// runtime curve authoring + duration
+			// A Field modulator's modulatable inputs (Rate/Density/...). Owned here so save() lists them as
+			// root objects -- they are Default-pointer targets, which serializeObjects will not pull in.
+			std::vector<rtti::ObjectPtr<lx::PatchParameter>>	mInputs;
 		};
 
 		struct PatchEntry
@@ -223,6 +226,9 @@ namespace nap
 		/** (Re)builds one modulator's runtime player/sink/editor graph and re-propagates its voice count +
 		 *  Noise seed bookkeeping. Called for each modulator by loadUserContent. */
 		void rewireModulator(lx::Patch& patch, ModulatorEntry& entry);
+		/** Creates any missing modulatable input parameter on a Field modulator and records them in `entry`
+		 *  so they persist. `defaults` gives each input's authored 0..1 starting value, in inputs() order. */
+		void ensureFieldInputs(lx::Modulator& mod, ModulatorEntry& entry);
 		/** Deserializes user_content.json ourselves (never handed to the ResourceManager, so it is never
 		 *  file-watched / hot-reloaded), resolves links, inits every resource references-first, then builds
 		 *  the runtime modulator graphs + typed views. Returns false (state left empty) on a bad/old file. */

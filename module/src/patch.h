@@ -31,6 +31,11 @@ namespace lx
 		void update(double deltaTime);
 		bool isFinished() const;
 
+		/** @return true if `p` is a modulatable input of one of this patch's Field modulators (rather than a
+		 *  source parameter). Such a parameter is written by pass 1 of update() and must never be blended
+		 *  into a source value. */
+		bool isFieldInput(const PatchParameter* p) const;
+
 		/**
 		 * @return `param`'s component `component` for source `sourceIndex` of `sourceCount`: the authored
 		 * base with every modulator targeting `param` blended in, each evaluated at ITS OWN position (a
@@ -69,6 +74,11 @@ namespace lx
 				for (auto& t : modulator->mTargets)
 					if (t.get() == &param) { targets = true; break; }
 				if (!targets)
+					continue;
+
+				// A modulator that drives a Field's INPUT contributes to that input, never to a source
+				// value; pass 1 of update() has already applied it.
+				if (isFieldInput(&param))
 					continue;
 
 				// mTargetComponent selects WHICH components this modulator writes (-1 = all). Distinct from
