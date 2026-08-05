@@ -4,6 +4,7 @@
 #include "fixturechannelcomponent.h"
 #include "noisemodulator.h"
 #include "chasemodulator.h"
+#include "gradientmodulator.h"
 
 // External Includes
 #include <nap/core.h>
@@ -319,10 +320,39 @@ namespace nap
 			entry.mInputs.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(p.get()));
 		};
 
+		// Colour inputs (Gradient's endpoints) need their own maker: a ColorParameter, not a float.
+		auto makeColor = [&](nap::ResourcePtr<lx::ColorParameter>& slot, const char* name, float r, float g, float b)
+		{
+			if (slot != nullptr)
+			{
+				entry.mInputs.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(slot.get()));
+				return;
+			}
+			auto p = mResourceManager->createObject<lx::ColorParameter>();
+			p->mID = makeUniqueID(mod.mID + "_" + name);
+			p->mName = name;
+			p->mRed = r; p->mGreen = g; p->mBlue = b;
+			utility::ErrorState err;
+			if (!p->init(err))
+			{
+				Logger::error("ensureFieldInputs: %s", err.toString().c_str());
+				return;
+			}
+			slot = p.get();
+			entry.mInputs.emplace_back(rtti::ObjectPtr<lx::PatchParameter>(p.get()));
+		};
+
 		if (auto* chase = rtti_cast<lx::ChaseModulator>(field))
 		{
 			make(chase->mRateInput, "Rate", 0.12f);			// ~1 Hz within [0.05, 8]
 			make(chase->mPulseWidthInput, "PulseWidth", 0.3f);
+		}
+		else if (auto* grad = rtti_cast<lx::GradientModulator>(field))
+		{
+			makeColor(grad->mStartInput, "Start", 0.0f, 0.22f, 1.0f);	// blue
+			makeColor(grad->mEndInput, "End", 0.96f, 0.70f, 0.0f);		// gold
+			make(grad->mPhaseInput, "Phase", 0.0f);
+			make(grad->mPeriodInput, "Period", 0.23f);					// ~1 span within [0.1, 4]
 		}
 		else if (auto* noise = rtti_cast<lx::NoiseModulator>(field))
 		{

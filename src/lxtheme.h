@@ -409,6 +409,44 @@ namespace lxtheme
 		return changed;
 	}
 
+	/** InputRow's colour sibling (a Gradient endpoint): swatch instead of slider, same driven-by treatment.
+	 *  @return true when the swatch changed. */
+	inline bool ColorInputRow(const char* label, float* r, float* g, float* b, const char* drivenBy)
+	{
+		ImGui::AlignTextToFramePadding();
+		ImGui::PushStyleColor(ImGuiCol_Text, drivenBy != nullptr ? mod2() : muted());
+		ImGui::TextUnformatted(label);
+		ImGui::PopStyleColor();
+		ImGui::SameLine(122.0f);
+
+		float col[3] = { *r, *g, *b };
+		if (drivenBy != nullptr)
+		{
+			// Read-only swatch + the driver's name: pass 1 rewrites this every frame. (Drawn inline rather
+			// than via Swatch(), which is declared further down this header.)
+			ImGui::ColorButton(label, ImVec4(col[0], col[1], col[2], 1.0f),
+				ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip,
+				ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight()));
+			ImGui::SameLine();
+			const ImVec2 p = ImGui::GetCursorScreenPos();
+			const float h = ImGui::GetTextLineHeight();
+			ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + 4.0f, p.y + h),
+				ImGui::ColorConvertFloat4ToU32(mod()));
+			ImGui::Dummy(ImVec2(10.0f, h));
+			ImGui::SameLine();
+			ImGui::TextColored(mod2(), "driven by %s", drivenBy);
+			return false;
+		}
+
+		const std::string id = std::string("##col") + label;
+		if (ImGui::ColorEdit3(id.c_str(), col, ImGuiColorEditFlags_NoInputs))
+		{
+			*r = col[0]; *g = col[1]; *b = col[2];
+			return true;
+		}
+		return false;
+	}
+
 	/** Filled state dot at the cursor. `pulsing` breathes alpha+radius off ImGui::GetTime() (armed/modulating). */
 	inline void StateDot(const ImVec4& color, bool pulsing = false, float radius = 5.0f)
 	{

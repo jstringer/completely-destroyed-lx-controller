@@ -26,6 +26,7 @@
 #include <stepmodulator.h>
 #include <chasemodulator.h>
 #include <noisemodulator.h>
+#include <gradientmodulator.h>
 #include <trigger.h>
 #include <control.h>
 #include <midibinding.h>
@@ -160,8 +161,8 @@ namespace nap
 		// harness, so the type gets an explicit verb.
 		else if (verb == "modtype")
 		{
-			static const char* kTypes[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise" };
-			for (int i = 0; i < 6; ++i)
+			static const char* kTypes[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise", "Gradient" };
+			for (int i = 0; i < 7; ++i)
 			{
 				if (arg == kTypes[i])
 				{
@@ -1008,17 +1009,18 @@ namespace nap
 				// --- MODULATION zone: add via a type dropdown + Add button ---
 				lxtheme::Plate("Modulation", lxtheme::mod());
 				int mod_index = 0;
-				static const char* mod_type_labels[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise" };
+				static const char* mod_type_labels[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise", "Gradient" };
 				const nap::rtti::TypeInfo mod_types[] = {
 					RTTI_OF(lx::AdsrModulator), RTTI_OF(lx::AdModulator), RTTI_OF(lx::LfoModulator),
-					RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator) };
+					RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator),
+					RTTI_OF(lx::GradientModulator) };
 				ImGui::SetNextItemWidth(130);
-				ImGui::Combo("##addmodtype", &mAddModType, mod_type_labels, 6);
+				ImGui::Combo("##addmodtype", &mAddModType, mod_type_labels, 7);
 				ImGui::SameLine();
 				const bool can_add_mod = !patch->mParameters.empty();
 				bool addmod_dis = lxtheme::PushDisabled(!can_add_mod);
 				if (lxagent::Button("+ Add modulator") && can_add_mod)
-					mLxControlService->addModulator(*patch.get(), mod_types[nap::math::clamp(mAddModType, 0, 5)], patch->mParameters[0].get());
+					mLxControlService->addModulator(*patch.get(), mod_types[nap::math::clamp(mAddModType, 0, 6)], patch->mParameters[0].get());
 				lxtheme::PopDisabled(addmod_dis);
 				if (!can_add_mod && ImGui::IsItemHovered())
 					ImGui::SetTooltip("Add a source parameter first");
@@ -1035,6 +1037,7 @@ namespace nap
 					else if (rtti_cast<lx::StepModulator>(m.get())) kind = "STEP";
 					else if (rtti_cast<lx::ChaseModulator>(m.get())) kind = "CHASE";
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
+					else if (rtti_cast<lx::GradientModulator>(m.get())) kind = "GRADIENT";
 					lxtheme::SlabBegin((mod_index & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::mod());
 					// Family plate before the kind. Both families stay violet -- they are told apart by their
 					// PREVIEW (strip across position vs curve with a playhead), not by a fourth hue.
@@ -1103,9 +1106,9 @@ namespace nap
 
 					// The family is told apart by its PREVIEW, not by a fourth hue: a spatial (Field) modulator
 					// draws a strip across position; a temporal (Curve) one draws its shape with a playhead.
-					const bool is_field = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr ||
-						rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
-					if (is_field)
+					// Test the BASE, not each concrete type -- listing types here is how Gradient silently
+					// got the wrong preview (its flat dummy curve) when it was added.
+					if (is_field_mod)
 					{
 						lx::Modulator* mm = m.get();
 						lxtheme::FieldStrip([mm](float pos, int c) { return mm->value(pos, c); },
@@ -1164,11 +1167,21 @@ namespace nap
 					{
 						for (auto* in : field->inputs())
 						{
-							auto* fp = rtti_cast<lx::FloatParameter>(in);
-							if (fp == nullptr)
+							if (in == nullptr)
 								continue;
-							if (lxtheme::InputRow(fp->mName.c_str(), &fp->mValue, driverOf(*patch.get(), in)))
-								mLxControlService->markDirty();
+							const char* driver = driverOf(*patch.get(), in);
+							if (auto* fp = rtti_cast<lx::FloatParameter>(in))
+							{
+								if (lxtheme::InputRow(fp->mName.c_str(), &fp->mValue, driver))
+									mLxControlService->markDirty();
+							}
+							else if (auto* cp = rtti_cast<lx::ColorParameter>(in))
+							{
+								// A colour input (a Gradient endpoint) edits as a swatch, but takes the same
+								// driven-by treatment: an LFO on End must not leave an editable swatch behind.
+								if (lxtheme::ColorInputRow(cp->mName.c_str(), &cp->mRed, &cp->mGreen, &cp->mBlue, driver))
+									mLxControlService->markDirty();
+							}
 						}
 						if (auto* chase = rtti_cast<lx::ChaseModulator>(field))
 							lxtheme::LabeledCheck("Glide", &chase->mGlide);
