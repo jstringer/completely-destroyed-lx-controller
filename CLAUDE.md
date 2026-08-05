@@ -25,6 +25,8 @@ This is the authoritative, shipped vocabulary. Sections further down that still 
 
 `src/lxagent.h` (header-only) + the **`lx-drive` skill** let an agent navigate the running GUI and read it back: `pwsh -NoProfile -File .claude/skills/lx-drive/scripts/lxui.ps1 <verb>` writes one command per frame into `.agent/cmd` (polled at the top of `lxcontrolApp::update()`) and reads the app's `.agent/ack` — HIT/MISS, mode/tab/program/voices, and every clickable label that drew that frame. Buttons are addressed **by label** (`lxagent::Button` wraps every `ImGui::Button`/`SmallButton` in the app), never by pixel. Screenshots come from Win32 window capture in that script, **not `nap::Snapshot`** — Snapshot renders `RenderableComponent`s through a `PerspCamera` and deliberately excludes ImGui, so it cannot see this UI at all. See `.claude/skills/lx-drive/SKILL.md` for the verb list and the real limitations (no press-and-hold, buttons/tabs only).
 
+When verifying a visual change with `lx-drive`, judge the screenshot **aesthetically**, not just for mechanical rule-compliance — "I applied the rule everywhere" is not the same as "it looks right." Read the captured image and ask whether it actually reads well before declaring the change done.
+
 ## Repository layout
 
 - `src/` — the application itself (`lxcontrolApp`), owns services/scene/window and drives update/render/input, and draws the GUI (Live Bar + RIG / PROGRAMS / CONTROLS tabs + Perform mode). Also `src/lxtheme.h` (design language), `src/lxstyleguide.{h,cpp}` (Style Guide test bed) and `src/lxagent.h` (agent bridge, below).
