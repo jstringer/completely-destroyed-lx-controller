@@ -21,6 +21,7 @@
 
 // Local Includes
 #include "midihotplugmonitor.h"
+#include "fixturegroup.h"
 #include "patch.h"
 #include "trigger.h"
 #include "control.h"
@@ -79,6 +80,16 @@ namespace nap
 		 *  this (not getFixtures()'s raw registration order) so what's shown while authoring matches what
 		 *  actually happens at fire time. */
 		std::vector<lx::FixtureComponentInstance*> getFixturesPhysicalOrder() const;
+
+		// --- Fixture groups (what a Control binds to; ordered whole fixtures) ---
+		lx::FixtureGroup* createGroup(const std::string& name);
+		void removeGroup(lx::FixtureGroup* group);
+		void setGroupFixtures(lx::FixtureGroup& group, const std::vector<std::string>& fixtureIDs);
+		const std::vector<rtti::ObjectPtr<lx::FixtureGroup>>& getGroups() const { return mGroups; }
+		/** @return the "All Fixtures" group, creating it (every fixture, physical DMX order) if absent.
+		 *  Called from setup() so a fresh install always has something bindable, and so the lifecycle
+		 *  rows' old "all fixtures" default has a real group to point at. */
+		lx::FixtureGroup* ensureDefaultGroup();
 
 		// --- Patches ---
 		lx::Patch* createPatch(const std::string& name);
@@ -234,6 +245,8 @@ namespace nap
 		int									mNextNoiseSeed = 1;	// auto-assigned to each newly-created NoiseModulator so independent instances decorrelate
 		ResourcePtr<MidiInputPort>			mMidiPort;
 		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;
+
+		std::vector<rtti::ObjectPtr<lx::FixtureGroup>>	mGroups;
 
 		std::vector<PatchEntry>				mPatchEntries;
 		std::vector<rtti::ObjectPtr<lx::Patch>>	mPatches;	// mirrors mPatchEntries for getPatches()

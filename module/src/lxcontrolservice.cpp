@@ -152,6 +152,10 @@ namespace nap
 				restoreActiveProgram();
 			}
 		}
+
+		// A fresh install must have something bindable. Runs after the load so it matches a group that was
+		// already persisted instead of creating a duplicate.
+		ensureDefaultGroup();
 		return true;
 	}
 
@@ -240,6 +244,8 @@ namespace nap
 				mPrograms.emplace_back(rtti::ObjectPtr<lx::Program>(program));
 			else if (auto* mapping = rtti_cast<lx::ControlMapping>(obj))
 				mControlMappings.emplace_back(rtti::ObjectPtr<lx::ControlMapping>(mapping));
+			else if (auto* group = rtti_cast<lx::FixtureGroup>(obj))
+				mGroups.emplace_back(rtti::ObjectPtr<lx::FixtureGroup>(group));
 		}
 		return true;
 	}
@@ -341,6 +347,58 @@ namespace nap
 				return &entry;
 		}
 		return nullptr;
+	}
+
+
+	lx::FixtureGroup* lxcontrolService::createGroup(const std::string& name)
+	{
+		auto group = mResourceManager->createObject<lx::FixtureGroup>();
+		group->mID = makeUniqueID("Group_" + name);
+		group->mName = name;
+		utility::ErrorState err;
+		if (!group->init(err))
+		{
+			Logger::error("createGroup: %s", err.toString().c_str());
+			return nullptr;
+		}
+		mGroups.emplace_back(group);
+		markDirty();
+		return group.get();
+	}
+
+
+	void lxcontrolService::removeGroup(lx::FixtureGroup* group)
+	{
+		mGroups.erase(std::remove_if(mGroups.begin(), mGroups.end(),
+			[group](const rtti::ObjectPtr<lx::FixtureGroup>& g) { return g.get() == group; }), mGroups.end());
+		markDirty();
+	}
+
+
+	void lxcontrolService::setGroupFixtures(lx::FixtureGroup& group, const std::vector<std::string>& fixtureIDs)
+	{
+		group.mFixtureNames = fixtureIDs;
+		markDirty();
+	}
+
+
+	lx::FixtureGroup* lxcontrolService::ensureDefaultGroup()
+	{
+		for (auto& g : mGroups)
+		{
+			if (g != nullptr && g->mName == "All Fixtures")
+				return g.get();
+		}
+
+		lx::FixtureGroup* group = createGroup("All Fixtures");
+		if (group == nullptr)
+			return nullptr;
+
+		std::vector<std::string> ids;
+		for (auto* f : getFixturesPhysicalOrder())
+			ids.emplace_back(f->getEntityID());
+		setGroupFixtures(*group, ids);
+		return group;
 	}
 
 
@@ -1245,6 +1303,10 @@ namespace nap
 			root_objects.emplace_back(program.get());
 		for (auto& mapping : mControlMappings)
 			root_objects.emplace_back(mapping.get());
+		// Groups are Default-pointer targets from Trigger bindings; serializeObjects does NOT pull those
+		// in, so an unlisted group would become a dangling id on the next load.
+		for (auto& group : mGroups)
+			root_objects.emplace_back(group.get());
 
 		rtti::JSONWriter writer;
 		utility::ErrorState error;
