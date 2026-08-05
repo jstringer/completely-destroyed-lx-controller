@@ -155,6 +155,22 @@ namespace nap
 				lxagent::hit();
 			}
 		}
+		// The bridge can only click buttons, so the "add modulator" TYPE combo was unreachable -- which made
+		// every Chase/Noise/Gradient behaviour check un-runnable headlessly. This is the project's only test
+		// harness, so the type gets an explicit verb.
+		else if (verb == "modtype")
+		{
+			static const char* kTypes[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise" };
+			for (int i = 0; i < 6; ++i)
+			{
+				if (arg == kTypes[i])
+				{
+					mAddModType = i;
+					lxagent::hit();
+					break;
+				}
+			}
+		}
 		else if (verb == "styleguide")
 		{
 			mShowStyleGuide = arg != "off";
@@ -1105,7 +1121,8 @@ namespace nap
 						for (int s = 0; s < voices; ++s)
 						{
 							ImGui::PushID(s);
-							ImGui::ProgressBar(m->valueForVoice(s), ImVec2(90, 0), describePatchVoice(patch.get(), s).c_str());
+							ImGui::ProgressBar(m->value(lx::positionOf(*m.get(), s, voices), 0), ImVec2(90, 0),
+								describePatchVoice(patch.get(), s).c_str());
 							ImGui::PopID();
 							if (s + 1 < voices) ImGui::SameLine();
 						}
@@ -1166,8 +1183,7 @@ namespace nap
 					else if (auto* noise = rtti_cast<lx::NoiseModulator>(m.get()))
 					{
 						lxtheme::LabeledDrag("Rate", &noise->mRate, 0.05f, 0.0f, 30.0f, 80.0f); ImGui::SameLine();
-						lxtheme::LabeledSlider("Smoothing", &noise->mSmoothing, 0.0f, 1.0f, 100.0f); ImGui::SameLine();
-						lxtheme::LabeledInt("Seed", &noise->mSeed, 80.0f);
+						lxtheme::LabeledSlider("Smoothing", &noise->mSmoothing, 0.0f, 1.0f, 100.0f);
 					}
 
 					int blend = static_cast<int>(m->mBlend);

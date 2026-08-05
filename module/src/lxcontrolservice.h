@@ -240,7 +240,7 @@ namespace nap
 		std::string makeUniqueID(const std::string& base) const;
 		PatchEntry* findEntry(lx::Patch& patch);
 		/** Sets patch.mFixtureCount to matchedCount (Multiple mode only) and re-propagates it to every
-		 *  modulator the patch owns via Modulator::setVoiceCount. Called from fireTrigger with the actual
+		 *  modulator the patch owns. Called from fireTrigger with the actual
 		 *  number of the firing binding's fixtures that exist in the rig -- this is what keeps Chase/Noise
 		 *  voice counts truthful without requiring a hand-typed, easily-desynced FixtureCount field. */
 		void syncPatchFixtureCount(lx::Patch& patch, int matchedCount);
@@ -258,7 +258,6 @@ namespace nap
 		bool								mDirty = false;		// authored content changed; update() flushes on a debounce
 		double								mSaveTimer = 0.0;
 		std::vector<lx::FixtureComponentInstance*>	mFixtures;
-		int									mNextNoiseSeed = 1;	// auto-assigned to each newly-created NoiseModulator so independent instances decorrelate
 		ResourcePtr<MidiInputPort>			mMidiPort;
 		std::unique_ptr<MidiHotplugMonitor>	mMidiHotplugMonitor;
 

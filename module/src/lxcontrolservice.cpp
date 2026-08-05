@@ -282,15 +282,9 @@ namespace nap
 			return;
 		}
 
-		// mVoiceCount is non-serialized runtime state on Chase/Noise-style modulators; re-propagate it from
-		// the patch's (serialized) TargetMode/FixtureCount, else it silently resets to 1.
-		int voice_count = patch.mTargetMode == lx::EPatchTargetMode::Multiple ? std::max(1, patch.mFixtureCount) : 1;
-		mod->setVoiceCount(voice_count);
-
-		// Keep mNextNoiseSeed past every seed already persisted, so a NoiseModulator created fresh this
-		// session never collides with (and silently correlates against) one reloaded from disk.
-		if (auto* noise = rtti_cast<lx::NoiseModulator>(mod))
-			mNextNoiseSeed = std::max(mNextNoiseSeed, noise->mSeed + 1);
+		// Nothing else to re-propagate: a modulator no longer caches a voice count. Source positions are
+		// handed to value(pos01, component) at evaluation time, so there is no per-patch runtime state that
+		// could silently reset to 1 on load.
 	}
 
 
@@ -613,12 +607,6 @@ namespace nap
 		if (target != nullptr)
 			mod->mTargets.emplace_back(target);
 
-		// Auto-assign a fresh seed so two independently-added NoiseModulators (e.g. one per R/G/B
-		// component of a color) decorrelate by default instead of both defaulting to Seed=0 and producing
-		// identical values. The user can still override it in the GUI.
-		if (auto* noise = rtti_cast<lx::NoiseModulator>(mod))
-			noise->mSeed = mNextNoiseSeed++;
-
 		utility::ErrorState err;
 		if (!mod->init(err))
 		{
@@ -633,8 +621,6 @@ namespace nap
 			Logger::error("addModulator: build graph failed: %s", err.toString().c_str());
 			return nullptr;
 		}
-		mod->setVoiceCount(patch.mTargetMode == lx::EPatchTargetMode::Multiple ? std::max(1, patch.mFixtureCount) : 1);
-
 		patch.mModulators.emplace_back(mod);
 		patch_entry->mModulators.emplace_back(mod_entry);
 		markDirty();
@@ -688,18 +674,6 @@ namespace nap
 	{
 		patch.mTargetMode = mode;
 
-		// FixtureCount itself is no longer set here -- it's derived from each Trigger binding's actual
-		// selected fixtures the next time this patch fires (see fireTrigger/syncPatchFixtureCount).
-		// Re-propagate whatever count is currently known so a freshly-toggled Multiple patch previews
-		// sanely (e.g. in the Patches tab's per-voice progress bars) before its first fire.
-		int voice_count = mode == lx::EPatchTargetMode::Multiple ? std::max(1, patch.mFixtureCount) : 1;
-		PatchEntry* entry = findEntry(patch);
-		if (entry != nullptr)
-		{
-			for (auto& me : entry->mModulators)
-				if (me.mModulator != nullptr)
-					me.mModulator->setVoiceCount(voice_count);
-		}
 		markDirty();
 	}
 
@@ -710,13 +684,6 @@ namespace nap
 			return;
 
 		patch.mFixtureCount = std::max(1, matchedCount);
-		PatchEntry* entry = findEntry(patch);
-		if (entry != nullptr)
-		{
-			for (auto& me : entry->mModulators)
-				if (me.mModulator != nullptr)
-					me.mModulator->setVoiceCount(patch.mFixtureCount);
-		}
 		// Deliberately no save() here: this runs on every fireTrigger call (including MIDI-driven,
 		// possibly-frequent ones) and mFixtureCount is a derived/cache value, not authored state worth
 		// persisting on its own -- it'll be captured by whatever save() the next real authoring edit does.

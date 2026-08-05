@@ -22,7 +22,7 @@ namespace lx
 	 *
 	 * TargetMode/FixtureCount declare how many independent fixture "voices" this patch computes: Single
 	 * (default) is one shared value, broadcast to every fixture a Trigger binds it to; Multiple computes
-	 * FixtureCount distinct voice values (see Modulator::valueForVoice), one per bound fixture, assigned in
+	 * FixtureCount distinct voice values (see Modulator::value), one per bound fixture, assigned in
 	 * physical rig order by lxcontrolService::fireTrigger().
 	 */
 	class NAPAPI Patch : public nap::Resource

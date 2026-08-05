@@ -8,7 +8,6 @@
 RTTI_BEGIN_CLASS(lx::NoiseModulator)
 	RTTI_PROPERTY("Rate",		&lx::NoiseModulator::mRate,			nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Smoothing",	&lx::NoiseModulator::mSmoothing,	nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Seed",		&lx::NoiseModulator::mSeed,			nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace lx
@@ -36,7 +35,7 @@ namespace lx
 
 	void NoiseModulator::generateCurve(nap::lxcontrolService& svc)
 	{
-		// Value is computed analytically in valueForVoice() from mElapsed; this dummy curve exists only
+		// Value is computed analytically in value(pos01) from mElapsed; this dummy curve exists only
 		// to pin mDuration/the sequence duration, matching every other modulator's generateCurve().
 		mDuration = 1.0;
 		using I = nap::math::ECurveInterp;
@@ -71,18 +70,22 @@ namespace lx
 	}
 
 
-	float NoiseModulator::valueForVoice(int voice) const
+	float NoiseModulator::value(float pos01, int component) const
 	{
 		double t = mElapsed * (double)std::max(mRate, 0.001f);
 		double step_d = std::floor(t);
 		uint64_t step = static_cast<uint64_t>(std::max(step_d, 0.0));
 		float frac = static_cast<float>(t - step_d);
 
-		float a = hash01(voice, step, mSeed);
+		// The position bucket stands in for the old voice index; `component` replaces the per-instance
+		// seed. Buckets are independent here (spatially incoherent) -- Density/coherence is Task 9.
+		const int bucket = static_cast<int>(pos01 * 1024.0f);
+
+		float a = hash01(bucket, step, component);
 		if (mSmoothing <= 0.0f)
 			return a;
 
-		float b = hash01(voice, step + 1, mSeed);
+		float b = hash01(bucket, step + 1, component);
 		return nap::math::lerp(a, b, smoothstep01(frac));
 	}
 }

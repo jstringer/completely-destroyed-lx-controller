@@ -55,9 +55,12 @@ namespace lx
 
 				for (int s = 0; s < voices; ++s)
 				{
-					float v = modulator->valueForVoice(s);
+					// Each modulator derives its own position from (s, voices) -- a Chase wants s/voices,
+					// a gradient wants s/(voices-1). See positionOf / Modulator::cyclicPositions.
+					const float pos = positionOf(*modulator, s, voices);
 					for (int c = from; c <= to && c < count; ++c)
 					{
+						float v = modulator->value(pos, c);
 						float cur = target->getComponentValue(s, c);
 						float blended = cur;
 						switch (modulator->mBlend)

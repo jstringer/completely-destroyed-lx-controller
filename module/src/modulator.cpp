@@ -53,8 +53,9 @@ namespace lx
 	}
 
 
-	float Modulator::value() const
+	float Modulator::value(float /*pos01*/, int /*component*/) const
 	{
+		// Curve modulators are position- and component-invariant: one shape, identical on every source.
 		float raw = mSink != nullptr ? mSink->mValue : 0.0f;
 		return nap::math::lerp(mMin, mMax, raw);
 	}

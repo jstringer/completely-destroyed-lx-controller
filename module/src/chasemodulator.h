@@ -9,13 +9,12 @@
 namespace lx
 {
 	/**
-	 * Sweeps a one-hot pulse across FixtureCount voices in sequence -- "lights flash one after another".
+	 * Sweeps a one-hot pulse along the source list in sequence -- "lights flash one after another".
 	 * Uses its player purely as a shared phase clock (Rate -> playback speed, like LfoModulator); the
-	 * actual per-voice value is computed analytically in valueForVoice() from the player's own time, not
+	 * value is computed analytically in value() from the player's own time and the source's position, not
 	 * read back from the sink/curve (generateCurve() authors a flat dummy curve solely to pin mDuration/
-	 * the sequence's playable duration to 1 second, matching LfoModulator's convention). Only meaningful
-	 * on a Multiple-mode Patch (see Patch::mTargetMode); on a Single-mode patch it degenerates to a
-	 * single repeating pulse on voice 0.
+	 * the sequence's playable duration to 1 second, matching LfoModulator's convention). A single-source
+	 * spread degenerates to one repeating pulse, which is what "Single" mode used to mean.
 	 */
 	class NAPAPI ChaseModulator : public Modulator
 	{
@@ -24,14 +23,13 @@ namespace lx
 		void generateCurve(nap::lxcontrolService& svc) override;
 		void onTrigger() override;
 		void onStop() override;
-		float valueForVoice(int voice) const override;
-		void setVoiceCount(int count) override		{ mVoiceCount = std::max(1, count); }
+		float value(float pos01, int component) const override;
+		/** Endpoint-exclusive positions: with i/(n-1) the last source would sit at phase 1.0 == 0.0 and
+		 *  duplicate source 0, collapsing an N-step chase into N-1 steps. */
+		bool cyclicPositions() const override		{ return true; }
 
-		float	mRate = 1.0f;		///< Property: 'Rate' Hz -- one full sweep across all voices per 1/Rate seconds
-		float	mPulseWidth = 0.3f;	///< Property: 'PulseWidth' 0..1, fraction of each voice's turn spent "on"
+		float	mRate = 1.0f;		///< Property: 'Rate' Hz -- one full sweep across all sources per 1/Rate seconds
+		float	mPulseWidth = 0.3f;	///< Property: 'PulseWidth' 0..1, fraction of each source's turn spent "on"
 		bool	mGlide = false;		///< Property: 'Glide' soft edges instead of a hard on/off cut
-
-	private:
-		int		mVoiceCount = 1;	///< Runtime: set by lxcontrolService::setPatchTargetMode / rebuildFromLoadedContent
 	};
 }
