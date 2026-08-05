@@ -119,3 +119,38 @@ Held-priority LTP (the committed step) still resolves each channel to **one winn
 **Cost / risk:** **Large** — reworks the claim stack → a mixer, activations → voices, and per-Effect modulator state → per-Voice; touches `fireTrigger`, `FixtureChannelComponentInstance::resolveValue`, the modulator/SequencePlayer wiring, and the update loop. **Design decisions needed:** per-role mix modes + defaults, release semantics, color mixing (additive vs crossfade), polyphony caps.
 
 **UX payoff:** the Output funnel becomes a genuine **mixer** (stacked contributions, not one winner); "Voices" is literally true; layering/splitting patches across fixtures becomes expressive; the instrument finally sums like a synth. **Staging:** held-priority (committed) is a strict subset — ship it first; then Voice object + per-Voice phase (step 2, the gate) → per-role mixer (step 3, comparatively mechanical) → expose mix mode.
+
+---
+
+## §N — Single/multi unification: the field strip and the Field/Curve split
+
+Shipped on `refactor/single-multi-fx-unification`. Design record: `docs/single-multi-unification-plan.md`.
+
+**The rule that decided the UI: counts live on the rig, never on the effect.** An effect is a function of
+normalised position; it neither knows nor states how many sources it will land on. So the patch editor lost
+the Spread combo, the "3 voices" chip, the per-fixture meter row and the fixture-name tooltips. Source counts
+now appear in exactly two places, both of which are genuinely rig facts: a group's derived
+`3 dimmer · 3 strobe · 18 colour` chips in RIG, and the per-fixture strips themselves. Routing rows name the
+*group*, not a count.
+
+**The field strip is the one new device.** One `FieldStrip` per source parameter replaces the row of per-voice
+meters (already unreadable at 18 sources, impossible at 300). It samples **once per pixel column** — the
+decisive case is a hard-edged field: a Chase at PulseWidth 0.05 occupies 1/20th of the strip and a coarser
+interpolated sampling smears it or misses it entirely. The Style Guide carries that exact case as a
+regression check, plus a moving version. Framed with a `border()` rect, because a field that is legitimately
+dark everywhere (a Replace-blend modulator that isn't playing) is otherwise indistinguishable from empty space.
+
+**Field vs Curve is a preview distinction, not a fourth hue.** Both families stay violet. A **Field**
+(spatial, analytic: Chase/Noise/Gradient) previews as a strip across position; a **Curve** (temporal,
+curve-authored: ADSR/AD/LFO/Step) previews as its shape with a playhead. A `Plate("Field"/"Curve")` names the
+family before the kind. Choose the branch by `rtti_cast<FieldModulator>` — enumerating concrete types is how
+Gradient silently drew a Curve playhead over its own flat dummy curve.
+
+**A driven input hides its slider.** `InputRow` shows a 4px violet stub and `driven by <modulator>` instead of
+a control. That is correctness, not styling: pass 1 of `Patch::update` writes driven inputs every frame, so an
+editable slider would visibly fight the modulator. Colour inputs (Gradient's endpoints) get the same treatment
+via `ColorInputRow` — a read-only swatch rather than an editable one.
+
+**Order as information.** A group's member chips show their index because order *is* semantics: it sets the
+spread direction, so reordering or `Rev` reverses a chase. Reorder is `^`/`v` buttons plus `Rev`, not
+drag-and-drop — 1.76 has the DnD API but the agent bridge cannot drive a drag, and this stays verifiable.
