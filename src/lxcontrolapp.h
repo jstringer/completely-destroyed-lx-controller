@@ -75,7 +75,6 @@ namespace nap
 		 *  binding is found, or if the patch is bound by more than one Trigger with different fixture
 		 *  sets (a known shared-Patch-state limitation -- see QUESTIONS.md) the first match wins, so this
 		 *  is a preview aid, not a runtime guarantee. */
-		std::string describePatchVoice(lx::Patch* patch, int voice);
 		/** RIG > Groups: create/reorder/reverse/delete the FixtureGroups a Control can bind to. */
 		void drawGroupsSection();
 
@@ -99,7 +98,7 @@ namespace nap
 		ObjectPtr<MidiInputPort>	mMidiPort;
 
 		// Patches tab form state. Keyed by mID rather than pointer: several service calls (addModulator,
-		// addPatchParameter, setPatchTargetMode, ...) call save(), which rewrites user_content.json and
+		// addPatchParameter, addModulator, ...) call save(), which rewrites user_content.json and
 		// gets hot-reloaded by nap::ResourceManager's directory watch, recreating Patches/Modulators at a
 		// new address next frame -- a pointer-keyed map would silently orphan its entry (plot history
 		// resets, selection resets) on the very next such edit.

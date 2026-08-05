@@ -113,13 +113,6 @@ namespace nap
 		void removePatchParameter(lx::Patch& patch, lx::PatchParameter* param);
 		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type, lx::PatchParameter* target);
 		void removeModulator(lx::Patch& patch, lx::Modulator* mod);
-		/** Sets whether this patch computes one shared value (Single) or a distinct value per bound
-		 *  fixture (Multiple), and re-propagates the currently-known fixture count to every modulator it
-		 *  owns (a no-op for modulator types that don't use voices, e.g. ADSR/AD/LFO/Step). The fixture
-		 *  COUNT itself is no longer authored here -- it's derived automatically from each Trigger
-		 *  binding's actual selected fixtures at fire time (see fireTrigger/syncPatchFixtureCount), so it
-		 *  can never drift out of sync with what's actually bound. */
-		void setPatchTargetMode(lx::Patch& patch, lx::EPatchTargetMode mode);
 		void removePatch(lx::Patch* patch);
 		/** Deep-copies a patch (all PatchParameters + Modulators, each modulator's runtime graph rebuilt as
 		 *  on load), so a shared patch can be forked into an independent one. Returns the new patch. */
@@ -239,11 +232,6 @@ namespace nap
 		void save();
 		std::string makeUniqueID(const std::string& base) const;
 		PatchEntry* findEntry(lx::Patch& patch);
-		/** Sets patch.mFixtureCount to matchedCount (Multiple mode only) and re-propagates it to every
-		 *  modulator the patch owns. Called from fireTrigger with the actual
-		 *  number of the firing binding's fixtures that exist in the rig -- this is what keeps Chase/Noise
-		 *  voice counts truthful without requiring a hand-typed, easily-desynced FixtureCount field. */
-		void syncPatchFixtureCount(lx::Patch& patch, int matchedCount);
 		bool buildModulatorGraph(ModulatorEntry& entry, const std::string& base, utility::ErrorState& errorState);
 		lx::FixtureComponentInstance* findFixture(const std::string& entityID) const;
 		void reapClaims(uint64_t activationId);

@@ -3,6 +3,7 @@
 // External Includes
 #include <nap/resource.h>
 #include <nap/resourceptr.h>
+#include <mathutils.h>
 #include <vector>
 
 // Local Includes
@@ -11,19 +12,15 @@
 
 namespace lx
 {
-	/** Whether an Patch drives one shared value (Single) or a distinct value per fixture voice (Multiple). */
-	enum class EPatchTargetMode : int { Single, Multiple };
-
 	/**
-	 * A named bundle of PatchParameters and Modulators. Has no fixture knowledge: trigger()/stop()
-	 * forward to modulators; update() resets each parameter to its base then blends every modulator's
-	 * value into its target component(s) per its Blend. The result (PatchParameter::mCurrentValues)
-	 * is what the LTP claim stack (Phase 3) reads.
+	 * A named bundle of PatchParameters and Modulators. Has no fixture knowledge and holds no per-source
+	 * state: trigger()/stop() forward to modulators, update() only does per-frame transport housekeeping,
+	 * and VALUES are computed on demand by evaluate() / evaluateAt().
 	 *
-	 * TargetMode/FixtureCount declare how many independent fixture "voices" this patch computes: Single
-	 * (default) is one shared value, broadcast to every fixture a Trigger binds it to; Multiple computes
-	 * FixtureCount distinct voice values (see Modulator::value), one per bound fixture, assigned in
-	 * physical rig order by lxcontrolService::fireTrigger().
+	 * There is deliberately no spread mode and no fixture count. How far an effect spreads is a property
+	 * of the FixtureGroup a Control is routed to, not of the patch: a channel claim records where it sits
+	 * in that group's source list and asks evaluate() for its own value each frame. A one-source spread is
+	 * just position 0 of a set of one -- the case that used to be called "Single".
 	 */
 	class NAPAPI Patch : public nap::Resource
 	{
@@ -34,14 +31,61 @@ namespace lx
 		void update(double deltaTime);
 		bool isFinished() const;
 
+		/**
+		 * @return `param`'s component `component` for source `sourceIndex` of `sourceCount`: the authored
+		 * base with every modulator targeting `param` blended in, each evaluated at ITS OWN position (a
+		 * Chase wants sourceIndex/sourceCount, a gradient wants sourceIndex/(sourceCount-1) -- see
+		 * positionOf / Modulator::cyclicPositions). Stateless; this is what a channel claim calls.
+		 */
+		float evaluate(const PatchParameter& param, int sourceIndex, int sourceCount, int component) const
+		{
+			return blend(param, component, [&](const Modulator& m) { return positionOf(m, sourceIndex, sourceCount); });
+		}
+
+		/**
+		 * @return the same blend with every modulator evaluated at the continuous position `pos01`. For
+		 * previews (lxtheme::FieldStrip), which draw the field itself and so have no source count.
+		 */
+		float evaluateAt(const PatchParameter& param, float pos01, int component) const
+		{
+			return blend(param, component, [pos01](const Modulator&) { return pos01; });
+		}
+
 		std::string								mName;			///< Property: 'Name'
 		std::vector<nap::ResourcePtr<PatchParameter>>	mParameters;	///< Property: 'Parameters'
 		std::vector<nap::ResourcePtr<Modulator>>		mModulators;	///< Property: 'Modulators'
-		EPatchTargetMode						mTargetMode = EPatchTargetMode::Single;	///< Property: 'TargetMode'
-		/// Property: 'FixtureCount' (Multiple only). No longer hand-authored: lxcontrolService derives and
-		/// overwrites this from the actual Trigger binding whenever the patch fires (see
-		/// lxcontrolService::syncPatchFixtureCount). The default of 1 only matters for a brand-new
-		/// Multiple-mode patch that hasn't fired yet (e.g. the Patches tab's per-voice preview).
-		int										mFixtureCount = 1;
+
+	private:
+		/** Shared blend: authored base, then every modulator that targets `param`, positioned by `posOf`.
+		 *  Templated rather than taking a std::function because evaluate() runs once per claimed channel
+		 *  per frame and must not allocate. */
+		template<typename PosFn>
+		float blend(const PatchParameter& param, int component, PosFn posOf) const
+		{
+			float v = nap::math::clamp(param.getBaseValue(component), 0.0f, 1.0f);
+			for (auto& modulator : mModulators)
+			{
+				bool targets = false;
+				for (auto& t : modulator->mTargets)
+					if (t.get() == &param) { targets = true; break; }
+				if (!targets)
+					continue;
+
+				// mTargetComponent selects WHICH components this modulator writes (-1 = all). Distinct from
+				// the `component` argument, which is the component being asked for.
+				if (modulator->mTargetComponent >= 0 && modulator->mTargetComponent != component)
+					continue;
+
+				const float m = modulator->value(posOf(*modulator), component);
+				switch (modulator->mBlend)
+				{
+				case EModulatorBlend::Replace:	v = m;			break;
+				case EModulatorBlend::Multiply:	v = v * m;		break;
+				case EModulatorBlend::Add:		v = v + m;		break;
+				}
+				v = nap::math::clamp(v, 0.0f, 1.0f);
+			}
+			return v;
+		}
 	};
 }

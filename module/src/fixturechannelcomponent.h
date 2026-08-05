@@ -10,6 +10,7 @@
 // Local Includes
 #include "channelrole.h"
 #include "fixturechannelmapping.h"
+#include "patch.h"
 #include "patchparameter.h"
 
 namespace lx
@@ -52,9 +53,11 @@ namespace lx
 		float resolveValue() const;
 
 		/** Adds/replaces the claim for the given activation. Claims stay sorted ascending by id (latest last).
-		 *  `voice` selects which fixture voice of `param` this claim reads (see Patch::mTargetMode); 0 for
-		 *  Single-mode patches. `held` marks a claim from a currently-held control so it outranks stabs. */
-		void pushClaim(uint64_t activationId, const PatchParameter* param, int component, int voice = 0, bool held = false);
+		 *  `sourceIndex`/`sourceCount` locate this channel in the fired group's source list; the value itself
+		 *  is evaluated on demand in resolveValue(), so no per-source buffer exists anywhere.
+		 *  `held` marks a claim from a currently-held control so it outranks stabs. */
+		void pushClaim(uint64_t activationId, const Patch* patch, const PatchParameter* param, int component,
+			int sourceIndex, int sourceCount, bool held);
 		/** Removes any claim for the given activation. */
 		void removeClaims(uint64_t activationId);
 		/** Marks this activation's claims as no longer held (its control was released) so a still-held lower
@@ -71,9 +74,11 @@ namespace lx
 		struct ChannelClaim
 		{
 			uint64_t				mActivationId = 0;
+			const Patch*			mPatch = nullptr;		// evaluates the value; owns the modulators
 			const PatchParameter*	mParam = nullptr;
 			int						mComponent = 0;
-			int						mVoice = 0;
+			int						mSourceIndex = 0;		// where this channel sits in the fired source list
+			int						mSourceCount = 1;
 			bool					mHeld = false;	// fired by a currently-held control (Momentary down / Latch on) -> outranks stabs/releasing
 		};
 

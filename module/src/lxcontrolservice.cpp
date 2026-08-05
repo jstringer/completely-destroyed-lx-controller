@@ -670,24 +670,6 @@ namespace nap
 	}
 
 
-	void lxcontrolService::setPatchTargetMode(lx::Patch& patch, lx::EPatchTargetMode mode)
-	{
-		patch.mTargetMode = mode;
-
-		markDirty();
-	}
-
-
-	void lxcontrolService::syncPatchFixtureCount(lx::Patch& patch, int matchedCount)
-	{
-		if (patch.mTargetMode != lx::EPatchTargetMode::Multiple)
-			return;
-
-		patch.mFixtureCount = std::max(1, matchedCount);
-		// Deliberately no save() here: this runs on every fireTrigger call (including MIDI-driven,
-		// possibly-frequent ones) and mFixtureCount is a derived/cache value, not authored state worth
-		// persisting on its own -- it'll be captured by whatever save() the next real authoring edit does.
-	}
 
 
 	void lxcontrolService::removePatch(lx::Patch* patch)
@@ -731,8 +713,6 @@ namespace nap
 		lx::Patch* dst = createPatch(src.mName + " copy");
 		if (dst == nullptr)
 			return nullptr;
-		dst->mTargetMode = src.mTargetMode;
-		dst->mFixtureCount = src.mFixtureCount;
 
 		// Deep-copy parameters (same type, all rtti fields), keeping a source->dst map to remap modulator
 		// targets. copyObject clobbers mID too, so we restore the unique id it just handed us.
@@ -871,29 +851,23 @@ namespace nap
 			activation.mPatches.emplace_back(patch);
 
 			// Iterate fixtures in physical rig order (by DMX StartChannel), not binding.mFixtureNames' own
-			// order (whatever the checkbox UI happened to accumulate) and not mFixtures' raw registration
-			// order (which reflects component init order, not necessarily objects.json declaration order),
-			// so voice assignment for Multiple-mode patches (Chase order, Noise decorrelation) matches the
-			// rig's physical layout.
+			// order and not mFixtures' raw registration order (which reflects component init order), so
+			// source positions match the rig's physical layout. Task 6 replaces this with the group's own
+			// member order, which is what makes reordering a group reverse a chase.
 			std::vector<lx::FixtureComponentInstance*> ordered_fixtures = getFixturesPhysicalOrder();
 
-			// The patch's fixture count is derived from this binding's actual matched fixtures, not a
-			// hand-typed property that has to be kept in sync with the checkbox selection (see
-			// syncPatchFixtureCount) -- so voice assignment below never wraps/repeats or leaves a voice at
-			// base value due to a stale count; it's always exactly "however many fixtures are bound".
+			// The source count is derived from the binding's actually-matched fixtures, so a claim's
+			// (index, count) pair is always truthful -- nothing to keep in sync, nothing to go stale.
 			int matched_count = 0;
 			for (auto* fixture : ordered_fixtures)
 				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) != binding.mFixtureNames.end())
 					++matched_count;
-			syncPatchFixtureCount(*patch, matched_count);
 
-			int voice_index = 0;
+			int source_index = 0;
 			for (auto* fixture : ordered_fixtures)
 			{
 				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) == binding.mFixtureNames.end())
 					continue;
-
-				int voice = (patch->mTargetMode == lx::EPatchTargetMode::Multiple) ? voice_index : 0;
 
 				for (auto* channel : fixture->getChannels())
 				{
@@ -903,11 +877,11 @@ namespace nap
 						for (int c = 0; c < count; ++c)
 						{
 							if (param->getComponentRole(c) == channel->getRole() && param->appliesToUnit(channel->getUnitIndex()))
-								channel->pushClaim(activation.mId, param.get(), c, voice, held);
+								channel->pushClaim(activation.mId, patch, param.get(), c, source_index, matched_count, held);
 						}
 					}
 				}
-				++voice_index;
+				++source_index;
 			}
 			patch->trigger();
 		}

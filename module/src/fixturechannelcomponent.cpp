@@ -46,18 +46,26 @@ namespace lx
 		}
 		if (winner == nullptr && !mClaims.empty())
 			winner = &mClaims.back();	// nothing held -> newest overall rings out
-		if (winner != nullptr)
-			return nap::math::clamp(winner->mParam->getComponentValue(winner->mVoice, winner->mComponent), 0.0f, 1.0f);
+		if (winner != nullptr && winner->mPatch != nullptr && winner->mParam != nullptr)
+		{
+			// Evaluated here, on demand: the claim knows where this channel sits in the fired group's source
+			// list, so no per-source buffer has to be kept in sync anywhere.
+			// ponytail: ~66 evaluate() calls/frame on this rig (3 fixtures x 22 channels), each looping a
+			// handful of modulators. Memoize per (patch, sourceIndex) only if a profile ever says so.
+			return nap::math::clamp(winner->mPatch->evaluate(*winner->mParam, winner->mSourceIndex,
+				winner->mSourceCount, winner->mComponent), 0.0f, 1.0f);
+		}
 		return nap::math::clamp(mBaseParameter->mValue, 0.0f, 1.0f);
 	}
 
 
-	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const PatchParameter* param, int component, int voice, bool held)
+	void FixtureChannelComponentInstance::pushClaim(uint64_t activationId, const Patch* patch,
+		const PatchParameter* param, int component, int sourceIndex, int sourceCount, bool held)
 	{
 		removeClaims(activationId);
 		// Activation ids are monotonically increasing, so a new claim is always the latest -> append
 		// keeps the vector sorted ascending by id.
-		mClaims.push_back({ activationId, param, component, voice, held });
+		mClaims.push_back({ activationId, patch, param, component, sourceIndex, sourceCount, held });
 	}
 
 

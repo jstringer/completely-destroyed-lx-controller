@@ -28,9 +28,7 @@ namespace lx
 {
 	bool PatchParameter::init(nap::utility::ErrorState& errorState)
 	{
-		mCurrentValues.assign(getComponentCount(), 0.0f);
-		resetToBase();
-		return true;
+		return true;	// authored base only; nothing runtime to size or reset
 	}
 
 
@@ -39,40 +37,6 @@ namespace lx
 		if (mUnits.empty())
 			return true;
 		return std::find(mUnits.begin(), mUnits.end(), unit) != mUnits.end();
-	}
-
-
-	float PatchParameter::getComponentValue(int voice, int c) const
-	{
-		int count = getComponentCount();
-		if (voice < 0 || c < 0 || c >= count)
-			return 0.0f;
-		int idx = voice * count + c;
-		return (idx < static_cast<int>(mCurrentValues.size())) ? mCurrentValues[idx] : getBaseValue(c);
-	}
-
-
-	void PatchParameter::setComponentValue(int voice, int c, float value)
-	{
-		int count = getComponentCount();
-		if (voice < 0 || c < 0 || c >= count)
-			return;
-		int idx = voice * count + c;
-		if (static_cast<int>(mCurrentValues.size()) <= idx)
-			mCurrentValues.resize(idx + 1, 0.0f);
-		mCurrentValues[idx] = nap::math::clamp(value, 0.0f, 1.0f);
-	}
-
-
-	void PatchParameter::resetToBase(int voices)
-	{
-		int count = getComponentCount();
-		int total = std::max(1, voices) * count;
-		if (static_cast<int>(mCurrentValues.size()) != total)
-			mCurrentValues.assign(total, 0.0f);
-		for (int s = 0; s < std::max(1, voices); ++s)
-			for (int c = 0; c < count; ++c)
-				mCurrentValues[s * count + c] = nap::math::clamp(getBaseValue(c), 0.0f, 1.0f);
 	}
 
 

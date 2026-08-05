@@ -819,33 +819,21 @@ namespace nap
 	}
 
 
-	std::string lxcontrolApp::describePatchVoice(lx::Patch* patch, int voice)
-	{
-		auto ordered_fixtures = mLxControlService->getFixturesPhysicalOrder();
-		for (auto& trigger : mLxControlService->getTriggers())
-		{
-			for (auto& binding : trigger->mBindings)
-			{
-				if (binding.mPatch.get() != patch)
-					continue;
-				int idx = 0;
-				for (auto* f : ordered_fixtures)
-				{
-					if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), f->getEntityID()) == binding.mFixtureNames.end())
-						continue;
-					if (idx == voice)
-						return f->getDisplayName();
-					++idx;
-				}
-			}
-		}
-		return "Voice " + std::to_string(voice);
-	}
-
-
 	// Human label for a source parameter (its role / kind), so combos + "drives X" read meaningfully
 	// instead of the default "Param". Float/Toggle -> role name; Color -> "Color".
 	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
+
+	/** @return how many value components a modulator's field spans: 3 if it drives a colour, else 1. Picks
+	 *  the widest target so a Noise on Colour previews as RGB rather than a grey ramp. */
+	static int modTargetComponents(lx::Modulator* m)
+	{
+		int widest = 1;
+		for (auto& t : m->mTargets)
+			if (t != nullptr)
+				widest = std::max(widest, t->getComponentCount());
+		return widest;
+	}
+
 	static std::string patchParamLabel(lx::PatchParameter* p)
 	{
 		if (p == nullptr) return "(none)";
@@ -924,73 +912,25 @@ namespace nap
 					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Deep-copy into an independent patch");
 				}
 
-				// Spread + voice count.
-				static const char* target_mode_labels[] = { "Single Fixture", "Multiple Fixtures" };
-				int mode = static_cast<int>(patch->mTargetMode);
-				ImGui::AlignTextToFramePadding(); ImGui::TextDisabled("Spread"); ImGui::SameLine();
-				ImGui::SetNextItemWidth(160);
-				if (ImGui::Combo("##spread", &mode, target_mode_labels, 2))
-					mLxControlService->setPatchTargetMode(*patch.get(), static_cast<lx::EPatchTargetMode>(mode));
-				if (mode == static_cast<int>(lx::EPatchTargetMode::Multiple))
-				{
-					ImGui::SameLine();
-					std::string vc = std::to_string(patch->mFixtureCount) + (patch->mFixtureCount == 1 ? " voice" : " voices");
-					lxtheme::Chip(vc.c_str());
-				}
-
-				// Live "current" readout of this patch's sources (post-modulation values, updated each
-				// frame by Patch::update). Horizontal meters (value = fill width, with a % readout) so the
-				// bar's long axis actually encodes the value; one meter/swatch per fixture voice in
-				// Multiple-spread mode (a single bar can't represent per-fixture values).
+				// Live "current" readout: one FIELD per source parameter -- the effect as a continuous
+				// function of position. No source count, no per-fixture meters, no fixture names: an effect
+				// is agnostic of how many sources it lands on, and the field is the whole statement.
+				// The strip CALLS evaluateAt() rather than reading a buffer, so it is correct while idle too.
 				if (!patch->mParameters.empty())
 				{
 					lxtheme::Plate("Current", lxtheme::muted());
 					lxtheme::SlabBegin(lxtheme::slab(), lxtheme::muted());
-					const int voices = (patch->mTargetMode == lx::EPatchTargetMode::Multiple)
-						? nap::math::clamp(patch->mFixtureCount, 1, 32) : 1;
-					const float rowH = ImGui::GetFrameHeight();	// full frame height: fits the % overlay + aligns with the label
 					for (auto& p : patch->mParameters)
 					{
 						ImGui::PushID(p.get());
-						ImGui::AlignTextToFramePadding();
 						ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
 						ImGui::TextUnformatted(patchParamLabel(p.get()).c_str());
 						ImGui::PopStyleColor();
-						ImGui::SameLine(150.0f);
 
-						if (rtti_cast<lx::ColorParameter>(p.get()))
-						{
-							for (int s = 0; s < voices; ++s)
-							{
-								ImGui::PushID(s);
-								float rgb[3] = { p->getComponentValue(s, 0), p->getComponentValue(s, 1), p->getComponentValue(s, 2) };
-								lxtheme::Swatch("##cur", rgb, rowH);
-								if (voices > 1 && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", describePatchVoice(patch.get(), s).c_str());
-								ImGui::PopID();
-								if (s + 1 < voices) ImGui::SameLine();
-							}
-						}
-						else
-						{
-							ImGui::PushStyleColor(ImGuiCol_PlotHistogram, lxtheme::live());
-							if (voices == 1)
-							{
-								ImGui::ProgressBar(p->getComponentValue(0, 0), ImVec2(-1.0f, rowH));
-							}
-							else
-							{
-								for (int s = 0; s < voices; ++s)
-								{
-									ImGui::PushID(s);
-									float v = p->getComponentValue(s, 0);
-									ImGui::ProgressBar(v, ImVec2(78.0f, rowH));
-									if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s = %.2f", describePatchVoice(patch.get(), s).c_str(), v);
-									ImGui::PopID();
-									if (s + 1 < voices) ImGui::SameLine();
-								}
-							}
-							ImGui::PopStyleColor();
-						}
+						lx::Patch* pt = patch.get();
+						lx::PatchParameter* pp = p.get();
+						lxtheme::FieldStrip([pt, pp](float pos, int c) { return pt->evaluateAt(*pp, pos, c); },
+							pp->getComponentCount(), ImVec2(-1.0f, 28.0f));
 						ImGui::PopID();
 					}
 					lxtheme::SlabEnd();
@@ -1113,19 +1053,15 @@ namespace nap
 						}
 					}
 
-					bool is_voice_mod = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr || rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
-					if (is_voice_mod)
+					// The family is told apart by its PREVIEW, not by a fourth hue: a spatial (Field) modulator
+					// draws a strip across position; a temporal (Curve) one draws its shape with a playhead.
+					const bool is_field = rtti_cast<lx::ChaseModulator>(m.get()) != nullptr ||
+						rtti_cast<lx::NoiseModulator>(m.get()) != nullptr;
+					if (is_field)
 					{
-						int voices = patch->mTargetMode == lx::EPatchTargetMode::Multiple ?
-							nap::math::clamp(patch->mFixtureCount, 1, 32) : 1;
-						for (int s = 0; s < voices; ++s)
-						{
-							ImGui::PushID(s);
-							ImGui::ProgressBar(m->value(lx::positionOf(*m.get(), s, voices), 0), ImVec2(90, 0),
-								describePatchVoice(patch.get(), s).c_str());
-							ImGui::PopID();
-							if (s + 1 < voices) ImGui::SameLine();
-						}
+						lx::Modulator* mm = m.get();
+						lxtheme::FieldStrip([mm](float pos, int c) { return mm->value(pos, c); },
+							modTargetComponents(m.get()), ImVec2(-1.0f, 26.0f));
 					}
 					else
 					{

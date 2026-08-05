@@ -10,9 +10,14 @@
 namespace lx
 {
 	/**
-	 * A logical patch parameter: an authored base value (serialized) plus a live runtime output
-	 * (mCurrentValues, non-serialized) that modulators blend into. One parameter can have several
-	 * components (a color has 3). Each component has a semantic role and optional unit scoping.
+	 * A logical patch parameter: purely the AUTHORED base value. One parameter can have several
+	 * components (a colour has 3); each component has a semantic role.
+	 *
+	 * It holds no live/runtime value. Post-modulation values are computed on demand by
+	 * Patch::evaluate(param, sourceIndex, sourceCount, component) -- a channel claim knows where it sits
+	 * in the fired group's source list and asks for its own value each frame. That is what removed the
+	 * per-voice buffer this class used to own, and with it the collision two activations of one shared
+	 * patch used to have over that single buffer.
 	 *
 	 * Deliberately does NOT wrap nap::Parameter (see PLAN.md §2): every component is 0..1 so there's
 	 * no min/max win, and the GUI widgets are one-liners.
@@ -33,24 +38,8 @@ namespace lx
 		/** @return true if this parameter targets the given fixture unit (empty Units = all units). */
 		bool appliesToUnit(int unit) const;
 
-		/** Voice-0 convenience wrappers (Single-mode patches; every existing caller keeps working). */
-		float getComponentValue(int c) const					{ return getComponentValue(0, c); }
-		void setComponentValue(int c, float value)				{ setComponentValue(0, c, value); }
-
-		/** @return component c's current (post-modulation) value for fixture voice `voice`. */
-		float getComponentValue(int voice, int c) const;
-		/** Sets component c's current value for fixture voice `voice`, clamped 0..1. Grows storage as needed. */
-		void setComponentValue(int voice, int c, float value);
-
-		/** Copies each component's authored base value into every one of `voices` fixture voices
-		 *  (called each frame before modulation; `voices` = 1 for Single-mode patches). */
-		void resetToBase(int voices = 1);
-
 		std::string			mName;			///< Property: 'Name'
 		std::vector<int>	mUnits;			///< Property: 'Units' empty = all units
-
-		/** Runtime post-modulation output, non-serialized. Flattened [voice * getComponentCount() + c]. */
-		std::vector<float>	mCurrentValues;
 	};
 
 

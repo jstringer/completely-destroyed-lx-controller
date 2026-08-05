@@ -363,6 +363,9 @@ namespace lxtheme
 			const float x1 = p.x + size.x * (i + 1) / cols;
 			dl->AddRectFilled(ImVec2(x0, p.y), ImVec2(x1 + 0.5f, p.y + size.y), col);	// .5: no sub-pixel seams
 		}
+		// Frame it, like PlayheadPreview: a field that is legitimately dark everywhere (a Replace-blend
+		// modulator that isn't playing) would otherwise be indistinguishable from empty space.
+		dl->AddRect(p, ImVec2(p.x + size.x, p.y + size.y), ImGui::ColorConvertFloat4ToU32(border()));
 		ImGui::Dummy(size);
 	}
 
