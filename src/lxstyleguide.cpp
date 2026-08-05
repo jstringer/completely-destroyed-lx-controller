@@ -36,6 +36,36 @@ namespace lxstyleguide
 		ImGui::TextDisabled("lxcontrol design language - live sandbox (fake data).");
 		ImGui::TextDisabled("Edit src/lxstyleguide.cpp / src/lxtheme.h; Phase E consumes these helpers.");
 
+		// --- Field strip (the spread readout) ------------------------------
+		// Deliberately FIRST: this is the helper under active development, and a dev tool should surface
+		// what you are iterating on without scrolling.
+		lxtheme::Plate("Field strip", lxtheme::mod());
+		ImGui::Spacing();
+
+		// 1. Smooth RGB gradient - blue to gold.
+		lxtheme::FieldStrip([](float pos, int c) {
+			const float s[3] = { 0.0f, 0.22f, 1.0f }, e[3] = { 0.96f, 0.70f, 0.0f };
+			return s[c] + (e[c] - s[c]) * pos;
+		}, 3, ImVec2(-1.0f, 28.0f));
+		ImGui::TextDisabled("colour field - smooth gradient");
+
+		// 2. Float field - gold luminance ramp, no hue invented.
+		lxtheme::FieldStrip([](float pos, int) { return pos; }, 1, ImVec2(-1.0f, 18.0f));
+		ImGui::TextDisabled("float field - gold luminance ramp");
+
+		// 3. THE REGRESSION CASE: a 0.05-wide hard pulse. It must draw as a thin, crisp, clearly visible
+		//    band with a hard right edge. Soft or missing => the strip is interpolating or under-sampling.
+		lxtheme::FieldStrip([](float pos, int) { return pos < 0.05f ? 1.0f : 0.0f; }, 1, ImVec2(-1.0f, 18.0f));
+		ImGui::TextDisabled("hard 0.05 pulse - must stay crisp and visible (chase edge case)");
+
+		// 4. Animated hard-edged chase sweep: the same pulse, moving.
+		lxtheme::FieldStrip([t](float pos, int) {
+			float phase = pos - t * 0.25f;
+			phase -= std::floor(phase);
+			return phase < 0.12f ? 1.0f : 0.0f;
+		}, 1, ImVec2(-1.0f, 18.0f));
+		ImGui::TextDisabled("moving hard pulse - edges must not smear while animating");
+
 		// --- Palette -------------------------------------------------------
 		lxtheme::SectionHeader("Palette");
 		paletteRow("accent", lxtheme::accent(), false);	paletteRow("live",   lxtheme::live(),   true);

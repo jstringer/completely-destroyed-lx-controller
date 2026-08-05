@@ -2,8 +2,10 @@
 
 #include <imgui/imgui.h>
 #include "lxagent.h"
+#include <algorithm>
 #include <cmath>
 #include <cctype>
+#include <functional>
 #include <string>
 
 /**
@@ -314,6 +316,52 @@ namespace lxtheme
 			const float ph = phase01 > 1.0f ? 1.0f : phase01;
 			const float px = p.x + size.x * ph;
 			dl->AddLine(ImVec2(px, p.y), ImVec2(px, p.y + size.y), ImGui::ColorConvertFloat4ToU32(mod2()), 1.5f);
+		}
+		ImGui::Dummy(size);
+	}
+
+	/**
+	 * Horizontal field strip: a modulator (or a patch parameter's resolved field) sampled as a continuous
+	 * function of position 0..1 -- the readout that replaces the per-voice meter row. `components` >= 3
+	 * draws RGB; otherwise the gold luminance ramp (a float field must not invent a fourth hue).
+	 *
+	 * One sample per PIXEL COLUMN, deliberately. The fields that matter most are hard-edged (Chase's pulse,
+	 * Noise at Smoothing 0) and coarser sampling plus interpolation smears those edges or misses them
+	 * outright -- a Chase at PulseWidth 0.05 can vanish between samples. Per-column is also the simplest
+	 * thing that works: no segment count to tune, no interpolation mode to choose.
+	 * ponytail: if this ever profiles hot the upgrade is PrimReserve + direct vertex writes, NOT a coarser
+	 * sample count -- coarser sampling buys frames by drawing something the rig isn't doing.
+	 */
+	inline void FieldStrip(const std::function<float(float pos01, int component)>& field,
+	                       int components, const ImVec2& size_arg)
+	{
+		ImVec2 size = size_arg;
+		if (size.x <= 0.0f) size.x = ImGui::GetContentRegionAvail().x;	// -1 => fill width, not raw -1px
+		if (size.y <= 0.0f) size.y = 28.0f;
+
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		ImDrawList* dl = ImGui::GetWindowDrawList();
+		const int cols = std::max(2, static_cast<int>(size.x));
+		auto sat = [](float v) { return v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v); };
+
+		for (int i = 0; i < cols; ++i)
+		{
+			const float pos = static_cast<float>(i) / (cols - 1);
+			ImU32 col;
+			if (components >= 3)
+			{
+				col = ImGui::ColorConvertFloat4ToU32(
+					ImVec4(sat(field(pos, 0)), sat(field(pos, 1)), sat(field(pos, 2)), 1.0f));
+			}
+			else
+			{
+				const float v = sat(field(pos, 0));
+				const ImVec4 g = live();
+				col = ImGui::ColorConvertFloat4ToU32(ImVec4(g.x * v, g.y * v, g.z * v, 1.0f));
+			}
+			const float x0 = p.x + size.x * i / cols;
+			const float x1 = p.x + size.x * (i + 1) / cols;
+			dl->AddRectFilled(ImVec2(x0, p.y), ImVec2(x1 + 0.5f, p.y + size.y), col);	// .5: no sub-pixel seams
 		}
 		ImGui::Dummy(size);
 	}
