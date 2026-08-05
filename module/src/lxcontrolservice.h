@@ -42,6 +42,14 @@ namespace lx
 		float					mValue = 0.0f;
 		nap::math::ECurveInterp	mInterp = nap::math::ECurveInterp::Linear;
 	};
+
+	/** One addressable spread target: a fixture, plus which of its colour units (0 for whole-fixture
+	 *  roles). Derived from a FixtureGroup at fire time; never authored, never serialized. */
+	struct Source
+	{
+		FixtureComponentInstance*	mFixture = nullptr;
+		int							mUnitIndex = 0;
+	};
 }
 
 namespace nap
@@ -90,6 +98,14 @@ namespace nap
 		 *  Called from setup() so a fresh install always has something bindable, and so the lifecycle
 		 *  rows' old "all fixtures" default has a real group to point at. */
 		lx::FixtureGroup* ensureDefaultGroup();
+		/** Flattens a group into its ordered source list for one spread class. Fixture order follows the
+		 *  group's own member order (that is what makes reordering a group reverse a chase); colour units
+		 *  ascend within each fixture. Members that no longer exist in the rig are skipped. */
+		std::vector<lx::Source> sourcesFor(const lx::FixtureGroup& group, lx::ESpreadClass cls) const;
+		/** Per-role source counts for a group -- what the RIG group row reports. Roles absent from the
+		 *  group's fixtures are omitted. Red/Green/Blue each report the colour-unit count; the GUI
+		 *  collapses them into a single "colour" chip. */
+		std::vector<std::pair<lx::EChannelRole, int>> sourceCountsFor(const lx::FixtureGroup& group) const;
 
 		// --- Patches ---
 		lx::Patch* createPatch(const std::string& name);

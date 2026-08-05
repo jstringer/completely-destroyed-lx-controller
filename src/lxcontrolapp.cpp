@@ -134,7 +134,7 @@ namespace nap
 			mMode = arg == "perform" ? EUiMode::Perform : EUiMode::Edit;
 			lxagent::hit();
 		}
-		else if (verb == "text")	// text <patch|control|group|program> <value> -- fills a creation form
+		else if (verb == "text")	// text <patch|control|device|group|program> <value> -- fills a creation form
 		{
 			const size_t sp = arg.find(' ');
 			const std::string field = arg.substr(0, sp);
@@ -143,7 +143,10 @@ namespace nap
 			size_t cap = 0;
 			if (field == "patch")			{ dst = mNewPatchName;		cap = sizeof(mNewPatchName); }
 			else if (field == "control")	{ dst = mNewControlName;	cap = sizeof(mNewControlName); }
-			else if (field == "group")		{ dst = mNewControlGroup;	cap = sizeof(mNewControlGroup); }
+			// "device" is a Control's device label (shown as "Device" in CONTROLS); "group" is a
+			// FixtureGroup. These were both "group" before fixture groups existed.
+			else if (field == "device")		{ dst = mNewControlGroup;	cap = sizeof(mNewControlGroup); }
+			else if (field == "group")		{ dst = mNewGroupName;		cap = sizeof(mNewGroupName); }
 			else if (field == "program")	{ dst = mNewProgramName;	cap = sizeof(mNewProgramName); }
 			if (dst != nullptr)
 			{
@@ -667,6 +670,135 @@ namespace nap
 				drawFixtureParamGroup(*fixture_groups[i]);
 
 			ImGui::EndChild();
+		}
+
+		drawGroupsSection();
+	}
+
+
+	// Groups are what a Control binds to, so they live with the rig rather than with the programs. Teal
+	// spine: a group is a bindable/selectable collection. Member ORDER is shown because it is semantics --
+	// it sets the direction an effect spreads, so reordering reverses a chase.
+	void lxcontrolApp::drawGroupsSection()
+	{
+		static const char* kRoleShort[] = { "dimmer", "strobe", "colour", "colour", "colour", "macro", "sound", "generic" };
+
+		ImGui::Spacing();
+		lxtheme::Plate("Groups", lxtheme::accent());
+		ImGui::SameLine(); lxtheme::Chip("what a control binds to");
+		ImGui::SameLine(); lxtheme::Chip("order sets the spread direction", lxtheme::mod2());
+
+		auto fixtures = mLxControlService->getFixturesPhysicalOrder();
+		lx::FixtureGroup* group_to_remove = nullptr;
+		int gi = 0;
+
+		for (auto& group : mLxControlService->getGroups())
+		{
+			ImGui::PushID(group->mID.c_str());
+			lxtheme::SlabBegin((gi & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::accent());
+
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextColored(lxtheme::text(), "%s", group->mName.c_str());
+
+			std::vector<std::string> members = group->mFixtureNames;
+			int move_up = -1, remove_at = -1;
+			for (int mi = 0; mi < static_cast<int>(members.size()); ++mi)
+			{
+				lx::FixtureComponentInstance* fx = nullptr;
+				for (auto* f : fixtures)
+					if (f->getEntityID() == members[mi]) { fx = f; break; }
+
+				ImGui::SameLine();
+				ImGui::PushID(mi);
+				lxtheme::Chip((std::to_string(mi + 1) + " " +
+					(fx != nullptr ? fx->getDisplayName() : std::string("(missing)"))).c_str());
+				if (mi > 0)
+				{
+					ImGui::SameLine(0.0f, 2.0f);
+					if (lxagent::SmallButton("^")) move_up = mi;		// addressable as ^, ^#2, ...
+				}
+				ImGui::SameLine(0.0f, 2.0f);
+				if (lxagent::SmallButton("x")) remove_at = mi;
+				ImGui::PopID();
+			}
+			if (move_up > 0)
+			{
+				std::swap(members[move_up - 1], members[move_up]);
+				mLxControlService->setGroupFixtures(*group.get(), members);
+			}
+			else if (remove_at >= 0)
+			{
+				members.erase(members.begin() + remove_at);
+				mLxControlService->setGroupFixtures(*group.get(), members);
+			}
+
+			// Add a fixture not already a member. A combo, so the agent bridge can't drive it -- by design,
+			// the bridge only reaches buttons.
+			{
+				std::vector<lx::FixtureComponentInstance*> avail;
+				std::vector<std::string> labels;
+				for (auto* f : fixtures)
+					if (std::find(members.begin(), members.end(), f->getEntityID()) == members.end())
+						{ avail.emplace_back(f); labels.emplace_back(f->getDisplayName()); }
+				if (!avail.empty())
+				{
+					std::vector<const char*> items;
+					items.emplace_back("+ fixture");
+					for (auto& s : labels) items.emplace_back(s.c_str());	// labels must outlive this Combo
+					int sel = 0;
+					ImGui::SameLine(); ImGui::SetNextItemWidth(132.0f);	// "+ fixture" + caret, uncropped
+					if (ImGui::Combo("##addfx", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
+					{
+						members.emplace_back(avail[sel - 1]->getEntityID());
+						mLxControlService->setGroupFixtures(*group.get(), members);
+					}
+				}
+			}
+
+			ImGui::SameLine();
+			if (lxagent::SmallButton("Rev"))
+			{
+				std::reverse(members.begin(), members.end());
+				mLxControlService->setGroupFixtures(*group.get(), members);
+			}
+			// Derived counts: the only place in the app that states a source count (that, and the rig's own
+			// per-fixture readout). R/G/B collapse into one "colour" chip. ColorMacro/SoundMode/Generic are
+			// skipped: they are mode selectors, not field targets, and every Fixture-class role reports the
+			// identical count, so listing them just repeats "3" three more times.
+			bool colour_shown = false;
+			for (auto& rc : mLxControlService->sourceCountsFor(*group.get()))
+			{
+				if (rc.first == lx::EChannelRole::ColorMacro || rc.first == lx::EChannelRole::SoundMode ||
+					rc.first == lx::EChannelRole::Generic)
+					continue;
+				const bool colour = lx::spreadClassOf(rc.first) == lx::ESpreadClass::ColourUnit;
+				if (colour && colour_shown)
+					continue;
+				colour_shown |= colour;
+				ImGui::SameLine();
+				lxtheme::Chip((std::to_string(rc.second) + " " +
+					kRoleShort[nap::math::clamp(static_cast<int>(rc.first), 0, 7)]).c_str(), lxtheme::mod2());
+			}
+
+			// Destructive action last, at the row's edge -- a filled red block mid-row outshouts the whole
+			// group.
+			ImGui::SameLine();
+			if (lxtheme::DangerButton("Del")) group_to_remove = group.get();
+
+			lxtheme::SlabEnd();
+			ImGui::PopID();
+			++gi;
+		}
+		if (group_to_remove != nullptr)
+			mLxControlService->removeGroup(group_to_remove);
+
+		ImGui::SetNextItemWidth(-150.0f);
+		ImGui::InputText("##newgroup", mNewGroupName, sizeof(mNewGroupName));
+		ImGui::SameLine();
+		if (lxagent::Button("+ New group") && std::strlen(mNewGroupName) > 0)
+		{
+			mLxControlService->createGroup(mNewGroupName);
+			mNewGroupName[0] = '\0';
 		}
 	}
 

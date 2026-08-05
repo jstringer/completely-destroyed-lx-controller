@@ -402,6 +402,65 @@ namespace nap
 	}
 
 
+	std::vector<lx::Source> lxcontrolService::sourcesFor(const lx::FixtureGroup& group, lx::ESpreadClass cls) const
+	{
+		std::vector<lx::Source> sources;
+		for (const std::string& id : group.mFixtureNames)
+		{
+			lx::FixtureComponentInstance* fixture = findFixture(id);
+			if (fixture == nullptr)
+				continue;		// group outlived a fixture: skip it rather than shifting every position
+
+			if (cls == lx::ESpreadClass::Fixture)
+			{
+				sources.push_back({ fixture, 0 });
+				continue;
+			}
+
+			// Colour units, ascending, deduplicated: the three R/G/B channels share one unit index.
+			std::vector<int> units;
+			for (auto* channel : fixture->getChannels())
+			{
+				if (lx::spreadClassOf(channel->getRole()) != lx::ESpreadClass::ColourUnit)
+					continue;
+				if (std::find(units.begin(), units.end(), channel->getUnitIndex()) == units.end())
+					units.emplace_back(channel->getUnitIndex());
+			}
+			std::sort(units.begin(), units.end());
+			for (int u : units)
+				sources.push_back({ fixture, u });
+		}
+		return sources;
+	}
+
+
+	std::vector<std::pair<lx::EChannelRole, int>> lxcontrolService::sourceCountsFor(const lx::FixtureGroup& group) const
+	{
+		const int fixture_sources = static_cast<int>(sourcesFor(group, lx::ESpreadClass::Fixture).size());
+		const int colour_sources = static_cast<int>(sourcesFor(group, lx::ESpreadClass::ColourUnit).size());
+
+		// Only report roles the group's fixtures actually have.
+		std::vector<std::pair<lx::EChannelRole, int>> counts;
+		std::vector<lx::EChannelRole> seen;
+		for (const std::string& id : group.mFixtureNames)
+		{
+			lx::FixtureComponentInstance* fixture = findFixture(id);
+			if (fixture == nullptr)
+				continue;
+			for (auto* channel : fixture->getChannels())
+			{
+				const lx::EChannelRole role = channel->getRole();
+				if (std::find(seen.begin(), seen.end(), role) != seen.end())
+					continue;
+				seen.emplace_back(role);
+				const bool colour = lx::spreadClassOf(role) == lx::ESpreadClass::ColourUnit;
+				counts.emplace_back(role, colour ? colour_sources : fixture_sources);
+			}
+		}
+		return counts;
+	}
+
+
 	lx::Patch* lxcontrolService::createPatch(const std::string& name)
 	{
 		auto patch = mResourceManager->createObject<lx::Patch>();

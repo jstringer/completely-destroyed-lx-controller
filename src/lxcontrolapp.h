@@ -76,6 +76,8 @@ namespace nap
 		 *  sets (a known shared-Patch-state limitation -- see QUESTIONS.md) the first match wins, so this
 		 *  is a preview aid, not a runtime guarantee. */
 		std::string describePatchVoice(lx::Patch* patch, int voice);
+		/** RIG > Groups: create/reorder/reverse/delete the FixtureGroups a Control can bind to. */
+		void drawGroupsSection();
 
 		ResourceManager*			mResourceManager = nullptr;		///< Manages all the loaded data
 		RenderService*				mRenderService = nullptr;		///< Render Service that handles render calls
@@ -115,6 +117,9 @@ namespace nap
 
 		// Programs tab form state
 		char						mNewProgramName[128] = "";
+
+		// RIG tab: fixture-group creation form.
+		char						mNewGroupName[64] = "";
 
 		// Design-language test bed (src/lxstyleguide.cpp). Opt-in overlay; toggled from the Live Bar.
 		bool						mShowStyleGuide = false;

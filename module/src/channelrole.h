@@ -21,6 +21,29 @@ namespace lx
 	};
 
 	/**
+	 * Which set of sources a parameter of a given role spreads over. Red/Green/Blue address one colour
+	 * unit each, so a group of three six-unit fixtures has 18 ColourUnit sources but only 3 Fixture
+	 * sources. This is the whole reason "one effect, any number of sources" works without the user ever
+	 * declaring a count.
+	 */
+	enum class ESpreadClass : int
+	{
+		Fixture,	///< one source per fixture (Dimmer, Strobe, ColorMacro, SoundMode, Generic)
+		ColourUnit	///< one source per colour unit per fixture (Red, Green, Blue)
+	};
+
+	inline ESpreadClass spreadClassOf(EChannelRole role)
+	{
+		switch (role)
+		{
+		case EChannelRole::Red:
+		case EChannelRole::Green:
+		case EChannelRole::Blue:	return ESpreadClass::ColourUnit;
+		default:					return ESpreadClass::Fixture;
+		}
+	}
+
+	/**
 	 * DMX value width of a channel. Only Value8 is emitted today; the 16-bit variants are reserved
 	 * for future pan/tilt-style channels.
 	 */
