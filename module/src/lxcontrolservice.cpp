@@ -850,38 +850,56 @@ namespace nap
 				continue;
 			activation.mPatches.emplace_back(patch);
 
-			// Iterate fixtures in physical rig order (by DMX StartChannel), not binding.mFixtureNames' own
-			// order and not mFixtures' raw registration order (which reflects component init order), so
-			// source positions match the rig's physical layout. Task 6 replaces this with the group's own
-			// member order, which is what makes reordering a group reverse a chase.
-			std::vector<lx::FixtureComponentInstance*> ordered_fixtures = getFixturesPhysicalOrder();
-
-			// The source count is derived from the binding's actually-matched fixtures, so a claim's
-			// (index, count) pair is always truthful -- nothing to keep in sync, nothing to go stale.
-			int matched_count = 0;
-			for (auto* fixture : ordered_fixtures)
-				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) != binding.mFixtureNames.end())
-					++matched_count;
-
-			int source_index = 0;
-			for (auto* fixture : ordered_fixtures)
+			// Spread each class over its own source list. A group of 3 six-unit fixtures yields 3 Fixture
+			// sources (Dimmer/Strobe/...) and 18 ColourUnit sources, so one Chase steps 3 times on a dimmer
+			// and 18 times across the colour units -- from the same authored shape, with nothing declared.
+			// Source ORDER follows the group's own member order, which is why reordering a group (or Rev)
+			// reverses the sweep.
+			for (lx::ESpreadClass cls : { lx::ESpreadClass::Fixture, lx::ESpreadClass::ColourUnit })
 			{
-				if (std::find(binding.mFixtureNames.begin(), binding.mFixtureNames.end(), fixture->getEntityID()) == binding.mFixtureNames.end())
-					continue;
-
-				for (auto* channel : fixture->getChannels())
+				// Per group (default): each group spans 0..1 on its own, so they run in parallel.
+				// End-to-end: concatenated into one run, so the effect crosses the whole set once.
+				std::vector<std::vector<lx::Source>> runs;
+				if (binding.mEndToEnd)
 				{
-					for (auto& param : patch->mParameters)
+					std::vector<lx::Source> all;
+					for (auto& g : binding.mGroups)
+						if (g != nullptr)
+							for (auto& s : sourcesFor(*g.get(), cls))
+								all.emplace_back(s);
+					runs.emplace_back(std::move(all));
+				}
+				else
+				{
+					for (auto& g : binding.mGroups)
+						if (g != nullptr)
+							runs.emplace_back(sourcesFor(*g.get(), cls));
+				}
+
+				for (auto& run : runs)
+				{
+					const int source_count = static_cast<int>(run.size());
+					for (int idx = 0; idx < source_count; ++idx)
 					{
-						int count = param->getComponentCount();
-						for (int c = 0; c < count; ++c)
+						lx::Source& src = run[idx];
+						for (auto* channel : src.mFixture->getChannels())
 						{
-							if (param->getComponentRole(c) == channel->getRole() && param->appliesToUnit(channel->getUnitIndex()))
-								channel->pushClaim(activation.mId, patch, param.get(), c, source_index, matched_count, held);
+							if (lx::spreadClassOf(channel->getRole()) != cls)
+								continue;
+							// A ColourUnit source addresses exactly one unit of its fixture.
+							if (cls == lx::ESpreadClass::ColourUnit && channel->getUnitIndex() != src.mUnitIndex)
+								continue;
+
+							for (auto& param : patch->mParameters)
+							{
+								const int comps = param->getComponentCount();
+								for (int c = 0; c < comps; ++c)
+									if (param->getComponentRole(c) == channel->getRole())
+										channel->pushClaim(activation.mId, patch, param.get(), c, idx, source_count, held);
+							}
 						}
 					}
 				}
-				++source_index;
 			}
 			patch->trigger();
 		}
@@ -1121,7 +1139,8 @@ namespace nap
 	}
 
 
-	lx::ControlMapping* lxcontrolService::routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch, const std::vector<std::string>& fixtures)
+	lx::ControlMapping* lxcontrolService::routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch,
+		const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups)
 	{
 		// A routing owns its own Control-kind trigger with exactly one binding (the UI never shows it).
 		lx::Trigger* trig = createTrigger(lx::ETriggerKind::Control, control.mName);
@@ -1129,7 +1148,7 @@ namespace nap
 			return nullptr;
 		lx::PatchFixtureBinding b;
 		b.mPatch = patch;
-		b.mFixtureNames = fixtures;
+		b.mGroups = groups;
 		trig->mBindings = { b };
 		return setControlMapping(program, control, trig);
 	}
@@ -1140,17 +1159,33 @@ namespace nap
 		lx::PatchFixtureBinding b;
 		b.mPatch = patch;
 		if (!trigger.mBindings.empty())
-			b.mFixtureNames = trigger.mBindings[0].mFixtureNames;	// keep fixtures
+		{
+			b.mGroups = trigger.mBindings[0].mGroups;				// keep groups + spread
+			b.mEndToEnd = trigger.mBindings[0].mEndToEnd;
+		}
 		setTriggerBindings(trigger, { b });
 	}
 
 
-	void lxcontrolService::setRoutingFixtures(lx::Trigger& trigger, const std::vector<std::string>& fixtures)
+	void lxcontrolService::setRoutingSpread(lx::Trigger& trigger, bool endToEnd)
+	{
+		if (trigger.mBindings.empty())
+			return;
+		lx::PatchFixtureBinding b = trigger.mBindings[0];
+		b.mEndToEnd = endToEnd;
+		setTriggerBindings(trigger, { b });
+	}
+
+
+	void lxcontrolService::setRoutingGroups(lx::Trigger& trigger, const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups)
 	{
 		lx::PatchFixtureBinding b;
 		if (!trigger.mBindings.empty())
-			b.mPatch = trigger.mBindings[0].mPatch;					// keep patch
-		b.mFixtureNames = fixtures;
+		{
+			b.mPatch = trigger.mBindings[0].mPatch;					// keep patch + spread
+			b.mEndToEnd = trigger.mBindings[0].mEndToEnd;
+		}
+		b.mGroups = groups;
 		setTriggerBindings(trigger, { b });
 	}
 
@@ -1210,7 +1245,15 @@ namespace nap
 				continue;
 			for (const auto& b : act.mTrigger->mBindings)
 			{
-				if (std::find(b.mFixtureNames.begin(), b.mFixtureNames.end(), eid) == b.mFixtureNames.end())
+				bool drives = false;
+				for (const auto& g : b.mGroups)
+				{
+					if (g == nullptr)
+						continue;
+					if (std::find(g->mFixtureNames.begin(), g->mFixtureNames.end(), eid) != g->mFixtureNames.end())
+						{ drives = true; break; }
+				}
+				if (!drives)
 					continue;
 				claimants.push_back({ b.mPatch != nullptr ? b.mPatch->mName : std::string("(patch)"), act.mHeld, act.mId });
 			}

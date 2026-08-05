@@ -7,18 +7,24 @@
 #include <string>
 
 // Local Includes
+#include "fixturegroup.h"
 #include "patch.h"
 
 namespace lx
 {
 	/**
-	 * Binds a Patch to a set of fixtures (by entity mID). When the owning Trigger fires, the patch
-	 * is triggered and claims the matching channels on each named fixture.
+	 * Binds a Patch to one or more FixtureGroups. When the owning Trigger fires, the patch is triggered and
+	 * claims the matching channels of every source in those groups -- one source per fixture for
+	 * Dimmer/Strobe-type roles, one per colour unit for RGB roles (see lxcontrolService::sourcesFor).
 	 */
 	struct NAPAPI PatchFixtureBinding
 	{
-		nap::ResourcePtr<Patch>	mPatch;			///< Property: 'Patch'
-		std::vector<std::string>	mFixtureNames;		///< Property: 'Fixtures' fixture entity mIDs
+		nap::ResourcePtr<Patch>								mPatch;		///< Property: 'Patch'
+		std::vector<nap::ResourcePtr<FixtureGroup>>			mGroups;	///< Property: 'Groups'
+		/// Property: 'EndToEnd' -- with 2+ groups: false (default) spreads each group across 0..1 on its
+		/// own, so they run in parallel; true concatenates them into one run so the effect crosses the
+		/// whole set once.
+		bool												mEndToEnd = false;
 	};
 
 

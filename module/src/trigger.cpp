@@ -1,8 +1,9 @@
 #include "trigger.h"
 
 RTTI_BEGIN_STRUCT(lx::PatchFixtureBinding)
-	RTTI_PROPERTY("Patch",		&lx::PatchFixtureBinding::mPatch,			nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Fixtures",	&lx::PatchFixtureBinding::mFixtureNames,	nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Patch",		&lx::PatchFixtureBinding::mPatch,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Groups",		&lx::PatchFixtureBinding::mGroups,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("EndToEnd",	&lx::PatchFixtureBinding::mEndToEnd,	nap::rtti::EPropertyMetaData::Default)
 RTTI_END_STRUCT
 
 RTTI_BEGIN_ENUM(lx::ETriggerKind)

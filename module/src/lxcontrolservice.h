@@ -167,9 +167,11 @@ namespace nap
 
 		// --- Routing (control-first: 1 mapping <-> 1 dedicated Control-kind trigger <-> 1 binding).
 		// The GUI owns the trigger lifecycle so the user never sees/names a Trigger. ---
-		lx::ControlMapping* routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch, const std::vector<std::string>& fixtures);
-		void setRoutingPatch(lx::Trigger& trigger, lx::Patch* patch);				///< rewrites the trigger's single binding's patch (keeps its fixtures)
-		void setRoutingFixtures(lx::Trigger& trigger, const std::vector<std::string>& fixtures);	///< rewrites the single binding's fixtures (keeps its patch)
+		lx::ControlMapping* routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch,
+			const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups);
+		void setRoutingPatch(lx::Trigger& trigger, lx::Patch* patch);				///< rewrites the binding's patch (keeps its groups + spread)
+		void setRoutingGroups(lx::Trigger& trigger, const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups);	///< rewrites the binding's groups (keeps its patch + spread)
+		void setRoutingSpread(lx::Trigger& trigger, bool endToEnd);				///< per-group (false) vs end-to-end (true); only meaningful with 2+ groups
 		void unroute(lx::Program& program, lx::ControlMapping* mapping);			///< removes the routing + its dedicated trigger
 		// Lifecycle routing (On load / On exit): one Enter/Exit trigger per program per kind.
 		lx::Trigger* getLifecycleTrigger(const lx::Program& program, lx::ETriggerKind kind) const;

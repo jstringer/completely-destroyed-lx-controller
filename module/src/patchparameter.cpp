@@ -5,7 +5,6 @@
 
 RTTI_BEGIN_CLASS(lx::PatchParameter)
 	RTTI_PROPERTY("Name",	&lx::PatchParameter::mName,	nap::rtti::EPropertyMetaData::Required)
-	RTTI_PROPERTY("Units",	&lx::PatchParameter::mUnits,	nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 RTTI_BEGIN_CLASS(lx::FloatParameter)
@@ -29,14 +28,6 @@ namespace lx
 	bool PatchParameter::init(nap::utility::ErrorState& errorState)
 	{
 		return true;	// authored base only; nothing runtime to size or reset
-	}
-
-
-	bool PatchParameter::appliesToUnit(int unit) const
-	{
-		if (mUnits.empty())
-			return true;
-		return std::find(mUnits.begin(), mUnits.end(), unit) != mUnits.end();
 	}
 
 

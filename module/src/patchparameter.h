@@ -35,11 +35,7 @@ namespace lx
 		/** @return the authored base value of component c (0..1). */
 		virtual float getBaseValue(int c) const			{ return 0.0f; }
 
-		/** @return true if this parameter targets the given fixture unit (empty Units = all units). */
-		bool appliesToUnit(int unit) const;
-
 		std::string			mName;			///< Property: 'Name'
-		std::vector<int>	mUnits;			///< Property: 'Units' empty = all units
 	};
 
 

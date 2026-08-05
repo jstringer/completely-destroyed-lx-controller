@@ -503,10 +503,19 @@ namespace nap
 			const bool bound = (trig != nullptr);
 			const bool live = bound && mLxControlService->isTriggerActive(*trig);
 
-			// Sublabel: the patch(es) this control fires, from its trigger's first binding.
+			// Sublabel: patch -> the groups it drives. Names the groups, not a fixture count: what the
+			// operator needs on a pad is "which part of the rig", not "how many sources".
 			std::string fx;
 			if (bound && !trig->mBindings.empty() && trig->mBindings[0].mPatch != nullptr)
-				fx = trig->mBindings[0].mPatch->mName + "  [" + std::to_string(trig->mBindings[0].mFixtureNames.size()) + " fx]";
+			{
+				fx = trig->mBindings[0].mPatch->mName;
+				const auto& groups = trig->mBindings[0].mGroups;
+				for (size_t g = 0; g < groups.size(); ++g)
+					if (groups[g] != nullptr)
+						fx += (g == 0 ? "  -> " : " + ") + groups[g]->mName;
+				if (groups.empty())
+					fx += "  -> no group";
+			}
 			else if (bound)
 				fx = "no patch";
 			else
@@ -1248,28 +1257,82 @@ namespace nap
 			return false;
 		};
 
-		// Toggle chips for a trigger's single-binding fixtures (S1/S2/...), edited via setRoutingFixtures.
-		auto fixtureChips = [&](lx::Trigger* trig) {
-			static const std::vector<std::string> kEmpty;
-			const std::vector<std::string>& sel = trig->mBindings.empty() ? kEmpty : trig->mBindings[0].mFixtureNames;
-			for (int i = 0; i < static_cast<int>(fixtures.size()); ++i)
+		// The groups a routing drives, as an ordered SET: name chips with an "x", a ">" between them when
+		// order matters, then "+ group". Not a stack of pickers -- the patch is one choice, the groups are
+		// a set, and the two should not look alike.
+		auto groupCell = [&](lx::Trigger* trig) {
+			if (trig->mBindings.empty())
+				return;
+			auto& binding = trig->mBindings[0];
+
+			int remove_g = -1;
+			for (size_t g = 0; g < binding.mGroups.size(); ++g)
 			{
-				const std::string eid = fixtures[i]->getEntityID();
-				const bool in = std::find(sel.begin(), sel.end(), eid) != sel.end();
-				ImGui::PushID(i);
-				ImGui::PushStyleColor(ImGuiCol_Button, in ? lxtheme::rgb(0x2dd4bf, 0.35f) : lxtheme::bar());
-				ImGui::PushStyleColor(ImGuiCol_Text, in ? lxtheme::text() : lxtheme::muted());
-				if (lxagent::SmallButton((std::string("S") + std::to_string(i + 1)).c_str()))
+				if (binding.mGroups[g] == nullptr)
+					continue;
+				if (g > 0)
 				{
-					std::vector<std::string> next(sel.begin(), sel.end());
-					if (in) next.erase(std::remove(next.begin(), next.end(), eid), next.end());
-					else next.emplace_back(eid);
-					mLxControlService->setRoutingFixtures(*trig, next);
+					// ASCII ">" deliberately: lxagent::fold drops non-ASCII, and U+203A is outside the
+					// bundled font atlas.
+					ImGui::SameLine(0.0f, 4.0f);
+					ImGui::TextColored(lxtheme::muted(), ">");
 				}
-				ImGui::PopStyleColor(2);
+				ImGui::SameLine(0.0f, 4.0f);
+				ImGui::PushID(static_cast<int>(g));
+				lxtheme::Chip(binding.mGroups[g]->mName.c_str());
+				ImGui::SameLine(0.0f, 2.0f);
+				if (lxagent::SmallButton("x")) remove_g = static_cast<int>(g);	// x, x#2, ...
 				ImGui::PopID();
-				ImGui::SameLine();
 			}
+			if (remove_g >= 0)
+			{
+				auto next = binding.mGroups;
+				next.erase(next.begin() + remove_g);
+				mLxControlService->setRoutingGroups(*trig, next);
+				return;		// binding just got rewritten; don't touch it again this frame
+			}
+
+			// Groups not already bound here -> a "+ group" combo (same shape as the mod-matrix "+ add").
+			{
+				std::vector<lx::FixtureGroup*> avail;
+				std::vector<std::string> labels;
+				for (auto& g : mLxControlService->getGroups())
+				{
+					bool bound = false;
+					for (auto& b : binding.mGroups) if (b.get() == g.get()) { bound = true; break; }
+					if (!bound) { avail.emplace_back(g.get()); labels.emplace_back(g->mName); }
+				}
+				if (!avail.empty())
+				{
+					std::vector<const char*> items;
+					items.emplace_back("+ group");
+					for (auto& s : labels) items.emplace_back(s.c_str());	// labels must outlive this Combo
+					int sel = 0;
+					ImGui::SameLine(0.0f, 6.0f); ImGui::SetNextItemWidth(112.0f);
+					if (ImGui::Combo("##addgroup", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
+					{
+						auto next = binding.mGroups;
+						next.emplace_back(avail[sel - 1]);
+						mLxControlService->setRoutingGroups(*trig, next);
+						return;
+					}
+				}
+			}
+
+			// Spread flag: only meaningful with 2+ groups, so only drawn then. Violet ink because this is
+			// spread behaviour, not a selection.
+			if (binding.mGroups.size() > 1)
+			{
+				static const char* kSpread[] = { "per group", "end-to-end" };
+				int s = binding.mEndToEnd ? 1 : 0;
+				ImGui::SameLine();
+				ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::mod2());
+				ImGui::SetNextItemWidth(118.0f);
+				if (ImGui::Combo("##spread", &s, kSpread, 2))
+					mLxControlService->setRoutingSpread(*trig, s == 1);
+				ImGui::PopStyleColor();
+			}
+			ImGui::SameLine();
 		};
 
 		// --- ROUTING: one control-first row per mapping (Control -> Patch -> fixtures + test) ---
@@ -1331,7 +1394,7 @@ namespace nap
 
 			// Fixture chips + test + remove.
 			ImGui::SameLine(375.0f);
-			fixtureChips(trig);
+			groupCell(trig);
 			if (lxagent::SmallButton("Fire")) mLxControlService->fireTrigger(*trig);
 			ImGui::SameLine(); if (lxagent::SmallButton("Stop")) mLxControlService->stopTrigger(*trig);
 			ImGui::SameLine(); if (lxtheme::DangerButton("x")) unroute_target = m.get();
@@ -1348,7 +1411,14 @@ namespace nap
 			const bool can_add = (next_avail != nullptr) && !patches.empty();
 			const bool dis = lxtheme::PushDisabled(!can_add);
 			if (lxagent::Button("+ route a control") && can_add)
-				mLxControlService->routeControl(*prog, *next_avail, patches[0].get(), {});
+			{
+				// Default to the All Fixtures group rather than nothing: a routing with no group is silent,
+				// which reads as broken.
+				std::vector<nap::ResourcePtr<lx::FixtureGroup>> deflt;
+				if (lx::FixtureGroup* all = mLxControlService->ensureDefaultGroup())
+					deflt.emplace_back(all);
+				mLxControlService->routeControl(*prog, *next_avail, patches[0].get(), deflt);
+			}
 			lxtheme::PopDisabled(dis);
 			if (!can_add && ImGui::IsItemHovered())
 				ImGui::SetTooltip(controls.empty() ? "Create a Control in CONTROLS first"
@@ -1357,7 +1427,6 @@ namespace nap
 
 		// --- AUTOMATIC: On load / On exit lifecycle routings (Enter/Exit triggers, hidden) ---
 		lxtheme::SectionHeader("Automatic");
-		auto allFixtureIDs = [&]() { std::vector<std::string> v; for (auto* f : fixtures) v.emplace_back(f->getEntityID()); return v; };
 		auto lifecycleRow = [&](const char* label, lx::ETriggerKind kind)
 		{
 			ImGui::PushID(label);
@@ -1378,16 +1447,22 @@ namespace nap
 					mLxControlService->clearLifecycle(*prog, kind);
 				else if (lx::Trigger* nt = mLxControlService->ensureLifecycleTrigger(*prog, kind))
 				{
-					const bool wasEmpty = nt->mBindings.empty() || nt->mBindings[0].mFixtureNames.empty();
+					const bool wasEmpty = nt->mBindings.empty() || nt->mBindings[0].mGroups.empty();
 					mLxControlService->setRoutingPatch(*nt, patches[sel - 1].get());
-					if (wasEmpty) mLxControlService->setRoutingFixtures(*nt, allFixtureIDs());	// default: all fixtures
+					if (wasEmpty)	// default: the All Fixtures group
+					{
+						std::vector<nap::ResourcePtr<lx::FixtureGroup>> deflt;
+						if (lx::FixtureGroup* all = mLxControlService->ensureDefaultGroup())
+							deflt.emplace_back(all);
+						mLxControlService->setRoutingGroups(*nt, deflt);
+					}
 				}
 			}
 			t = mLxControlService->getLifecycleTrigger(*prog, kind);	// re-fetch (may have just been created/cleared)
 			if (t != nullptr && !t->mBindings.empty() && t->mBindings[0].mPatch != nullptr)
 			{
 				ImGui::SameLine();
-				fixtureChips(t);
+				groupCell(t);
 				if (lxagent::SmallButton("Fire")) mLxControlService->fireTrigger(*t);
 				ImGui::SameLine(); if (lxagent::SmallButton("Stop")) mLxControlService->stopTrigger(*t);
 			}
