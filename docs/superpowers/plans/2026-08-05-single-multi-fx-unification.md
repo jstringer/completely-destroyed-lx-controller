@@ -1630,9 +1630,22 @@ git commit -m "feat(engine): Noise gains spatial coherence + Density input"
 
 ---
 
-### Task 10 (optional): Field modulators shed the sequence graph
+### Task 10 (optional, NOT DONE): Field modulators shed the sequence graph
 
 Defer freely — it removes weight, not a limitation. Value rises now that there are three Field types.
+
+> **Corrected after review.** An earlier draft of this task claimed it would shrink `user_content.json` and
+> verified that by grepping the file for `SequencePlayer`. That is wrong: `save()`'s root list never contained
+> the player graph (it is runtime-only, rebuilt by `buildModulatorGraph` on load), so
+> `grep -c "SequencePlayer\|SequenceEditor" data/user_content.json` already returns **0**. The payoff is purely
+> runtime — roughly 5 fewer NAP objects and one fewer started `Device` per Field modulator, plus deleting the
+> dummy-curve hack. Zero bytes on disk. Steps 2 and 3 below are amended accordingly.
+>
+> **The real risk is `isFinished()`**, which is `mPlayer == nullptr || !mPlayer->getIsPlaying()`. Drop the
+> player and it returns `true` forever — and that predicate is what the reap loop in
+> `lxcontrolService::update()` uses to decide when a *releasing* activation drops its channel claims. This is
+> therefore a change to when live output stops, not a dead-code cleanup. `FieldModulator` must carry its own
+> `mPlaying`/`mElapsed` and override `isFinished()` deliberately.
 
 **Files:**
 - Modify: `module/src/modulator.h`, `module/src/{chase,noise,gradient}modulator.{h,cpp}`, `module/src/lxcontrolservice.cpp` (`buildModulatorGraph`, `rewireModulator`, `save`, `loadUserContent`)
@@ -1643,17 +1656,15 @@ Field modulators need only elapsed time and a playing flag — `NoiseModulator` 
 
 - [ ] **Step 2: Stop building a graph for Field modulators**
 
-In `buildModulatorGraph` / `rewireModulator`, skip clock/player/output/sink/editor construction when the modulator is a `FieldModulator`, and drop those (now-null) entries from `save()`'s root list. Delete both `generateCurve` dummy-curve overrides (`chasemodulator.cpp:25`, `noisemodulator.cpp:39`).
+In `buildModulatorGraph` / `rewireModulator`, skip clock/player/output/sink/editor construction when the modulator is a `FieldModulator`. Nothing to change in `save()` — the graph was never in its root list. Delete all three `generateCurve` dummy-curve overrides (`chasemodulator.cpp:25`, `noisemodulator.cpp:38`, `gradientmodulator.cpp:26`), and confirm no Field code path still dereferences `mPlayer` (`sampleShape`/`playheadPhase` are Curve-only previews, so they are already unreachable for Fields).
 
-- [ ] **Step 3: BUILD and verify**
+- [ ] **Step 3: BUILD and verify the behaviour, not the file size**
 
-KILL, BUILD, `rm -f data/user_content.json`, RUN. Re-author a Chase and a Noise patch and fire it: behaviour must be unchanged. Then confirm the shrink:
+KILL, BUILD, `rm -f data/user_content.json`, RUN. Re-author a Chase, a Noise and a Gradient patch, route each to All Fixtures, and check three things:
 
-```bash
-grep -c "SequencePlayer\|SequenceEditor" data/user_content.json
-```
-
-Expected: a count reflecting only the Curve modulators present — zero if the patch has no ADSR/AD/LFO/Step.
+1. **Firing looks identical** to before — the chase still steps across 18 colour units at the same rate (Chase's rate now comes from `mElapsed * rate` rather than the player's playback speed, so a wrong conversion shows up as the wrong speed).
+2. **Release behaves as intended.** Hold a control, release it: claims should drop the way the new `isFinished()` says they should. This is the step that actually matters — verify it against a Curve patch (ADSR) in the same program so you can see the difference between ringing out and cutting.
+3. **A driven input still works** — an AD on Noise's Rate, per Task 7's check, since pass 1 writes the input regardless of transport.
 
 - [ ] **Step 4: Commit**
 
