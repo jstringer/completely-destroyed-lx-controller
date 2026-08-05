@@ -26,7 +26,7 @@ namespace lx
 		void onTrigger() override;
 		void onStop() override;
 		void update(double deltaTime) override;
-		float value(float pos01, int component) const override;
+		float rawValue(float pos01, int component) const override;
 		std::vector<PatchParameter*> inputs() override
 			{ return { mRateInput.get(), mDensityInput.get(), mSmoothingInput.get() }; }
 

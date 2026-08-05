@@ -71,7 +71,7 @@ namespace lx
 	}
 
 
-	float NoiseModulator::value(float pos01, int component) const
+	float NoiseModulator::rawValue(float pos01, int component) const
 	{
 		const float rate    = inputValue(mRateInput, 0.05f, 8.0f);
 		const float density = inputValue(mDensityInput, 1.0f, 24.0f);

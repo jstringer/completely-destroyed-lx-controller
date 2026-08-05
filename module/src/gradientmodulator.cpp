@@ -59,7 +59,7 @@ namespace lx
 	}
 
 
-	float GradientModulator::value(float pos01, int component) const
+	float GradientModulator::rawValue(float pos01, int component) const
 	{
 		const float phase  = mPhaseInput != nullptr ? mPhaseInput->mValue : 0.0f;
 		const float period = inputValue(mPeriodInput, 0.1f, 4.0f);

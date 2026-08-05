@@ -833,6 +833,44 @@ namespace nap
 	// instead of the default "Param". Float/Toggle -> role name; Color -> "Color".
 	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
 
+	/** One-line fold readout for a source parameter: the base, then every modulator that targets it in
+	 *  EVALUATION order, each prefixed by its blend op (=Set, *Scale, +Offset). Ops discarded by a later
+	 *  Set are drawn in danger colour -- that is the whole point: a Set anywhere throws away the base and
+	 *  everything before it, so a wasted modulator becomes visible instead of silently doing nothing. */
+	static void drawBlendChain(lx::Patch& patch, lx::PatchParameter& param)
+	{
+		std::vector<lx::Modulator*> chain;
+		for (auto& m : patch.mModulators)
+			for (auto& t : m->mTargets)
+				if (t.get() == &param) { chain.emplace_back(m.get()); break; }
+
+		// Everything at or before the LAST Set is discarded by it (the base included).
+		int last_set = -1;
+		for (int i = 0; i < static_cast<int>(chain.size()); ++i)
+			if (chain[i]->mBlend == lx::EModulatorBlend::Set)
+				last_set = i;
+
+		// Its own full-width row, not appended to the label: with three or more modulators plus the warning
+		// this ran off the panel's right edge and clipped the tail of the chain.
+		ImGui::TextColored(last_set >= 0 ? lxtheme::danger() : lxtheme::muted(), "base");
+		for (int i = 0; i < static_cast<int>(chain.size()); ++i)
+		{
+			const char* op = chain[i]->mBlend == lx::EModulatorBlend::Set ? "=" :
+				(chain[i]->mBlend == lx::EModulatorBlend::Scale ? "*" : "+");
+			const bool dead = i < last_set;
+			ImGui::SameLine(0.0f, 5.0f);
+			ImGui::TextColored(lxtheme::muted(), "->");
+			ImGui::SameLine(0.0f, 5.0f);
+			// The number matches the card's evaluation index, so the chain and the cards cross-reference.
+			ImGui::TextColored(dead ? lxtheme::danger() : lxtheme::mod2(), "%s%d %s", op, i + 1, chain[i]->mName.c_str());
+		}
+		if (last_set >= 0)
+		{
+			ImGui::SameLine(0.0f, 8.0f);
+			ImGui::TextColored(lxtheme::danger(), "(=Set drops all above)");
+		}
+	}
+
 	/** @return the name of the modulator driving `input`, or nullptr when it is authored by hand.
 	 *  ponytail: O(mods x targets) per input per frame -- both are single digits on any real patch. Index it
 	 *  only if a patch ever grows dozens of modulators. */
@@ -876,7 +914,7 @@ namespace nap
 	{
 		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
 		static const char* shape_labels[] = { "Sine", "Ramp", "Triangle", "Square", "Pulse", "Gaussian" };
-		static const char* blend_labels[]    = { "Replace", "Multiply", "Add" };
+		static const char* blend_labels[]    = { "Set", "Scale", "Offset" };
 		static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
 		static const char* ad_mode_labels[]  = { "OneShot", "LoopWhileSustained" };
 
@@ -948,13 +986,18 @@ namespace nap
 				if (!patch->mParameters.empty())
 				{
 					lxtheme::Plate("Current", lxtheme::muted());
+					ImGui::SameLine();
+					if (lxtheme::FoldToggle(&patch->mCurrentCollapsed)) mLxControlService->markDirty();
 					lxtheme::SlabBegin(lxtheme::slab(), lxtheme::muted());
 					for (auto& p : patch->mParameters)
 					{
+						if (patch->mCurrentCollapsed)
+							continue;
 						ImGui::PushID(p.get());
 						ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
 						ImGui::TextUnformatted(patchParamLabel(p.get()).c_str());
 						ImGui::PopStyleColor();
+						drawBlendChain(*patch.get(), *p.get());	// how this value is actually assembled, in order
 
 						lx::Patch* pt = patch.get();
 						lx::PatchParameter* pp = p.get();
@@ -967,10 +1010,14 @@ namespace nap
 
 				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
 				lxtheme::Plate("Source", lxtheme::accent());
+				ImGui::SameLine();
+				if (lxtheme::FoldToggle(&patch->mSourceCollapsed)) mLxControlService->markDirty();
 				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
 				bool src_removed = false;
 				for (auto& p : patch->mParameters)
 				{
+					if (patch->mSourceCollapsed)
+						continue;
 					ImGui::PushID(p.get());
 					if (auto* fp = rtti_cast<lx::FloatParameter>(p.get()))
 					{
@@ -996,37 +1043,54 @@ namespace nap
 						if (ImGui::Combo("##trole", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
 						ImGui::SameLine(); lxtheme::LabeledCheck("On", &tp->mValue);
 					}
-					ImGui::SameLine();
-					if (lxtheme::DangerButton("Del")) { mLxControlService->removePatchParameter(*patch.get(), p.get()); src_removed = true; }
+					// Small "x" like every other removal in the app (mod-matrix targets, group members), not a
+					// filled red block mid-row: it stops outshouting the value it sits next to, and unlike a
+					// right-aligned Del it cannot clip off the panel edge.
+					ImGui::SameLine(0.0f, 6.0f);
+					ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::danger());
+					const bool del_src = lxagent::SmallButton("x");
+					ImGui::PopStyleColor();
+					if (del_src) { mLxControlService->removePatchParameter(*patch.get(), p.get()); src_removed = true; }
 					ImGui::PopID();
 					if (src_removed) break;	// mParameters mutated
 				}
-				if (lxagent::Button("+ Float")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
-				ImGui::SameLine(); if (lxagent::Button("+ Color")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
-				ImGui::SameLine(); if (lxagent::Button("+ Toggle")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
+				if (patch->mSourceCollapsed)
+				{
+					ImGui::TextDisabled("%d source%s folded", static_cast<int>(patch->mParameters.size()),
+						patch->mParameters.size() == 1 ? "" : "s");
+				}
+				else
+				{
+					if (lxagent::Button("+ Float")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
+					ImGui::SameLine(); if (lxagent::Button("+ Color")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
+					ImGui::SameLine(); if (lxagent::Button("+ Toggle")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
+				}
 				lxtheme::SlabEnd();		// close SOURCE slab
 
-				// --- MODULATION zone: add via a type dropdown + Add button ---
+				// --- MODULATION zone ---
 				lxtheme::Plate("Modulation", lxtheme::mod());
+				ImGui::SameLine();
+				if (lxtheme::FoldToggle(&patch->mModulationCollapsed)) mLxControlService->markDirty();
+				if (patch->mModulationCollapsed)
+				{
+					ImGui::SameLine();
+					lxtheme::Chip((std::to_string(patch->mModulators.size()) + " folded").c_str(), lxtheme::mod2());
+				}
 				int mod_index = 0;
 				static const char* mod_type_labels[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise", "Gradient" };
 				const nap::rtti::TypeInfo mod_types[] = {
 					RTTI_OF(lx::AdsrModulator), RTTI_OF(lx::AdModulator), RTTI_OF(lx::LfoModulator),
 					RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator),
 					RTTI_OF(lx::GradientModulator) };
-				ImGui::SetNextItemWidth(130);
-				ImGui::Combo("##addmodtype", &mAddModType, mod_type_labels, 7);
-				ImGui::SameLine();
 				const bool can_add_mod = !patch->mParameters.empty();
-				bool addmod_dis = lxtheme::PushDisabled(!can_add_mod);
-				if (lxagent::Button("+ Add modulator") && can_add_mod)
-					mLxControlService->addModulator(*patch.get(), mod_types[nap::math::clamp(mAddModType, 0, 6)], patch->mParameters[0].get());
-				lxtheme::PopDisabled(addmod_dis);
 				if (!can_add_mod && ImGui::IsItemHovered())
 					ImGui::SetTooltip("Add a source parameter first");
 
+				int reorder_up = -1;	// card asked to evaluate earlier; applied after the loop
 				for (auto& m : patch->mModulators)
 				{
+					if (patch->mModulationCollapsed)
+						{ ++mod_index; continue; }
 					ImGui::PushID(m.get());
 
 					// Card header: kind (violet) + target + Trigger/Stop.
@@ -1039,6 +1103,18 @@ namespace nap
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
 					else if (rtti_cast<lx::GradientModulator>(m.get())) kind = "GRADIENT";
 					lxtheme::SlabBegin((mod_index & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::mod());
+					// Evaluation-order index. Order IS semantics here (a Set discards what precedes it), so it
+					// is numbered and reorderable rather than being an invisible consequence of creation order.
+					ImGui::AlignTextToFramePadding();
+					ImGui::TextColored(lxtheme::mod2(), "%d", mod_index + 1);
+					ImGui::SameLine();
+					if (mod_index > 0)
+					{
+						// Move-up only: repeated move-up reaches any permutation, so one button beats two.
+						if (lxagent::SmallButton("^")) reorder_up = mod_index;
+						if (ImGui::IsItemHovered()) ImGui::SetTooltip("Evaluate earlier in the chain");
+						ImGui::SameLine();
+					}
 					// Family plate before the kind. Both families stay violet -- they are told apart by their
 					// PREVIEW (strip across position vs curve with a playhead), not by a fourth hue.
 					const bool is_field_mod = rtti_cast<lx::FieldModulator>(m.get()) != nullptr;
@@ -1047,6 +1123,8 @@ namespace nap
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
 					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
+					ImGui::SameLine();
+					if (lxtheme::FoldToggle(&m->mCollapsed)) mLxControlService->markDirty();
 					ImGui::SameLine();
 					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::SlabEnd(); ImGui::PopID(); break; }
 
@@ -1122,6 +1200,16 @@ namespace nap
 						lxtheme::PlayheadPreview(shape, 128, m->playheadPhase(), ImVec2(-1.0f, 40.0f));
 					}
 
+					// Everything below is EDITABLE param noise, so it folds away. The header, targets and the
+					// preview above stay: folded still tells you what this modulator is and what it's doing.
+					if (m->mCollapsed)
+					{
+						lxtheme::SlabEnd();
+						++mod_index;
+						ImGui::PopID();
+						continue;
+					}
+
 					auto regen = [&]() { m->generateCurve(*mLxControlService); };
 
 					if (auto* adsr = rtti_cast<lx::AdsrModulator>(m.get()))
@@ -1187,14 +1275,53 @@ namespace nap
 							lxtheme::LabeledCheck("Glide", &chase->mGlide);
 					}
 
+					// Per-component targeting, shown only when it can matter (a 3-component target). -1 = all.
+					{
+						bool colour_target = false;
+						for (auto& t : m->mTargets)
+							if (t != nullptr && t->getComponentCount() >= 3) { colour_target = true; break; }
+						if (colour_target)
+						{
+							static const char* comp_labels[] = { "All", "R", "G", "B" };
+							int comp = m->mTargetComponent < 0 ? 0 : m->mTargetComponent + 1;
+							if (lxtheme::LabeledCombo("Channel", &comp, comp_labels, 4, 76))
+							{
+								m->mTargetComponent = comp == 0 ? -1 : comp - 1;
+								mLxControlService->markDirty();
+							}
+							ImGui::SameLine();
+						}
+					}
+
 					int blend = static_cast<int>(m->mBlend);
-					if (lxtheme::LabeledCombo("Blend", &blend, blend_labels, 3, 100)) m->mBlend = static_cast<lx::EModulatorBlend>(blend);
+					if (lxtheme::LabeledCombo("Blend", &blend, blend_labels, 3, 100))
+					{
+						m->mBlend = static_cast<lx::EModulatorBlend>(blend);
+						mLxControlService->markDirty();
+					}
+					// Min/Max are the modulator's output range -- now honoured by EVERY type, Field included,
+					// because Modulator::value() applies them around the virtual rawValue().
 					ImGui::SameLine(); lxtheme::LabeledDrag("Min", &m->mMin, 0.01f, 0.0f, 1.0f, 70.0f);
 					ImGui::SameLine(); lxtheme::LabeledDrag("Max", &m->mMax, 0.01f, 0.0f, 1.0f, 70.0f);
 					lxtheme::SlabEnd();
 					++mod_index;
 					ImGui::PopID();
 				}
+
+				if (reorder_up > 0)
+				{
+					std::swap(patch->mModulators[reorder_up - 1], patch->mModulators[reorder_up]);
+					mLxControlService->markDirty();
+				}
+
+				// Add control sits BELOW the cards, so a new card appears where you just clicked.
+				ImGui::SetNextItemWidth(130);
+				ImGui::Combo("##addmodtype", &mAddModType, mod_type_labels, 7);
+				ImGui::SameLine();
+				bool addmod_dis = lxtheme::PushDisabled(!can_add_mod);
+				if (lxagent::Button("+ Add modulator") && can_add_mod)
+					mLxControlService->addModulator(*patch.get(), mod_types[nap::math::clamp(mAddModType, 0, 6)], patch->mParameters[0].get());
+				lxtheme::PopDisabled(addmod_dis);
 			}
 			ImGui::PopID();
 		}

@@ -23,6 +23,7 @@
 #include <sequencecontrollercurve.h>
 #include <sequenceplayercurveoutput.h>
 #include <utility/fileutils.h>
+#include <cctype>
 #include <algorithm>
 #include <fstream>
 
@@ -678,7 +679,20 @@ namespace nap
 		}
 
 		mod->mID = makeUniqueID(patch.mID + "_Mod");
-		mod->mName = std::string(type.get_name().data());
+		// Short, readable default name: "lx::LfoModulator" -> "LFO". The raw RTTI name leaked into the
+		// blend-chain readout and the "driven by X" markers, where it was unreadable.
+		{
+			std::string n = std::string(type.get_name().data());
+			const size_t colons = n.rfind("::");
+			if (colons != std::string::npos)
+				n = n.substr(colons + 2);
+			const std::string suffix = "Modulator";
+			if (n.size() > suffix.size() && n.compare(n.size() - suffix.size(), suffix.size(), suffix) == 0)
+				n = n.substr(0, n.size() - suffix.size());
+			for (char& c : n)
+				c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+			mod->mName = n;
+		}
 		if (target != nullptr)
 			mod->mTargets.emplace_back(target);
 

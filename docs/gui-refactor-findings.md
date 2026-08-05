@@ -154,3 +154,36 @@ via `ColorInputRow` — a read-only swatch rather than an editable one.
 **Order as information.** A group's member chips show their index because order *is* semantics: it sets the
 spread direction, so reordering or `Rev` reverses a chase. Reorder is `^`/`v` buttons plus `Rev`, not
 drag-and-drop — 1.76 has the DnD API but the agent bridge cannot drive a drag, and this stays verifiable.
+
+## §N+1 — Blend order made legible; folding the params, not the readouts
+
+**The blend modes are named for intent, not arithmetic**: `Set` / `Scale` / `Offset` (was
+Replace/Multiply/Add). "Set" carries the warning that Replace never did — it *sets* the value, discarding
+whatever came before.
+
+**Order is shown because order is semantics.** Modulators fold into a target in patch order, so each card
+carries its evaluation index and a `^` to move earlier (move-up alone reaches any permutation, so one button
+beats two). Above the field strip, each source shows its actual assembly: `base -> *1 LFO -> =2 NOISE`. When a
+`Set` appears, everything it discards — the base included — is drawn in danger colour with `(=Set drops all
+above)`. A wasted modulator is now visible instead of silently doing nothing, which is the failure the old
+Replace mode hid.
+
+**Ranges are applied where they cannot be skipped.** `Modulator::value()` is non-virtual and wraps a
+protected `rawValue()`, applying `[Min,Max]` around it. Every Field type had overridden `value()` and every
+one of them forgot the range, so the Min/Max sliders were inert for Chase, Noise and Gradient. Same lesson as
+the Field-preview enumeration: put shared behaviour in the base's non-virtual path, not in a contract
+subclasses must remember.
+
+**Clamping moved to the end of the chain.** Clamping after every modulator made `Offset` saturate early and
+made Offset-then-Scale lossy in an order-dependent way (base .6 +.7 → clamp 1.0 → ×.5 = .5, versus .65
+composed). Every term is already ≤ 1, so one clamp at the end is enough.
+
+**Folding hides the editor, never the readout.** A folded modulator card keeps its family plate, kind, targets
+and *preview*; only the editable rows and Blend/Min/Max hide. Sections (CURRENT / SOURCE / MODULATION) fold
+the same way. Fold state is a serialized property, so a patch opens the way you left it — deliberately
+persisted state rather than session-only UI state, because the alternative is re-folding on every launch.
+
+**Defaults that used to do nothing.** A new Float source defaulted to role `Generic`, which matches no rig
+channel — it appeared broken until you noticed the combo. Float now defaults to Dimmer and Toggle to
+SoundMode. Modulator names defaulted to the raw RTTI type (`lx::LfoModulator`), which the chain readout
+exposed as unreadable; they now derive a short uppercase name (`LFO`).

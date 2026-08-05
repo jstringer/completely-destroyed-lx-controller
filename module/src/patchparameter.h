@@ -48,7 +48,9 @@ namespace lx
 		EChannelRole getComponentRole(int) const override	{ return mRole; }
 		float getBaseValue(int) const override			{ return mValue; }
 
-		EChannelRole	mRole = EChannelRole::Generic;	///< Property: 'Role'
+		/// Property: 'Role'. Defaults to Dimmer, NOT Generic: no rig channel maps Generic, so a freshly
+		/// added Float source would claim nothing and appear broken until the user noticed the combo.
+		EChannelRole	mRole = EChannelRole::Dimmer;
 		float			mValue = 0.0f;					///< Property: 'Value'
 	};
 
@@ -77,7 +79,9 @@ namespace lx
 		EChannelRole getComponentRole(int) const override	{ return mRole; }
 		float getBaseValue(int) const override			{ return mValue ? 1.0f : 0.0f; }
 
-		EChannelRole	mRole = EChannelRole::Generic;	///< Property: 'Role'
+		/// Property: 'Role'. SoundMode rather than Generic for the same reason as FloatParameter -- it is the
+		/// one on/off-shaped channel role in this rig, so a new Toggle drives something by default.
+		EChannelRole	mRole = EChannelRole::SoundMode;
 		bool			mValue = false;					///< Property: 'Value'
 	};
 }

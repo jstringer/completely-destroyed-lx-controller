@@ -8,9 +8,9 @@
 #include <mathutils.h>
 
 RTTI_BEGIN_ENUM(lx::EModulatorBlend)
-	RTTI_ENUM_VALUE(lx::EModulatorBlend::Replace,	"Replace"),
-	RTTI_ENUM_VALUE(lx::EModulatorBlend::Multiply,	"Multiply"),
-	RTTI_ENUM_VALUE(lx::EModulatorBlend::Add,		"Add")
+	RTTI_ENUM_VALUE(lx::EModulatorBlend::Set,		"Set"),
+	RTTI_ENUM_VALUE(lx::EModulatorBlend::Scale,		"Scale"),
+	RTTI_ENUM_VALUE(lx::EModulatorBlend::Offset,	"Offset")
 RTTI_END_ENUM
 
 RTTI_BEGIN_CLASS(lx::Modulator)
@@ -21,6 +21,7 @@ RTTI_BEGIN_CLASS(lx::Modulator)
 	RTTI_PROPERTY("Min",			&lx::Modulator::mMin,				nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Max",			&lx::Modulator::mMax,				nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Blend",			&lx::Modulator::mBlend,				nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Collapsed",		&lx::Modulator::mCollapsed,			nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 // Abstract (pure virtual inputs()), so it must not be registered with a default constructor -- rttr would
@@ -58,11 +59,11 @@ namespace lx
 	}
 
 
-	float Modulator::value(float /*pos01*/, int /*component*/) const
+	float Modulator::rawValue(float /*pos01*/, int /*component*/) const
 	{
 		// Curve modulators are position- and component-invariant: one shape, identical on every source.
-		float raw = mSink != nullptr ? mSink->mValue : 0.0f;
-		return nap::math::lerp(mMin, mMax, raw);
+		// [Min,Max] is applied by the non-virtual value(), not here.
+		return mSink != nullptr ? mSink->mValue : 0.0f;
 	}
 
 

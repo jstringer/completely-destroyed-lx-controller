@@ -59,6 +59,11 @@ namespace lx
 		std::string								mName;			///< Property: 'Name'
 		std::vector<nap::ResourcePtr<PatchParameter>>	mParameters;	///< Property: 'Parameters'
 		std::vector<nap::ResourcePtr<Modulator>>		mModulators;	///< Property: 'Modulators'
+		// Editor fold state, serialized so the patch opens the way you left it. The readouts (CURRENT's field
+		// strips) stay visible when folded; only the editable rows hide.
+		bool									mCurrentCollapsed = false;	///< Property: 'CurrentCollapsed'
+		bool									mSourceCollapsed = false;	///< Property: 'SourceCollapsed'
+		bool									mModulationCollapsed = false;	///< Property: 'ModulationCollapsed'
 
 	private:
 		/** Shared blend: authored base, then every modulator that targets `param`, positioned by `posOf`.
@@ -89,13 +94,16 @@ namespace lx
 				const float m = modulator->value(posOf(*modulator), component);
 				switch (modulator->mBlend)
 				{
-				case EModulatorBlend::Replace:	v = m;			break;
-				case EModulatorBlend::Multiply:	v = v * m;		break;
-				case EModulatorBlend::Add:		v = v + m;		break;
+				case EModulatorBlend::Set:		v = m;			break;
+				case EModulatorBlend::Scale:	v = v * m;		break;
+				case EModulatorBlend::Offset:	v = v + m;		break;
 				}
-				v = nap::math::clamp(v, 0.0f, 1.0f);
+				// Deliberately NOT clamped per step. Clamping mid-chain made Offset saturate early and made
+				// Offset-then-Scale lossy in a way that depended on ordering (base .6 +.7 -> clamp 1.0 -> x.5
+				// = .5, where the composed value is .65). Every term is already <= 1, so one clamp at the end
+				// is enough and the chain composes predictably.
 			}
-			return v;
+			return nap::math::clamp(v, 0.0f, 1.0f);
 		}
 	};
 }

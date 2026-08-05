@@ -52,7 +52,7 @@ namespace lx
 	}
 
 
-	float ChaseModulator::value(float pos01, int /*component*/) const
+	float ChaseModulator::rawValue(float pos01, int /*component*/) const
 	{
 		if (mPlayer == nullptr)
 			return 0.0f;

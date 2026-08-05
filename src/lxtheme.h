@@ -409,6 +409,21 @@ namespace lxtheme
 		return changed;
 	}
 
+	/** Fold toggle: `-` when open (click to fold), `+` when folded. ASCII on purpose -- lxagent::fold drops
+	 *  non-ASCII, so a glyph chevron would be unaddressable from the agent bridge. Flips `*collapsed` and
+	 *  returns true when it changed, so the caller can mark content dirty. */
+	inline bool FoldToggle(bool* collapsed)
+	{
+		if (lxagent::SmallButton(*collapsed ? "+" : "-"))
+		{
+			*collapsed = !*collapsed;
+			return true;
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(*collapsed ? "Show editable params" : "Fold away the params, keep the readout");
+		return false;
+	}
+
 	/** InputRow's colour sibling (a Gradient endpoint): swatch instead of slider, same driven-by treatment.
 	 *  @return true when the swatch changed. */
 	inline bool ColorInputRow(const char* label, float* r, float* g, float* b, const char* drivenBy)

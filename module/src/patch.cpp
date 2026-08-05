@@ -6,6 +6,9 @@ RTTI_BEGIN_CLASS(lx::Patch)
 	RTTI_PROPERTY("Name",			&lx::Patch::mName,			nap::rtti::EPropertyMetaData::Required)
 	RTTI_PROPERTY("Parameters",	&lx::Patch::mParameters,		nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Modulators",		&lx::Patch::mModulators,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("CurrentCollapsed",	&lx::Patch::mCurrentCollapsed,	nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("SourceCollapsed",	&lx::Patch::mSourceCollapsed,	nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("ModulationCollapsed",	&lx::Patch::mModulationCollapsed,	nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
 
 namespace lx

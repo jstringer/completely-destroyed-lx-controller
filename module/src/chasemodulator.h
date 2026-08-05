@@ -23,7 +23,7 @@ namespace lx
 		void generateCurve(nap::lxcontrolService& svc) override;
 		void onTrigger() override;
 		void onStop() override;
-		float value(float pos01, int component) const override;
+		float rawValue(float pos01, int component) const override;
 		std::vector<PatchParameter*> inputs() override
 			{ return { mRateInput.get(), mPulseWidthInput.get() }; }
 		/** Endpoint-exclusive positions: with i/(n-1) the last source would sit at phase 1.0 == 0.0 and

@@ -18,7 +18,14 @@ namespace nap
 
 namespace lx
 {
-	enum class EModulatorBlend : int { Replace, Multiply, Add };
+	/**
+	 * How a modulator folds into the running value of its target, applied in patch order (see
+	 * Patch::blend). Named for intent rather than arithmetic:
+	 *  - Set    (was Replace)  : v = m      -- DISCARDS the base and every earlier modulator on this target
+	 *  - Scale  (was Multiply)  : v = v * m
+	 *  - Offset (was Add)       : v = v + m  -- clamped once at the end of the chain, not per step
+	 */
+	enum class EModulatorBlend : int { Set, Scale, Offset };
 
 	/**
 	 * Base class for a modulator: a shape that drives a 0..1 value over time and blends it into a target
@@ -47,15 +54,23 @@ namespace lx
 		virtual bool isFinished() const;
 
 		/**
-		 * @return this modulator's output at normalised position `pos01` for value component `component`.
-		 * The base implementation ignores both and returns the sink mapped to [Min,Max] -- i.e. Curve
-		 * modulators are identical on every source. Field modulators (Chase/Noise/Gradient) override.
+		 * @return this modulator's output at normalised position `pos01` for value component `component`,
+		 * mapped into [Min,Max].
+		 *
+		 * NON-VIRTUAL on purpose: it is the one place the [Min,Max] range is applied, so a subclass cannot
+		 * silently skip it. Override rawValue() instead. (Chase/Noise/Gradient each used to override
+		 * value(); every one of them forgot the range, which is why the Min/Max sliders were inert for
+		 * every Field modulator.)
 		 *
 		 * `component` is a component of the VALUE (0..2 of an RGB colour), used by fields that decorrelate
 		 * per channel. It is NOT mTargetComponent, which selects which components get written -- the two
 		 * are independent and easy to confuse.
 		 */
-		virtual float value(float pos01, int component) const;
+		float value(float pos01, int component) const
+		{
+			const float raw = rawValue(pos01, component);
+			return nap::math::lerp(mMin, mMax, raw < 0.0f ? 0.0f : (raw > 1.0f ? 1.0f : raw));
+		}
 
 		/** @return true when this modulator's source positions should be endpoint-EXCLUSIVE (i/n), so a
 		 *  looping shape's seam does not land on source 0. Chase: true. Gradients/envelopes: false
@@ -75,7 +90,10 @@ namespace lx
 		int									mTargetComponent = -1;		///< Property: 'TargetComponent' -1 = all
 		float								mMin = 0.0f;				///< Property: 'Min'
 		float								mMax = 1.0f;				///< Property: 'Max'
-		EModulatorBlend						mBlend = EModulatorBlend::Replace;	///< Property: 'Blend'
+		EModulatorBlend						mBlend = EModulatorBlend::Set;	///< Property: 'Blend'
+		/// Property: 'Collapsed' -- editor state, serialized on purpose so a folded card stays folded across
+		/// restarts. A collapsed card still shows its plate/kind/targets/preview; only the editable params hide.
+		bool								mCollapsed = false;
 
 		// Runtime, wired by lxcontrolService::buildModulatorGraph (non-serialized; the objects are).
 		nap::SequencePlayer*	mPlayer = nullptr;
@@ -85,6 +103,11 @@ namespace lx
 		double					mDuration = 1.0;	///< total curve duration in seconds (set by generateCurve)
 
 	protected:
+		/** @return the raw 0..1 shape value, BEFORE [Min,Max] mapping. Base: the sink the curve engine
+		 *  writes, i.e. Curve modulators are position- and component-invariant. Field modulators override
+		 *  this (never value()). */
+		virtual float rawValue(float pos01, int component) const;
+
 		bool	mReleased = false;	///< gate released (onStop seen); reset by onTrigger
 	};
 
