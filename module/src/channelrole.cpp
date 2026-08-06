@@ -10,7 +10,8 @@ RTTI_BEGIN_ENUM(lx::EChannelRole)
 	RTTI_ENUM_VALUE(lx::EChannelRole::Blue,			"Blue"),
 	RTTI_ENUM_VALUE(lx::EChannelRole::ColorMacro,	"ColorMacro"),
 	RTTI_ENUM_VALUE(lx::EChannelRole::SoundMode,	"SoundMode"),
-	RTTI_ENUM_VALUE(lx::EChannelRole::Generic,		"Generic")
+	RTTI_ENUM_VALUE(lx::EChannelRole::Generic,		"Generic"),
+	RTTI_ENUM_VALUE(lx::EChannelRole::Unset,		"Unset")
 RTTI_END_ENUM
 
 RTTI_BEGIN_ENUM(lx::ESpreadClass)

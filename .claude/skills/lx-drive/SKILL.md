@@ -25,7 +25,8 @@ pwsh -NoProfile -File .claude/skills/lx-drive/scripts/lxui.ps1 <verb> [arg]
 | `mode edit\|perform` | Live Bar Perform/Edit toggle |
 | `click "<label>"` | click a button by its label, e.g. `click "+ New Patch"` |
 | `text patch\|control\|device\|group\|program <value>` | fill a creation-form text buffer (`device` = a Control's device label, `group` = a FixtureGroup name) |
-| `modtype ADSR\|AD\|LFO\|Step\|Chase\|Noise\|Gradient` | pick the type the next `+ Add modulator` creates (the combo itself isn't clickable) |
+| `addmod ADSR\|AD\|LFO\|Step\|Chase\|Noise\|Gradient` | add a modulator to the LAST patch (creation is a combo, which the bridge cannot click) |
+| `addsource Dimmer\|Strobe\|Colour\|ColorMacro\|SoundMode\|Unset` | add a source of that role to the LAST patch; `Unset` makes the "pick a role" state |
 | `styleguide on\|off` | Style Guide test-bed window |
 | `resize "<w> <h>"` | resize the render window |
 | `stopall` | `lxcontrolService::stopAll()` |

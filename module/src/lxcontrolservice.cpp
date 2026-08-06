@@ -664,7 +664,7 @@ namespace nap
 	}
 
 
-	lx::Modulator* lxcontrolService::addModulator(lx::Patch& patch, rtti::TypeInfo type, lx::PatchParameter* target)
+	lx::Modulator* lxcontrolService::addModulator(lx::Patch& patch, rtti::TypeInfo type)
 	{
 		PatchEntry* patch_entry = findEntry(patch);
 		if (patch_entry == nullptr)
@@ -693,8 +693,6 @@ namespace nap
 				c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 			mod->mName = n;
 		}
-		if (target != nullptr)
-			mod->mTargets.emplace_back(target);
 
 		utility::ErrorState err;
 		if (!mod->init(err))
@@ -823,13 +821,8 @@ namespace nap
 		PatchEntry* dentry = findEntry(*dst);
 		for (auto& sm : src.mModulators)
 		{
-			lx::PatchParameter* first = nullptr;
-			if (!sm->mTargets.empty())
-			{
-				auto it = pmap.find(sm->mTargets[0].get());
-				if (it != pmap.end()) first = it->second;
-			}
-			lx::Modulator* nm = addModulator(*dst, sm->get_type(), first);
+			// No seed target needed: copyObject brings mTargets across and they are remapped just below.
+			lx::Modulator* nm = addModulator(*dst, sm->get_type());
 			if (nm == nullptr)
 				continue;
 			const std::string id = nm->mID;

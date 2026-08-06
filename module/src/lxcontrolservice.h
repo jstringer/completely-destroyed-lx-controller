@@ -111,7 +111,9 @@ namespace nap
 		lx::Patch* createPatch(const std::string& name);
 		lx::PatchParameter* addPatchParameter(lx::Patch& patch, rtti::TypeInfo type);
 		void removePatchParameter(lx::Patch& patch, lx::PatchParameter* param);
-		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type, lx::PatchParameter* target);
+		/** Creates a modulator with NO target. Deliberately: auto-targeting the first source meant every new
+		 *  modulator arrived wired to something the user usually had to unwire first. */
+		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type);
 		void removeModulator(lx::Patch& patch, lx::Modulator* mod);
 		void removePatch(lx::Patch* patch);
 		/** Deep-copies a patch (all PatchParameters + Modulators, each modulator's runtime graph rebuilt as

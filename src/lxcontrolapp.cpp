@@ -156,19 +156,47 @@ namespace nap
 				lxagent::hit();
 			}
 		}
-		// The bridge can only click buttons, so the "add modulator" TYPE combo was unreachable -- which made
-		// every Chase/Noise/Gradient behaviour check un-runnable headlessly. This is the project's only test
-		// harness, so the type gets an explicit verb.
-		else if (verb == "modtype")
+		// Creation is now "pick the type" combos, which the bridge cannot drive (buttons only). These verbs
+		// perform the same service calls so every authoring path stays runnable headlessly -- this is the
+		// project's only test harness. Both act on the LAST patch in the list, i.e. the one just created.
+		else if (verb == "addmod" || verb == "addsource")
 		{
-			static const char* kTypes[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise", "Gradient" };
-			for (int i = 0; i < 7; ++i)
+			const auto& patches = mLxControlService->getPatches();
+			if (!patches.empty())
 			{
-				if (arg == kTypes[i])
+				lx::Patch& target = *patches.back().get();
+				if (verb == "addmod")
 				{
-					mAddModType = i;
-					lxagent::hit();
-					break;
+					static const char* kTypes[] = { "ADSR", "AD", "LFO", "Step", "Chase", "Noise", "Gradient" };
+					const nap::rtti::TypeInfo kInfos[] = {
+						RTTI_OF(lx::AdsrModulator), RTTI_OF(lx::AdModulator), RTTI_OF(lx::LfoModulator),
+						RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator),
+						RTTI_OF(lx::GradientModulator) };
+					for (int i = 0; i < 7; ++i)
+						if (arg == kTypes[i]) { mLxControlService->addModulator(target, kInfos[i]); lxagent::hit(); break; }
+				}
+				else
+				{
+					static const char* kRoles[] = { "Dimmer", "Strobe", "Colour", "ColorMacro", "SoundMode", "Unset" };
+					static const lx::EChannelRole kVals[] = { lx::EChannelRole::Dimmer, lx::EChannelRole::Strobe,
+						lx::EChannelRole::Red, lx::EChannelRole::ColorMacro, lx::EChannelRole::SoundMode,
+						lx::EChannelRole::Unset };
+					for (int i = 0; i < 6; ++i)
+					{
+						if (arg != kRoles[i])
+							continue;
+						nap::rtti::TypeInfo t = RTTI_OF(lx::FloatParameter);
+						if (kVals[i] == lx::EChannelRole::Red)			t = RTTI_OF(lx::ColorParameter);
+						else if (kVals[i] == lx::EChannelRole::SoundMode)	t = RTTI_OF(lx::ToggleParameter);
+						if (auto* np = mLxControlService->addPatchParameter(target, t))
+						{
+							if (auto* fp = rtti_cast<lx::FloatParameter>(np))		fp->mRole = kVals[i];
+							else if (auto* tp = rtti_cast<lx::ToggleParameter>(np))	tp->mRole = kVals[i];
+							mLxControlService->markDirty();
+						}
+						lxagent::hit();
+						break;
+					}
 				}
 			}
 		}
@@ -831,7 +859,7 @@ namespace nap
 
 	// Human label for a source parameter (its role / kind), so combos + "drives X" read meaningfully
 	// instead of the default "Param". Float/Toggle -> role name; Color -> "Color".
-	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
+	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic", "pick a role" };
 
 	/** One-line fold readout for a source parameter: the base, then every modulator that targets it in
 	 *  EVALUATION order, each prefixed by its blend op (=Set, *Scale, +Offset). Ops discarded by a later
@@ -903,16 +931,17 @@ namespace nap
 		{
 			if (fp->mRole == lx::EChannelRole::Generic && !fp->mName.empty())
 				return fp->mName;
-			return kRoleLabels[nap::math::clamp(static_cast<int>(fp->mRole), 0, 7)];
+			return kRoleLabels[nap::math::clamp(static_cast<int>(fp->mRole), 0, 8)];
 		}
 		if (rtti_cast<lx::ColorParameter>(p)) return "Color";
-		if (auto* tp = rtti_cast<lx::ToggleParameter>(p)) return std::string(kRoleLabels[nap::math::clamp(static_cast<int>(tp->mRole), 0, 7)]) + " (tgl)";
+		if (auto* tp = rtti_cast<lx::ToggleParameter>(p)) return std::string(kRoleLabels[nap::math::clamp(static_cast<int>(tp->mRole), 0, 8)]) + " (tgl)";
 		return p->mName;
 	}
 
 	void lxcontrolApp::drawPatchesTab()
 	{
-		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic" };
+		// Index 8 == EChannelRole::Unset: a prompt, not a value. The combo shows it until the user chooses.
+		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic", "pick a role" };
 		static const char* shape_labels[] = { "Sine", "Ramp", "Triangle", "Square", "Pulse", "Gaussian" };
 		static const char* blend_labels[]    = { "Set", "Scale", "Offset" };
 		static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
@@ -985,9 +1014,9 @@ namespace nap
 				// The strip CALLS evaluateAt() rather than reading a buffer, so it is correct while idle too.
 				if (!patch->mParameters.empty())
 				{
-					lxtheme::Plate("Current", lxtheme::muted());
-					ImGui::SameLine();
 					if (lxtheme::FoldToggle(&patch->mCurrentCollapsed)) mLxControlService->markDirty();
+					ImGui::SameLine();
+					lxtheme::Plate("Current", lxtheme::muted());
 					lxtheme::SlabBegin(lxtheme::slab(), lxtheme::muted());
 					for (auto& p : patch->mParameters)
 					{
@@ -1009,9 +1038,9 @@ namespace nap
 				}
 
 				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
-				lxtheme::Plate("Source", lxtheme::accent());
-				ImGui::SameLine();
 				if (lxtheme::FoldToggle(&patch->mSourceCollapsed)) mLxControlService->markDirty();
+				ImGui::SameLine();
+				lxtheme::Plate("Source", lxtheme::accent());
 				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
 				bool src_removed = false;
 				for (auto& p : patch->mParameters)
@@ -1019,11 +1048,16 @@ namespace nap
 					if (patch->mSourceCollapsed)
 						continue;
 					ImGui::PushID(p.get());
+					// An unset role claims nothing. Say so, rather than letting the row look finished.
+					const bool src_unset = (p->getComponentRole(0) == lx::EChannelRole::Unset);
 					if (auto* fp = rtti_cast<lx::FloatParameter>(p.get()))
 					{
 						int role = static_cast<int>(fp->mRole);
-						ImGui::SetNextItemWidth(120);
-						if (ImGui::Combo("##role", &role, role_labels, 8)) fp->mRole = static_cast<lx::EChannelRole>(role);
+						ImGui::SetNextItemWidth(148);	// must fit the "pick a role" prompt, not just the role names
+						const bool pr = lxtheme::PushPrompt(src_unset);
+						if (ImGui::Combo("##role", &role, role_labels, 9)) fp->mRole = static_cast<lx::EChannelRole>(role);
+						lxtheme::PopPrompt(pr);
+						if (src_unset) { ImGui::SameLine(); lxtheme::WarnChip("! no role"); }
 						ImGui::SameLine(); ImGui::SetNextItemWidth(-52.0f);
 						ImGui::SliderFloat("##base", &fp->mValue, 0.0f, 1.0f);
 					}
@@ -1039,8 +1073,8 @@ namespace nap
 					else if (auto* tp = rtti_cast<lx::ToggleParameter>(p.get()))
 					{
 						int role = static_cast<int>(tp->mRole);
-						ImGui::SetNextItemWidth(120);
-						if (ImGui::Combo("##trole", &role, role_labels, 8)) tp->mRole = static_cast<lx::EChannelRole>(role);
+						ImGui::SetNextItemWidth(148);
+						if (ImGui::Combo("##trole", &role, role_labels, 9)) tp->mRole = static_cast<lx::EChannelRole>(role);
 						ImGui::SameLine(); lxtheme::LabeledCheck("On", &tp->mValue);
 					}
 					// Small "x" like every other removal in the app (mod-matrix targets, group members), not a
@@ -1061,16 +1095,35 @@ namespace nap
 				}
 				else
 				{
-					if (lxagent::Button("+ Float")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::FloatParameter));
-					ImGui::SameLine(); if (lxagent::Button("+ Color")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ColorParameter));
-					ImGui::SameLine(); if (lxagent::Button("+ Toggle")) mLxControlService->addPatchParameter(*patch.get(), RTTI_OF(lx::ToggleParameter));
+					// One role list instead of three type buttons: the ROLE decides the type (Colour -> a
+					// colour parameter, Sound -> a toggle, everything else a float). You add "a dimmer", not
+					// "a float you then have to tell is a dimmer".
+					static const char* add_src_items[] = { "+ source...", "Dimmer", "Strobe", "Colour", "ColorMacro", "SoundMode" };
+					static const lx::EChannelRole add_src_roles[] = { lx::EChannelRole::Unset, lx::EChannelRole::Dimmer,
+						lx::EChannelRole::Strobe, lx::EChannelRole::Red, lx::EChannelRole::ColorMacro, lx::EChannelRole::SoundMode,
+						lx::EChannelRole::Unset };
+					int ssel = 0;
+					ImGui::SetNextItemWidth(172);
+					if (ImGui::Combo("##addsrc", &ssel, add_src_items, 6) && ssel > 0)
+					{
+						const lx::EChannelRole role = add_src_roles[ssel];
+						nap::rtti::TypeInfo t = RTTI_OF(lx::FloatParameter);
+						if (role == lx::EChannelRole::Red)			t = RTTI_OF(lx::ColorParameter);
+						else if (role == lx::EChannelRole::SoundMode)	t = RTTI_OF(lx::ToggleParameter);
+						if (auto* np = mLxControlService->addPatchParameter(*patch.get(), t))
+						{
+							if (auto* fp = rtti_cast<lx::FloatParameter>(np))	fp->mRole = role;
+							else if (auto* tp = rtti_cast<lx::ToggleParameter>(np))	tp->mRole = role;
+							mLxControlService->markDirty();
+						}
+					}
 				}
 				lxtheme::SlabEnd();		// close SOURCE slab
 
 				// --- MODULATION zone ---
-				lxtheme::Plate("Modulation", lxtheme::mod());
-				ImGui::SameLine();
 				if (lxtheme::FoldToggle(&patch->mModulationCollapsed)) mLxControlService->markDirty();
+				ImGui::SameLine();
+				lxtheme::Plate("Modulation", lxtheme::mod());
 				if (patch->mModulationCollapsed)
 				{
 					ImGui::SameLine();
@@ -1082,9 +1135,6 @@ namespace nap
 					RTTI_OF(lx::AdsrModulator), RTTI_OF(lx::AdModulator), RTTI_OF(lx::LfoModulator),
 					RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator),
 					RTTI_OF(lx::GradientModulator) };
-				const bool can_add_mod = !patch->mParameters.empty();
-				if (!can_add_mod && ImGui::IsItemHovered())
-					ImGui::SetTooltip("Add a source parameter first");
 
 				int reorder_up = -1;	// card asked to evaluate earlier; applied after the loop
 				for (auto& m : patch->mModulators)
@@ -1103,28 +1153,43 @@ namespace nap
 					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
 					else if (rtti_cast<lx::GradientModulator>(m.get())) kind = "GRADIENT";
 					lxtheme::SlabBegin((mod_index & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::mod());
+					// Header geometry: DISCLOSURE first (one aligned column at every level), then the order
+					// group, then identity, then actions pushed hard right. The fold used to sit between Stop
+					// and Del, where it read as an action.
+					if (lxtheme::FoldToggle(&m->mCollapsed)) mLxControlService->markDirty();
+					ImGui::SameLine();
 					// Evaluation-order index. Order IS semantics here (a Set discards what precedes it), so it
 					// is numbered and reorderable rather than being an invisible consequence of creation order.
 					ImGui::AlignTextToFramePadding();
 					ImGui::TextColored(lxtheme::mod2(), "%d", mod_index + 1);
-					ImGui::SameLine();
 					if (mod_index > 0)
 					{
-						// Move-up only: repeated move-up reaches any permutation, so one button beats two.
+						// Reorder lives with the ORDINAL, not in the action cluster: it changes order, it is
+						// not an action. Move-up only -- repeated move-up reaches any permutation.
+						ImGui::SameLine(0.0f, 4.0f);
 						if (lxagent::SmallButton("^")) reorder_up = mod_index;
 						if (ImGui::IsItemHovered()) ImGui::SetTooltip("Evaluate earlier in the chain");
-						ImGui::SameLine();
 					}
+					ImGui::SameLine();
 					// Family plate before the kind. Both families stay violet -- they are told apart by their
 					// PREVIEW (strip across position vs curve with a playhead), not by a fourth hue.
 					const bool is_field_mod = rtti_cast<lx::FieldModulator>(m.get()) != nullptr;
 					lxtheme::Plate(is_field_mod ? "Field" : "Curve", is_field_mod ? lxtheme::mod() : lxtheme::mod2());
 					ImGui::SameLine();
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
-					ImGui::SameLine(); if (lxagent::SmallButton("Trigger")) m->onTrigger();
-					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
+					if (m->mTargets.empty())
+					{
+						ImGui::SameLine();
+						lxtheme::WarnChip("! no target");
+					}
+
+					// Actions last, in normal flow. Right-aligning them needed GetWindowContentRegionMax(),
+					// which ignores the scrollbar and the slab indent and pushed Del off the panel edge.
+					// Ordering (disclosure > ordinal > identity > state > actions) carries the structure
+					// on its own; the arithmetic bought nothing but a clipped button.
 					ImGui::SameLine();
-					if (lxtheme::FoldToggle(&m->mCollapsed)) mLxControlService->markDirty();
+					if (lxagent::SmallButton("Trigger")) m->onTrigger();
+					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
 					ImGui::SameLine();
 					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::SlabEnd(); ImGui::PopID(); break; }
 
@@ -1314,14 +1379,18 @@ namespace nap
 					mLxControlService->markDirty();
 				}
 
-				// Add control sits BELOW the cards, so a new card appears where you just clicked.
-				ImGui::SetNextItemWidth(130);
-				ImGui::Combo("##addmodtype", &mAddModType, mod_type_labels, 7);
-				ImGui::SameLine();
-				bool addmod_dis = lxtheme::PushDisabled(!can_add_mod);
-				if (lxagent::Button("+ Add modulator") && can_add_mod)
-					mLxControlService->addModulator(*patch.get(), mod_types[nap::math::clamp(mAddModType, 0, 6)], patch->mParameters[0].get());
-				lxtheme::PopDisabled(addmod_dis);
+				// Creation on selection: picking the type IS the add. No pre-selected kind to undo, and no
+				// second click. Index 0 is the prompt, so the combo never holds a value.
+				// ponytail: sentinel-first combo, the same shape the mod-matrix "+ add" already uses.
+				{
+					std::vector<const char*> items;
+					items.emplace_back("+ modulator...");
+					for (const char* l : mod_type_labels) items.emplace_back(l);
+					int sel = 0;
+					ImGui::SetNextItemWidth(172);
+					if (ImGui::Combo("##addmod", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
+						mLxControlService->addModulator(*patch.get(), mod_types[sel - 1]);
+				}
 			}
 			ImGui::PopID();
 		}

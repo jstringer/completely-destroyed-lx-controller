@@ -90,7 +90,9 @@ namespace lx
 		int									mTargetComponent = -1;		///< Property: 'TargetComponent' -1 = all
 		float								mMin = 0.0f;				///< Property: 'Min'
 		float								mMax = 1.0f;				///< Property: 'Max'
-		EModulatorBlend						mBlend = EModulatorBlend::Set;	///< Property: 'Blend'
+		/// Property: 'Blend'. Offset by default -- the only mode that composes. Defaulting to Set meant two
+		/// freshly added modulators silently annihilated each other (the second discards the first).
+		EModulatorBlend						mBlend = EModulatorBlend::Offset;
 		/// Property: 'Collapsed' -- editor state, serialized on purpose so a folded card stays folded across
 		/// restarts. A collapsed card still shows its plate/kind/targets/preview; only the editable params hide.
 		bool								mCollapsed = false;

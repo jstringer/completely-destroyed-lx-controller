@@ -17,7 +17,11 @@ namespace lx
 		Blue,
 		ColorMacro,
 		SoundMode,
-		Generic
+		Generic,
+		/// A source that has not been given a role yet. Matches no rig channel by construction, so an unset
+		/// source claims nothing -- and the editor says so rather than guessing a role the user then has to
+		/// undo. Never authored on a fixture channel; only on a freshly created PatchParameter.
+		Unset
 	};
 
 	/**

@@ -409,6 +409,33 @@ namespace lxtheme
 		return changed;
 	}
 
+	/**
+	 * "This cannot affect output yet" -- an unset source role, or a modulator with no target. Amber, matching
+	 * the `!unbound` marker the routing rows already use.
+	 *
+	 * Deliberately does NOT touch the spine: a gold spine already means "this fixture is emitting", so an
+	 * inert card wearing it would read exactly backwards.
+	 */
+	inline void WarnChip(const char* label)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Button, rgb(0xf5b301, 0.14f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, rgb(0xf5b301, 0.14f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, rgb(0xf5b301, 0.14f));
+		ImGui::PushStyleColor(ImGuiCol_Text, live2());
+		ImGui::SmallButton(label);
+		ImGui::PopStyleColor(4);
+	}
+
+	/** Pushes amber text for an unset picker so it reads as a prompt rather than a value. Pair with
+	 *  PopPrompt. Returns `unset` so the caller can pass it straight back. */
+	inline bool PushPrompt(bool unset)
+	{
+		if (unset)
+			ImGui::PushStyleColor(ImGuiCol_Text, live2());
+		return unset;
+	}
+	inline void PopPrompt(bool unset) { if (unset) ImGui::PopStyleColor(); }
+
 	/** Fold toggle: `-` when open (click to fold), `+` when folded. ASCII on purpose -- lxagent::fold drops
 	 *  non-ASCII, so a glyph chevron would be unaddressable from the agent bridge. Flips `*collapsed` and
 	 *  returns true when it changed, so the caller can mark content dirty. */
