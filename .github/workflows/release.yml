@@ -39,7 +39,10 @@ env:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    # Pinned, not windows-latest: on the current latest image NAP's bundled cmake reports "could not
+    # find any instance of Visual Studio" for the 17 2022 generator. Pinning keeps releases
+    # reproducible, and fails loudly if the image is ever retired.
+    runs-on: windows-2022
     steps:
       - name: Keep line endings as committed
         # The runner defaults core.autocrlf to true; this repo is LF, so checkout would rewrite every
@@ -82,6 +85,19 @@ jobs:
           if (-not (Test-Path (Join-Path $dest "app.json"))) { throw "app.json missing at $dest" }
           "APP_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "app is now at $dest"
+
+      - name: Report the available toolchain
+        # In-run evidence: a toolchain mismatch here should not need another run to diagnose.
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          if (Test-Path $vswhere) {
+            & $vswhere -products * -format value -property catalog_productDisplayVersion
+            & $vswhere -products * -format value -property installationPath
+          } else {
+            Write-Host "no vswhere at $vswhere"
+          }
+          Write-Host "CMAKE_GENERATOR=$env:CMAKE_GENERATOR"
 
       - name: Build, package and release
         shell: pwsh
