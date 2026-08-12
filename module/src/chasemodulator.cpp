@@ -1,7 +1,6 @@
 #include "chasemodulator.h"
 #include "lxcontrolservice.h"
 
-#include <sequenceplayer.h>
 #include <mathutils.h>
 #include <cmath>
 
@@ -20,48 +19,11 @@ namespace lx
 	}
 
 
-	void ChaseModulator::generateCurve(nap::lxcontrolService& svc)
-	{
-		// Value is computed analytically in value(pos01) from the player's own time; this dummy curve
-		// exists only to pin mDuration/the sequence duration to one second, matching LfoModulator.
-		mDuration = 1.0;
-		using I = nap::math::ECurveInterp;
-		std::vector<lx::Key> keys = { {0.0, 0.0f, I::Linear}, {1.0, 0.0f, I::Linear} };
-		svc.authorFloatCurve(*mEditor, mTrackID, keys);
-	}
-
-
-	void ChaseModulator::onTrigger()
-	{
-		Modulator::onTrigger();
-		if (mPlayer == nullptr)
-			return;
-		mPlayer->setPlaybackSpeed(inputValue(mRateInput, 0.05f, 8.0f));
-		mPlayer->setIsLooping(true);
-		if (!mPlayer->getIsPlaying())
-			mPlayer->setPlayerTime(0.0);
-		mPlayer->setIsPlaying(true);
-	}
-
-
-	void ChaseModulator::onStop()
-	{
-		Modulator::onStop();
-		if (mPlayer != nullptr)
-			mPlayer->setIsPlaying(false);	// free-running: gate-off stops immediately
-	}
-
-
 	float ChaseModulator::rawValue(float pos01, int /*component*/) const
 	{
-		if (mPlayer == nullptr)
-			return 0.0f;
-
-		// Rate drives the player's playback speed, so a driven Rate has to be pushed every frame -- the
-		// transport is stateful, unlike PulseWidth which is read fresh below.
-		mPlayer->setPlaybackSpeed(inputValue(mRateInput, 0.05f, 8.0f));
-
-		double t = mPlayer->getPlayerTime();
+		// Own clock: elapsed x rate replaces the player's playback-speed-driven time. A driven Rate is read
+		// fresh here every frame rather than pushed into a stateful transport.
+		const double t = mElapsed * static_cast<double>(inputValue(mRateInput, 0.05f, 8.0f));
 		double phase = wrapFrac(t - static_cast<double>(pos01));
 		float pw = nap::math::clamp(inputValue(mPulseWidthInput, 0.01f, 1.0f), 0.01f, 1.0f);
 

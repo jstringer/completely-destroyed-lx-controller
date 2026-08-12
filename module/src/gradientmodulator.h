@@ -17,10 +17,6 @@ namespace lx
 	{
 		RTTI_ENABLE(FieldModulator)
 	public:
-		void generateCurve(nap::lxcontrolService& svc) override;
-		void onTrigger() override;
-		void onStop() override;
-		void update(double deltaTime) override;
 		float rawValue(float pos01, int component) const override;
 		std::vector<PatchParameter*> inputs() override;
 
@@ -29,8 +25,5 @@ namespace lx
 		nap::ResourcePtr<FloatParameter>	mPhaseInput;	///< Property: 'PhaseInput' 0..1 of one period
 		nap::ResourcePtr<FloatParameter>	mPeriodInput;	///< Property: 'PeriodInput' 0..1 -> [0.1, 4] spans
 
-	private:
-		// Self-accumulated, like NoiseModulator: the player exists only to gate trigger/stop.
-		double	mElapsed = 0.0;
 	};
 }

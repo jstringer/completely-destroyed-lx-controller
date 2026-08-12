@@ -1,7 +1,6 @@
 #include "gradientmodulator.h"
 #include "lxcontrolservice.h"
 
-#include <sequenceplayer.h>
 #include <mathutils.h>
 #include <cmath>
 
@@ -17,45 +16,6 @@ namespace lx
 	std::vector<PatchParameter*> GradientModulator::inputs()
 	{
 		return { mStartInput.get(), mEndInput.get(), mPhaseInput.get(), mPeriodInput.get() };
-	}
-
-
-	void GradientModulator::generateCurve(nap::lxcontrolService& svc)
-	{
-		// Value is computed analytically in value(pos01); this dummy curve exists only to pin mDuration /
-		// the sequence duration, matching every other modulator's generateCurve().
-		mDuration = 1.0;
-		using I = nap::math::ECurveInterp;
-		std::vector<lx::Key> keys = { {0.0, 0.0f, I::Linear}, {1.0, 0.0f, I::Linear} };
-		svc.authorFloatCurve(*mEditor, mTrackID, keys);
-	}
-
-
-	void GradientModulator::onTrigger()
-	{
-		Modulator::onTrigger();
-		mElapsed = 0.0;
-		if (mPlayer == nullptr)
-			return;
-		mPlayer->setIsLooping(true);
-		if (!mPlayer->getIsPlaying())
-			mPlayer->setPlayerTime(0.0);
-		mPlayer->setIsPlaying(true);
-	}
-
-
-	void GradientModulator::onStop()
-	{
-		Modulator::onStop();
-		if (mPlayer != nullptr)
-			mPlayer->setIsPlaying(false);	// free-running: gate-off stops immediately
-	}
-
-
-	void GradientModulator::update(double deltaTime)
-	{
-		if (mPlayer != nullptr && mPlayer->getIsPlaying())
-			mElapsed += deltaTime;
 	}
 
 

@@ -973,8 +973,15 @@ namespace nap
 				for (auto& b : trig->mBindings)
 					if (b.mPatch.get() == patch.get()) { used_by++; break; }
 
-			ImGui::SameLine();
-			if (lxtheme::DangerButton("Delete"))
+			// Quiet, and separated from the name it destroys. Right-aligning it needs window-region
+			// arithmetic that ignores the scrollbar (which clipped Del three times already), so instead it is
+			// a small danger-tinted button held off by a gap -- the same treatment every other removal in
+			// this app gets. The "Used by N" detail stays in the body, where it has room to explain itself.
+			ImGui::SameLine(0.0f, 24.0f);
+			ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::danger());
+			const bool del_patch = lxagent::SmallButton("Delete");
+			ImGui::PopStyleColor();
+			if (del_patch)
 				ImGui::OpenPopup("confirm_del_patch");
 			if (ImGui::BeginPopup("confirm_del_patch"))
 			{
@@ -1177,10 +1184,20 @@ namespace nap
 					lxtheme::Plate(is_field_mod ? "Field" : "Curve", is_field_mod ? lxtheme::mod() : lxtheme::mod2());
 					ImGui::SameLine();
 					ImGui::TextColored(lxtheme::mod(), "%s", kind);
+					// Target summary lives in the HEADER, so a folded card still says what it drives and the
+					// dedicated "drives" row below is only spent when you are actually editing the wiring.
 					if (m->mTargets.empty())
 					{
 						ImGui::SameLine();
 						lxtheme::WarnChip("! no target");
+					}
+					else
+					{
+						std::string summary;
+						for (size_t ti = 0; ti < m->mTargets.size(); ++ti)
+							summary += (ti ? " + " : "") + patchParamLabel(m->mTargets[ti].get());
+						ImGui::SameLine();
+						ImGui::TextColored(lxtheme::mod2(), "-> %s", summary.c_str());
 					}
 
 					// Actions last, in normal flow. Right-aligning them needed GetWindowContentRegionMax(),
@@ -1193,8 +1210,36 @@ namespace nap
 					ImGui::SameLine();
 					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::SlabEnd(); ImGui::PopID(); break; }
 
-					// Mod-matrix: this modulator drives every target in mTargets. Chips (+ x to remove),
-					// then a combo to add another source parameter as a target.
+					// The family is told apart by its PREVIEW, not by a fourth hue: a spatial (Field) modulator
+					// draws a strip across position; a temporal (Curve) one draws its shape with a playhead.
+					// Test the BASE, not each concrete type -- listing types here is how Gradient silently
+					// got the wrong preview (its flat dummy curve) when it was added.
+					if (is_field_mod)
+					{
+						lx::Modulator* mm = m.get();
+						lxtheme::FieldStrip([mm](float pos, int c) { return mm->value(pos, c); },
+							modTargetComponents(m.get()), ImVec2(-1.0f, 26.0f));
+					}
+					else
+					{
+						// Static shape + playhead at the real transport phase (the mockup's modulator preview).
+						float shape[128];
+						for (int i = 0; i < 128; ++i) shape[i] = m->sampleShape(i / 127.0f);
+						lxtheme::PlayheadPreview(shape, 128, m->playheadPhase(), ImVec2(-1.0f, 40.0f));
+					}
+
+					// Folded: header + preview only. The readout stays -- what folds away is the editor.
+					if (m->mCollapsed)
+					{
+						lxtheme::SlabEnd();
+						++mod_index;
+						ImGui::PopID();
+						continue;
+					}
+
+					// Mod-matrix EDITOR (chips + x, then a combo to add another target). Drawn only when the
+					// card is open -- the header already carries the target summary, so a folded card spends
+					// no line on wiring it isn't letting you change.
 					ImGui::AlignTextToFramePadding();
 					ImGui::TextColored(lxtheme::mod2(), "drives");
 					int remove_ti = -1;
@@ -1245,34 +1290,6 @@ namespace nap
 								mLxControlService->markDirty();
 							}
 						}
-					}
-
-					// The family is told apart by its PREVIEW, not by a fourth hue: a spatial (Field) modulator
-					// draws a strip across position; a temporal (Curve) one draws its shape with a playhead.
-					// Test the BASE, not each concrete type -- listing types here is how Gradient silently
-					// got the wrong preview (its flat dummy curve) when it was added.
-					if (is_field_mod)
-					{
-						lx::Modulator* mm = m.get();
-						lxtheme::FieldStrip([mm](float pos, int c) { return mm->value(pos, c); },
-							modTargetComponents(m.get()), ImVec2(-1.0f, 26.0f));
-					}
-					else
-					{
-						// Static shape + playhead at the real transport phase (the mockup's modulator preview).
-						float shape[128];
-						for (int i = 0; i < 128; ++i) shape[i] = m->sampleShape(i / 127.0f);
-						lxtheme::PlayheadPreview(shape, 128, m->playheadPhase(), ImVec2(-1.0f, 40.0f));
-					}
-
-					// Everything below is EDITABLE param noise, so it folds away. The header, targets and the
-					// preview above stay: folded still tells you what this modulator is and what it's doing.
-					if (m->mCollapsed)
-					{
-						lxtheme::SlabEnd();
-						++mod_index;
-						ImGui::PopID();
-						continue;
 					}
 
 					auto regen = [&]() { m->generateCurve(*mLxControlService); };

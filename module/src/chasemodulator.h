@@ -20,9 +20,6 @@ namespace lx
 	{
 		RTTI_ENABLE(FieldModulator)
 	public:
-		void generateCurve(nap::lxcontrolService& svc) override;
-		void onTrigger() override;
-		void onStop() override;
 		float rawValue(float pos01, int component) const override;
 		std::vector<PatchParameter*> inputs() override
 			{ return { mRateInput.get(), mPulseWidthInput.get() }; }

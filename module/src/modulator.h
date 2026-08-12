@@ -129,7 +129,27 @@ namespace lx
 		 *  mod-matrix (Modulator::mTargets) can target it with no new target type at all. */
 		virtual std::vector<PatchParameter*> inputs() = 0;
 
+		/**
+		 * Field modulators own their transport outright: no SequencePlayer, no clock, no sink, no editor, no
+		 * curve. They compute from elapsed time and position, so the five-object napsequence graph every
+		 * modulator used to get was dead weight here -- Chase used the player only as a clock, Noise and
+		 * Gradient only to ask "am I playing", and all three authored a flat dummy curve nothing sampled.
+		 * lxcontrolService::buildModulatorGraph skips construction entirely for this type.
+		 */
+		void onTrigger() override		{ Modulator::onTrigger(); mElapsed = 0.0; mPlaying = true; }
+		/** Free-running: gate-off stops immediately, which is what the players used to do. */
+		void onStop() override			{ Modulator::onStop(); mPlaying = false; }
+		void update(double deltaTime) override	{ if (mPlaying) mElapsed += deltaTime; }
+		/** Drives claim reaping: a releasing activation drops its channel claims once every patch is
+		 *  finished. Same answer the old `!mPlayer->getIsPlaying()` gave, without the player. */
+		bool isFinished() const override	{ return !mPlaying; }
+		/** No curve to author -- mDuration is meaningless for an analytic field. */
+		void generateCurve(nap::lxcontrolService& svc) override	{ }
+
 	protected:
+		double	mElapsed = 0.0;		///< runtime seconds since onTrigger (non-serialized)
+		bool	mPlaying = false;	///< runtime gate (non-serialized)
+
 		/** @return input `in`'s 0..1 value mapped into [lo,hi]. Reads the parameter's authored base -- pass 1
 		 *  of Patch::update has already written any driven value into it. Falls back to `lo` if unwired. */
 		float inputValue(const nap::ResourcePtr<FloatParameter>& in, float lo, float hi) const

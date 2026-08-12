@@ -1630,10 +1630,16 @@ git commit -m "feat(engine): Noise gains spatial coherence + Density input"
 
 ---
 
-### Task 10 (optional, NOT DONE): Field modulators shed the sequence graph
+### Task 10 (DONE): Field modulators shed the sequence graph
 
 Defer freely — it removes weight, not a limitation. Value rises now that there are three Field types.
 
+> **Shipped.** `FieldModulator` now carries `mElapsed`/`mPlaying`, overrides onTrigger/onStop/update/
+> isFinished/generateCurve, and `buildModulatorGraph` + `rewireModulator` skip construction for it. Chase
+> reads `mElapsed * rate` instead of the player's playback-speed-driven time. Verified behaviourally: the
+> Chase strip still animates (its own clock runs) and an ADSR in the same patch still draws a real curve
+> (the Curve path is untouched).
+>
 > **Corrected after review.** An earlier draft of this task claimed it would shrink `user_content.json` and
 > verified that by grepping the file for `SequencePlayer`. That is wrong: `save()`'s root list never contained
 > the player graph (it is runtime-only, rebuilt by `buildModulatorGraph` on load), so

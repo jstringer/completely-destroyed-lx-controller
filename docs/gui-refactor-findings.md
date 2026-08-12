@@ -187,3 +187,12 @@ persisted state rather than session-only UI state, because the alternative is re
 channel — it appeared broken until you noticed the combo. Float now defaults to Dimmer and Toggle to
 SoundMode. Modulator names defaulted to the raw RTTI type (`lx::LfoModulator`), which the chain readout
 exposed as unreadable; they now derive a short uppercase name (`LFO`).
+
+**A Field modulator owns its transport.** Chase/Noise/Gradient no longer get the five-object napsequence graph
+(clock, sink, curve output, player, editor) that every modulator used to receive. They compute from elapsed
+time and position, so the player was only ever a clock (Chase) or an "am I playing" flag (Noise, Gradient) --
+and all three authored a flat dummy curve nothing sampled, purely to pin `mDuration`. `FieldModulator` now
+carries `mElapsed`/`mPlaying` and overrides `isFinished()` as `!mPlaying`, which is the same answer
+`!mPlayer->getIsPlaying()` gave. This saves runtime objects, not disk bytes: the graph was never persisted.
+The risk was never the deletion but `isFinished()`, because the reap loop uses it to decide when a *releasing*
+activation drops its channel claims -- i.e. when live output actually stops.

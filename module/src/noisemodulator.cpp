@@ -1,7 +1,6 @@
 #include "noisemodulator.h"
 #include "lxcontrolservice.h"
 
-#include <sequenceplayer.h>
 #include <mathutils.h>
 #include <cmath>
 
@@ -31,43 +30,6 @@ namespace lx
 	{
 		t = nap::math::clamp(t, 0.0f, 1.0f);
 		return t * t * (3.0f - 2.0f * t);
-	}
-
-
-	void NoiseModulator::generateCurve(nap::lxcontrolService& svc)
-	{
-		// Value is computed analytically in value(pos01) from mElapsed; this dummy curve exists only
-		// to pin mDuration/the sequence duration, matching every other modulator's generateCurve().
-		mDuration = 1.0;
-		using I = nap::math::ECurveInterp;
-		std::vector<lx::Key> keys = { {0.0, 0.0f, I::Linear}, {1.0, 0.0f, I::Linear} };
-		svc.authorFloatCurve(*mEditor, mTrackID, keys);
-	}
-
-
-	void NoiseModulator::onTrigger()
-	{
-		Modulator::onTrigger();
-		mElapsed = 0.0;
-		if (mPlayer == nullptr)
-			return;
-		mPlayer->setIsLooping(true);
-		mPlayer->setIsPlaying(true);
-	}
-
-
-	void NoiseModulator::onStop()
-	{
-		Modulator::onStop();
-		if (mPlayer != nullptr)
-			mPlayer->setIsPlaying(false);	// free-running: gate-off stops immediately
-	}
-
-
-	void NoiseModulator::update(double deltaTime)
-	{
-		if (mPlayer != nullptr && mPlayer->getIsPlaying())
-			mElapsed += deltaTime;
 	}
 
 

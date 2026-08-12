@@ -22,10 +22,6 @@ namespace lx
 	{
 		RTTI_ENABLE(FieldModulator)
 	public:
-		void generateCurve(nap::lxcontrolService& svc) override;
-		void onTrigger() override;
-		void onStop() override;
-		void update(double deltaTime) override;
 		float rawValue(float pos01, int component) const override;
 		std::vector<PatchParameter*> inputs() override
 			{ return { mRateInput.get(), mDensityInput.get(), mSmoothingInput.get() }; }
@@ -36,11 +32,5 @@ namespace lx
 		nap::ResourcePtr<FloatParameter>	mDensityInput;
 		nap::ResourcePtr<FloatParameter>	mSmoothingInput;	///< Property: 'SmoothingInput' 0 = hard sample-and-hold, 1 = eased
 
-	private:
-		// Self-accumulated elapsed time, NOT read from mPlayer->getPlayerTime(): the player loops every
-		// `mDuration` (1s, from the dummy curve) which would make the noise pattern repeat every second.
-		// mPlayer is still built/played only to gate isFinished()/onTrigger/onStop the same way every
-		// other modulator does.
-		double	mElapsed = 0.0;
 	};
 }

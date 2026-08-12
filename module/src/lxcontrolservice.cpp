@@ -278,6 +278,13 @@ namespace nap
 		if (mod == nullptr)
 			return;
 
+		// A Field modulator owns its own transport, so it needs no player/clock/sink/editor graph at all.
+		if (rtti_cast<lx::FieldModulator>(mod) != nullptr)
+		{
+			ensureFieldInputs(*mod, entry);
+			return;
+		}
+
 		utility::ErrorState err;
 		if (!buildModulatorGraph(entry, makeUniqueID(mod->mID + "_rt"), err))
 		{
@@ -703,7 +710,8 @@ namespace nap
 
 		ModulatorEntry mod_entry;
 		mod_entry.mModulator = rtti::ObjectPtr<lx::Modulator>(mod);
-		if (!buildModulatorGraph(mod_entry, mod->mID, err))
+		// Field modulators own their transport: no curve engine to build (see FieldModulator).
+		if (rtti_cast<lx::FieldModulator>(mod) == nullptr && !buildModulatorGraph(mod_entry, mod->mID, err))
 		{
 			Logger::error("addModulator: build graph failed: %s", err.toString().c_str());
 			return nullptr;
