@@ -67,7 +67,12 @@ jobs:
           $sdk = Join-Path $env:NAP_ROOT "NAP-$env:NAP_VERSION-Win64-x86_64"
           if (-not (Test-Path $sdk)) { throw "SDK not found at $sdk after extraction" }
           $dest = Join-Path $sdk "apps\lxcontrol"
-          Move-Item -Path "app" -Destination $dest
+          # robocopy rather than Move-Item: it moves hidden/system/read-only files (.git) correctly and
+          # does not care whether source and destination share a volume. Exit codes below 8 are success.
+          robocopy "app" "$dest" /E /MOVE /NFL /NDL /NJH /NJS /NP | Out-Null
+          if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
+          $global:LASTEXITCODE = 0
+          if (-not (Test-Path (Join-Path $dest "app.json"))) { throw "app.json missing at $dest" }
           "APP_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "app is now at $dest"
 
