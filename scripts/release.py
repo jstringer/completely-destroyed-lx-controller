@@ -23,6 +23,8 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import zipfile
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SDK_DIR = os.path.dirname(os.path.dirname(APP_DIR))
@@ -81,13 +83,16 @@ def main():
     for old in glob.glob(os.path.join(APP_DIR, "lxcontrol-*.zip")):
         os.remove(old)
 
+    # Park scrubbed content OUTSIDE the app tree. Renaming it in place does not work: packaging installs
+    # everything under data/ wholesale, so a data/presets.release-bak just ships under a worse name.
+    stash = tempfile.mkdtemp(prefix="lxcontrol-release-")
     moved = []
     try:
         for rel in SCRUB:
             path = os.path.join(APP_DIR, rel)
             if os.path.exists(path):
-                shutil.move(path, path + ".release-bak")
-                moved.append(path)
+                shutil.move(path, os.path.join(stash, os.path.basename(rel)))
+                moved.append((os.path.join(stash, os.path.basename(rel)), path))
                 print("scrubbed %s (build-machine content, not shipped)" % rel)
 
         if not args.skip_regenerate:
@@ -95,12 +100,24 @@ def main():
         sdk_python("build_app_by_dir.py")
         sdk_python("package_app_by_dir.py", "-ns", "-nn", "-np")
     finally:
-        for path in moved:
-            shutil.move(path + ".release-bak", path)
+        for src, dst in moved:
+            shutil.move(src, dst)
+        shutil.rmtree(stash, ignore_errors=True)
 
     produced = glob.glob(os.path.join(APP_DIR, "lxcontrol-*.zip"))
     if not produced:
         sys.exit("Packaging reported success but produced no zip.")
+
+    # Verify the scrub actually took. The first version of it renamed files in place inside data/, which
+    # packaging happily shipped anyway -- a silent failure that put local test patches in a release.
+    entries = zipfile.ZipFile(produced[0]).namelist()
+    leaked = [n for n in entries if "user_content" in n or "/presets/" in n or "presets.release" in n]
+    if leaked:
+        sys.exit("Refusing to release: build-machine content leaked into the package:\n  " +
+                 "\n  ".join(leaked[:10]))
+    if not any(n.endswith("/lxcontrol.exe") for n in entries):
+        sys.exit("Refusing to release: no lxcontrol.exe in the package.")
+    print("package check: %d entries, exe present, no local content" % len(entries))
 
     # The default name carries a build timestamp, which says nothing useful. Name it by what it is:
     # the tag it belongs to and the commit it came from.
