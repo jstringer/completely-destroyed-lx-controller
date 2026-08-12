@@ -6,14 +6,14 @@ Build lxcontrol and publish the packaged zip to a GitHub release.
     python scripts/release.py --publish     # make it live
     python scripts/release.py --version 0.2.0 --notes "First unified-effects build"
 
-Why a script and not a GitHub Actions workflow: this repo is ONLY the app. It lives at
-<nap-sdk>/apps/lxcontrol and every build path reaches outside it (../../thirdparty/python,
-../../tools/buildsystem). A hosted runner therefore cannot build this checkout without first
-provisioning the NAP SDK (~640 MB) AND the Vulkan SDK, which the SDK does not bundle. Until that is
-worth automating, this script is the pipeline -- and if it ever moves to a self-hosted runner, the
-workflow just calls this same script, so nothing here is wasted.
+This is also what CI runs: .github/workflows/release.yml fetches the prebuilt NAP SDK, moves the
+checkout to <sdk>/apps/lxcontrol (apps must live there -- see the NAP project-management docs), and
+calls this script. One code path for local and hosted releases.
 
-ponytail: no build-system abstraction, no config file. Two subprocess calls and `gh`.
+The prebuilt SDK is self-contained, Vulkan included, at
+system_modules/naprender/thirdparty/vulkansdk -- nothing else has to be installed to build.
+
+ponytail: no build-system abstraction, no config file. One subprocess call and `gh`.
 """
 
 import argparse
