@@ -26,6 +26,11 @@ permissions:
 env:
   NAP_VERSION: 0.8.0
   NAP_ARCHIVE: NAP-0.8.0-Win64-x86_64.zip
+  # NAP's get_visual_studio_generator() cannot detect the toolchain on a bare runner and falls back to
+  # "Visual Studio 16 2019", which is not installed -- cmake generate then fails. get_system_generator()
+  # checks CMAKE_GENERATOR first, so state it explicitly rather than relying on detection or on wrapping
+  # the step in a VS developer shell.
+  CMAKE_GENERATOR: Visual Studio 17 2022
   # Extract to a SHORT root on the SAME VOLUME as the workspace (D: on the Windows runners). Short
   # because NAP's tree is deep and MSVC still trips over MAX_PATH inside the default
   # D:\a\<repo>\<repo> workspace; same volume so moving the checkout in is a rename rather than the
