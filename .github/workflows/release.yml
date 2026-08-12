@@ -107,15 +107,20 @@ jobs:
         run: |
           # Tag pushes release the tag's version and publish; manual runs use the supplied version and
           # default to a draft so a dry run cannot mint a release by accident.
+          #
+          # Built as an array and splatted: interpolating an empty $publish into the command line passed a
+          # literal empty argument, which argparse rejected as "unrecognized arguments".
           if ($env:GITHUB_REF -like 'refs/tags/v*') {
             $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
-            $publish = '--publish'
+            $doPublish = $true
           } else {
             $version = '${{ inputs.version }}'
-            $publish = if ('${{ inputs.publish }}' -eq 'true') { '--publish' } else { '' }
+            $doPublish = '${{ inputs.publish }}' -eq 'true'
           }
-          Write-Host "Releasing version $version $publish"
-          python scripts/release.py --version $version $publish
+          $relArgs = @('scripts/release.py', '--version', $version)
+          if ($doPublish) { $relArgs += '--publish' }
+          Write-Host "python $($relArgs -join ' ')"
+          python @relArgs
 
       - name: Keep the artifact even if the release step failed
         if: always()
