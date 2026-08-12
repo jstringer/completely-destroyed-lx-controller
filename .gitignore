@@ -11,3 +11,7 @@ data/user_content.session
 
 # agent bridge runtime files (src/lxagent.h)
 .agent/
+
+# ImGui/render window state written by the app every run (position, size, collapsed).
+# Per-machine and per-session, so tracking it just produced churn and cross-machine conflicts.
+.ini/
