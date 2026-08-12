@@ -1,0 +1,98 @@
+name: release
+
+# This repo is ONLY the app: it normally lives at <nap-sdk>/apps/lxcontrol and every build path reaches
+# outside it (../../thirdparty/python, ../../tools/buildsystem). So the runner has to reconstruct that
+# layout first: fetch the prebuilt NAP SDK, then drop this checkout into its apps/ directory.
+#
+# The prebuilt SDK is fully self-contained -- including Vulkan at
+# system_modules/naprender/thirdparty/vulkansdk -- so no separate Vulkan install is needed.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (without the leading v)'
+        required: true
+      publish:
+        description: 'Publish instead of leaving a draft'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write        # required to create/upload releases
+
+env:
+  NAP_VERSION: 0.8.0
+  NAP_ARCHIVE: NAP-0.8.0-Win64-x86_64.zip
+  # Extract to a SHORT root. NAP's tree is deep and MSVC still trips over MAX_PATH inside the default
+  # D:\a\<repo>\<repo> workspace.
+  NAP_ROOT: C:\nap
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Keep line endings as committed
+        # The runner defaults core.autocrlf to true; this repo is LF, so checkout would rewrite every
+        # file and release.py's clean-tree check would refuse to build.
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+        with:
+          path: app
+          fetch-depth: 0        # release.py reads the commit for the artifact name
+
+      - name: Cache the NAP SDK archive
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NAP_ROOT }}\${{ env.NAP_ARCHIVE }}
+          key: nap-sdk-${{ env.NAP_VERSION }}-win64
+
+      - name: Download the NAP SDK
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:NAP_ROOT | Out-Null
+          $url = "https://github.com/napframework/nap/releases/download/v$env:NAP_VERSION/$env:NAP_ARCHIVE"
+          Write-Host "Fetching $url"
+          Invoke-WebRequest -Uri $url -OutFile "$env:NAP_ROOT\$env:NAP_ARCHIVE"
+
+      - name: Unpack the SDK and place the app inside it
+        shell: pwsh
+        run: |
+          Expand-Archive -Path "$env:NAP_ROOT\$env:NAP_ARCHIVE" -DestinationPath $env:NAP_ROOT -Force
+          $sdk = Join-Path $env:NAP_ROOT "NAP-$env:NAP_VERSION-Win64-x86_64"
+          if (-not (Test-Path $sdk)) { throw "SDK not found at $sdk after extraction" }
+          $dest = Join-Path $sdk "apps\lxcontrol"
+          Move-Item -Path "app" -Destination $dest
+          "APP_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "app is now at $dest"
+
+      - name: Build, package and release
+        shell: pwsh
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Tag pushes release the tag's version and publish; manual runs use the supplied version and
+          # default to a draft so a dry run cannot mint a release by accident.
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
+            $publish = '--publish'
+          } else {
+            $version = '${{ inputs.version }}'
+            $publish = if ('${{ inputs.publish }}' -eq 'true') { '--publish' } else { '' }
+          }
+          Write-Host "Releasing version $version $publish"
+          python scripts/release.py --version $version $publish
+
+      - name: Keep the artifact even if the release step failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lxcontrol-win64
+          path: ${{ env.APP_DIR }}\lxcontrol-*.zip
+          if-no-files-found: warn

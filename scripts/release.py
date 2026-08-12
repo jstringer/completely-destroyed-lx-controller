@@ -133,10 +133,12 @@ def main():
         print("release %s exists -- replacing its asset" % tag)
         run(["gh", "release", "upload", tag, asset, "--clobber"], cwd=APP_DIR)
     else:
+        # Target the commit, not the branch name: in CI the checkout is detached, so --abbrev-ref would
+        # hand gh the literal string "HEAD".
         cmd = ["gh", "release", "create", tag, asset,
                "--title", "lxcontrol %s" % tag,
                "--notes", args.notes or "Windows x64 build from %s." % sha,
-               "--target", git("rev-parse", "--abbrev-ref", "HEAD")]
+               "--target", git("rev-parse", "HEAD")]
         if not args.publish:
             cmd.append("--draft")
         run(cmd, cwd=APP_DIR)
