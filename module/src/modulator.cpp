@@ -15,7 +15,6 @@ RTTI_END_ENUM
 
 RTTI_BEGIN_CLASS(lx::Modulator)
 	RTTI_PROPERTY("Name",			&lx::Modulator::mName,				nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Target",			&lx::Modulator::mTarget,			nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Targets",		&lx::Modulator::mTargets,			nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("TargetComponent",	&lx::Modulator::mTargetComponent,	nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Min",			&lx::Modulator::mMin,				nap::rtti::EPropertyMetaData::Default)
@@ -31,15 +30,6 @@ RTTI_END_CLASS
 
 namespace lx
 {
-	bool Modulator::init(nap::utility::ErrorState& errorState)
-	{
-		// Migrate the legacy single Target into the mod-matrix target list.
-		if (mTargets.empty() && mTarget != nullptr)
-			mTargets.emplace_back(mTarget);
-		return true;
-	}
-
-
 	void Modulator::onTrigger()
 	{
 		mReleased = false;

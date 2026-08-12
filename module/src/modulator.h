@@ -39,8 +39,6 @@ namespace lx
 	{
 		RTTI_ENABLE(nap::Resource)
 	public:
-		virtual bool init(nap::utility::ErrorState& errorState) override;
-
 		/** Authors this shape's curve into mTrackID (via svc.authorFloatCurve). Sets mDuration. */
 		virtual void generateCurve(nap::lxcontrolService& svc) {}
 
@@ -68,8 +66,7 @@ namespace lx
 		 */
 		float value(float pos01, int component) const
 		{
-			const float raw = rawValue(pos01, component);
-			return nap::math::lerp(mMin, mMax, raw < 0.0f ? 0.0f : (raw > 1.0f ? 1.0f : raw));
+			return nap::math::lerp(mMin, mMax, nap::math::clamp(rawValue(pos01, component), 0.0f, 1.0f));
 		}
 
 		/** @return true when this modulator's source positions should be endpoint-EXCLUSIVE (i/n), so a
@@ -85,7 +82,6 @@ namespace lx
 		float playheadPhase() const;
 
 		std::string							mName;						///< Property: 'Name'
-		nap::ResourcePtr<PatchParameter>	mTarget;					///< Property: 'Target' LEGACY single target; init() migrates it into mTargets
 		std::vector<nap::ResourcePtr<PatchParameter>>	mTargets;		///< Property: 'Targets' every PatchParameter this modulator drives (mod-matrix)
 		int									mTargetComponent = -1;		///< Property: 'TargetComponent' -1 = all
 		float								mMin = 0.0f;				///< Property: 'Min'
@@ -156,8 +152,7 @@ namespace lx
 		{
 			if (in == nullptr)
 				return lo;
-			const float t = in->mValue < 0.0f ? 0.0f : (in->mValue > 1.0f ? 1.0f : in->mValue);
-			return lo + (hi - lo) * t;
+			return nap::math::lerp(lo, hi, nap::math::clamp(in->mValue, 0.0f, 1.0f));
 		}
 	};
 

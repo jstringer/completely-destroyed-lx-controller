@@ -82,11 +82,9 @@ namespace nap
 		// --- Fixture registry (fixtures self-register from their component init) ---
 		void registerFixture(lx::FixtureComponentInstance* fixture);
 		void unregisterFixture(lx::FixtureComponentInstance* fixture);
-		const std::vector<lx::FixtureComponentInstance*>& getFixtures() const { return mFixtures; }
 		/** @return all registered fixtures sorted by physical DMX StartChannel (rig order) -- the same
-		 *  order fireTrigger uses to assign Chase/Noise fixture voices. Fixture-picking UI should iterate
-		 *  this (not getFixtures()'s raw registration order) so what's shown while authoring matches what
-		 *  actually happens at fire time. */
+		 *  order fireTrigger spreads sources in. This is the ONLY fixture accessor on purpose: raw
+		 *  registration order would make authoring UI disagree with what happens at fire time. */
 		std::vector<lx::FixtureComponentInstance*> getFixturesPhysicalOrder() const;
 
 		// --- Fixture groups (what a Control binds to; ordered whole fixtures) ---
@@ -112,8 +110,10 @@ namespace nap
 		lx::PatchParameter* addPatchParameter(lx::Patch& patch, rtti::TypeInfo type);
 		void removePatchParameter(lx::Patch& patch, lx::PatchParameter* param);
 		/** Creates a modulator with NO target. Deliberately: auto-targeting the first source meant every new
-		 *  modulator arrived wired to something the user usually had to unwire first. */
-		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type);
+		 *  modulator arrived wired to something the user usually had to unwire first.
+		 *  `name` is the display label ("LFO", "Chase") -- the caller's own type list already has it, and
+		 *  deriving it from the RTTI name here just re-implemented that list badly. */
+		lx::Modulator* addModulator(lx::Patch& patch, rtti::TypeInfo type, const std::string& name);
 		void removeModulator(lx::Patch& patch, lx::Modulator* mod);
 		void removePatch(lx::Patch* patch);
 		/** Deep-copies a patch (all PatchParameters + Modulators, each modulator's runtime graph rebuilt as
@@ -132,7 +132,7 @@ namespace nap
 
 		// --- Triggers ---
 		lx::Trigger* createTrigger(lx::ETriggerKind kind, const std::string& name);
-		void setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::PatchFixtureBinding>& bindings);
+		void setTriggerBinding(lx::Trigger& trigger, const lx::PatchFixtureBinding& binding);
 		void removeTrigger(lx::Trigger* trigger);
 		const std::vector<rtti::ObjectPtr<lx::Trigger>>& getTriggers() const { return mTriggers; }
 		uint64_t fireTrigger(lx::Trigger& trigger, bool held = false);
@@ -171,9 +171,10 @@ namespace nap
 		// The GUI owns the trigger lifecycle so the user never sees/names a Trigger. ---
 		lx::ControlMapping* routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch,
 			const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups);
-		void setRoutingPatch(lx::Trigger& trigger, lx::Patch* patch);				///< rewrites the binding's patch (keeps its groups + spread)
-		void setRoutingGroups(lx::Trigger& trigger, const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups);	///< rewrites the binding's groups (keeps its patch + spread)
-		void setRoutingSpread(lx::Trigger& trigger, bool endToEnd);				///< per-group (false) vs end-to-end (true); only meaningful with 2+ groups
+		/** The routing's binding, for in-place edits (patch / groups / end-to-end spread). Assign the one
+		 *  field you mean and call markDirty() -- three near-identical rewrite-the-whole-binding setters
+		 *  existed only because the binding used to live inside a vector. */
+		lx::PatchFixtureBinding& routingBinding(lx::Trigger& trigger)	{ return trigger.mBinding; }
 		void unroute(lx::Program& program, lx::ControlMapping* mapping);			///< removes the routing + its dedicated trigger
 		// Lifecycle routing (On load / On exit): one Enter/Exit trigger per program per kind.
 		lx::Trigger* getLifecycleTrigger(const lx::Program& program, lx::ETriggerKind kind) const;
@@ -184,8 +185,9 @@ namespace nap
 
 		// --- MIDI log / learn ---
 		const std::deque<std::string>& getMidiLog() const { return mMidiLog; }
-		bool hasLastMidiEvent() const { return mHasLastEvent; }
-		MidiEvent getLastMidiEvent() const { return MidiEvent(mLastEventType, mLastEventNumber, mLastEventValue, mLastEventChannel, mLastEventPort); }
+		/** @return the most recent message (null before any arrives). Learn compares getMidiEventCounter()
+		 *  first, so a caller only reads this once it knows a new one landed. */
+		const MidiEvent* getLastMidiEvent() const { return mLastEvent.get(); }
 		int getMidiEventCounter() const { return mMidiEventCounter; }
 
 		/** Marks authored content dirty; update() flushes it to user_content.json on a ~0.5s debounce.
@@ -275,12 +277,7 @@ namespace nap
 
 		std::deque<std::string>			mMidiLog;
 		static constexpr size_t			sMaxMidiLogSize = 50;
-		bool							mHasLastEvent = false;
-		MidiEvent::Type					mLastEventType = MidiEvent::Type::controlChange;
-		MidiValue						mLastEventNumber = 0;
-		MidiValue						mLastEventValue = 0;
-		MidiValue						mLastEventChannel = 0;
-		std::string						mLastEventPort;
+		std::unique_ptr<MidiEvent>		mLastEvent;
 		int								mMidiEventCounter = 0;
 
 		Slot<const MidiEvent&> mMidiSlot = { this, &lxcontrolService::onMidiEvent };

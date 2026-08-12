@@ -19,7 +19,7 @@ namespace lx
 	 * per-voice buffer this class used to own, and with it the collision two activations of one shared
 	 * patch used to have over that single buffer.
 	 *
-	 * Deliberately does NOT wrap nap::Parameter (see PLAN.md §2): every component is 0..1 so there's
+	 * Deliberately does NOT wrap nap::Parameter: every component is 0..1 so there's
 	 * no min/max win, and the GUI widgets are one-liners.
 	 */
 	class NAPAPI PatchParameter : public nap::Resource

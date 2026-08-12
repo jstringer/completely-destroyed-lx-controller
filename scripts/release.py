@@ -32,9 +32,9 @@ PYTHON = os.path.join(SDK_DIR, "thirdparty", "python", "msvc", "x86_64", "python
 BUILDSYS = os.path.join(SDK_DIR, "tools", "buildsystem", "common")
 
 # Build-machine detritus that must never ship in a release: whatever patches happened to be authored
-# on this machine, and the dead preset files from the superseded Preset era. Packaging installs
-# everything under data/, so these get moved aside for the duration of the build.
-SCRUB = ["data/user_content.json", "data/user_content.session", "data/presets"]
+# on this machine. Packaging installs everything under data/, so these get moved aside for the
+# duration of the build.
+SCRUB = ["data/user_content.json", "data/user_content.session"]
 
 
 def run(cmd, **kw):
@@ -82,7 +82,7 @@ def main():
         os.remove(old)
 
     # Park scrubbed content OUTSIDE the app tree. Renaming it in place does not work: packaging installs
-    # everything under data/ wholesale, so a data/presets.release-bak just ships under a worse name.
+    # everything under data/ wholesale, so a data/x.release-bak just ships under a worse name.
     stash = tempfile.mkdtemp(prefix="lxcontrol-release-")
     moved = []
     try:
@@ -109,7 +109,7 @@ def main():
     # Verify the scrub actually took. The first version of it renamed files in place inside data/, which
     # packaging happily shipped anyway -- a silent failure that put local test patches in a release.
     entries = zipfile.ZipFile(produced[0]).namelist()
-    leaked = [n for n in entries if "user_content" in n or "/presets/" in n or "presets.release" in n]
+    leaked = [n for n in entries if "user_content" in n]
     if leaked:
         sys.exit("Refusing to release: build-machine content leaked into the package:\n  " +
                  "\n  ".join(leaked[:10]))

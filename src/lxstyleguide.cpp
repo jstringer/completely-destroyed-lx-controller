@@ -114,13 +114,6 @@ namespace lxstyleguide
 		static float col[3] = { 0.90f, 0.30f, 0.20f };
 		ImGui::ColorEdit3("Editable swatch", col, ImGuiColorEditFlags_NoInputs);
 
-		// --- Modulation plot ----------------------------------------------
-		lxtheme::SectionHeader("Modulation plot");
-		static std::vector<float> wave(128);
-		for (int i = 0; i < 128; ++i)
-			wave[i] = 0.5f + 0.5f * std::sin(t * 2.0f + i * 0.15f);
-		lxtheme::ModPlot("##modplot", wave.data(), 128, ImVec2(520, 50));
-
 		// --- Fixture strip preview (RIG surface) --------------------------
 		lxtheme::SectionHeader("Fixture strip (RIG preview)");
 		for (int f = 0; f < 3; ++f)

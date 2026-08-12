@@ -4,15 +4,9 @@
 #include <sequenceplayer.h>
 #include <algorithm>
 
-RTTI_BEGIN_ENUM(lx::EStepAdvance)
-	RTTI_ENUM_VALUE(lx::EStepAdvance::Clock,	"Clock"),
-	RTTI_ENUM_VALUE(lx::EStepAdvance::Trigger,	"Trigger")
-RTTI_END_ENUM
-
 RTTI_BEGIN_CLASS(lx::StepModulator)
 	RTTI_PROPERTY("Steps",		&lx::StepModulator::mSteps,		nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Rate",		&lx::StepModulator::mRate,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Advance",	&lx::StepModulator::mAdvance,	nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Loop",		&lx::StepModulator::mLoop,		nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Glide",		&lx::StepModulator::mGlide,		nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS
@@ -67,7 +61,6 @@ namespace lx
 		Modulator::onTrigger();
 		if (mPlayer == nullptr)
 			return;
-		// ceiling: Trigger-advance not yet a per-trigger seek; both modes play on the clock for now.
 		mPlayer->setIsLooping(mLoop);
 		mPlayer->setPlayerTime(0.0);
 		mPlayer->setIsPlaying(true);

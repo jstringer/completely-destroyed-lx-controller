@@ -46,15 +46,4 @@ namespace lx
 		default:					return ESpreadClass::Fixture;
 		}
 	}
-
-	/**
-	 * DMX value width of a channel. Only Value8 is emitted today; the 16-bit variants are reserved
-	 * for future pan/tilt-style channels.
-	 */
-	enum class EDmxChannelWidth : int
-	{
-		Value8,
-		Value16MSB,
-		Value16LSB
-	};
 }

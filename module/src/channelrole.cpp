@@ -18,9 +18,3 @@ RTTI_BEGIN_ENUM(lx::ESpreadClass)
 	RTTI_ENUM_VALUE(lx::ESpreadClass::Fixture,		"Fixture"),
 	RTTI_ENUM_VALUE(lx::ESpreadClass::ColourUnit,	"ColourUnit")
 RTTI_END_ENUM
-
-RTTI_BEGIN_ENUM(lx::EDmxChannelWidth)
-	RTTI_ENUM_VALUE(lx::EDmxChannelWidth::Value8,		"Value8"),
-	RTTI_ENUM_VALUE(lx::EDmxChannelWidth::Value16MSB,	"Value16MSB"),
-	RTTI_ENUM_VALUE(lx::EDmxChannelWidth::Value16LSB,	"Value16LSB")
-RTTI_END_ENUM

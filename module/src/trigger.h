@@ -33,16 +33,20 @@ namespace lx
 
 
 	/**
-	 * A named set of patch->fixture bindings that can be fired/stopped. Firing is arbitrated by
+	 * A named patch->fixture binding that can be fired/stopped. Firing is arbitrated by
 	 * lxcontrolService (which owns activation ids + the LTP claim stack). Kind only affects how it is
 	 * fired: Control by a MIDI-mapped Control, Enter/Exit by Program load/unload.
+	 *
+	 * ONE binding, not a list: the GUI owns the trigger lifecycle and never exposes a Trigger at all
+	 * (a routing row is Control -> Patch -> Groups), so nothing has ever authored a second one. Layering
+	 * is expressed by routing several Controls, which the LTP claim stack already arbitrates.
 	 */
 	class NAPAPI Trigger : public nap::Resource
 	{
 		RTTI_ENABLE(nap::Resource)
 	public:
-		std::string							mName;			///< Property: 'Name'
-		ETriggerKind						mKind = ETriggerKind::Control;	///< Property: 'Kind'
-		std::vector<PatchFixtureBinding>	mBindings;		///< Property: 'Bindings'
+		std::string					mName;			///< Property: 'Name'
+		ETriggerKind				mKind = ETriggerKind::Control;	///< Property: 'Kind'
+		PatchFixtureBinding			mBinding;		///< Property: 'Binding'
 	};
 }

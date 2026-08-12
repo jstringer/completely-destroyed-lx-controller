@@ -69,12 +69,6 @@ namespace nap
 		/** Agent bridge (src/lxagent.h): serve one non-click verb, and the state dump every ack carries. */
 		void handleAgentCommand(const std::string& verb, const std::string& arg);
 		std::string agentStatus() const;
-		/** Best-effort label for a Multiple-mode patch's fixture voice in the modulator preview: finds any
-		 *  Trigger binding targeting this patch and resolves which physically-ordered fixture landed in
-		 *  `voice` (mirrors lxcontrolService::fireTrigger's own assignment). Falls back to "Voice N" if no
-		 *  binding is found, or if the patch is bound by more than one Trigger with different fixture
-		 *  sets (a known shared-Patch-state limitation -- see QUESTIONS.md) the first match wins, so this
-		 *  is a preview aid, not a runtime guarantee. */
 		/** RIG > Groups: create/reorder/reverse/delete the FixtureGroups a Control can bind to. */
 		void drawGroupsSection();
 
@@ -86,8 +80,6 @@ namespace nap
 		lxcontrolService*			mLxControlService = nullptr;	///< Runtime authority (fixtures/MIDI)
 		ObjectPtr<RenderWindow>		mRenderWindow;					///< Pointer to the render window
 		ObjectPtr<Scene>			mScene = nullptr;				///< Pointer to the main scene
-		ObjectPtr<EntityInstance>	mCameraEntity = nullptr;		///< Pointer to the entity that holds the perspective camera
-		ObjectPtr<EntityInstance>	mGnomonEntity = nullptr;		///< Pointer to the entity that can render the gnomon
 
 		ObjectPtr<ParameterGroup>	mFixtureParams1 = nullptr;		///< Fixture 1 base-value parameter group
 		ObjectPtr<ParameterGroup>	mFixtureParams2 = nullptr;		///< Fixture 2 base-value parameter group
@@ -109,7 +101,6 @@ namespace nap
 		// CONTROLS tab form state
 		char						mNewControlName[128] = "";
 		int							mNewControlMode = 0;	// 0=Hold(Momentary),1=Latch(Toggle),2=Trig(FireOnly)
-		int							mNewControlKind = 0;	// 0=Pad, 1=Knob
 		char						mNewControlGroup[64] = "";	// device group for the next created control
 		lx::Control*				mLearningControl = nullptr;	// control awaiting a learned MIDI event
 		int							mLearnStartCounter = 0;

@@ -9,7 +9,6 @@
 
 // Local Includes
 #include "channelrole.h"
-#include "fixturechannelmapping.h"
 #include "patch.h"
 #include "patchparameter.h"
 
@@ -18,9 +17,10 @@ namespace lx
 	class FixtureChannelComponentInstance;
 
 	/**
-	 * One DMX channel of a fixture: a name, an offset within the fixture's channel block, a DMX width,
-	 * and an embedded FixtureChannelMapping (role + base parameter). Sits as a sibling component
-	 * alongside a FixtureComponent on a fixture entity.
+	 * One DMX channel of a fixture: a name, an offset within the fixture's channel block, what the
+	 * channel does (semantic Role + an optional UnitIndex, 1..6 for a unit-scoped RGB channel), and the
+	 * base ParameterFloat that drives it. Sits as a sibling component alongside a FixtureComponent on a
+	 * fixture entity. Every channel is one 8-bit DMX slot.
 	 */
 	class NAPAPI FixtureChannelComponent : public nap::Component
 	{
@@ -29,10 +29,11 @@ namespace lx
 	public:
 		FixtureChannelComponent() : nap::Component() { }
 
-		std::string								mName;								///< Property: 'Name'
-		int										mOffset = 0;						///< Property: 'Offset' zero-based within the fixture channel block
-		EDmxChannelWidth						mWidth = EDmxChannelWidth::Value8;	///< Property: 'Width'
-		nap::ResourcePtr<FixtureChannelMapping>	mMapping;						///< Property: 'Mapping' (embedded)
+		std::string								mName;			///< Property: 'Name'
+		int										mOffset = 0;	///< Property: 'Offset' zero-based within the fixture channel block
+		EChannelRole							mRole = EChannelRole::Generic;	///< Property: 'Role'
+		int										mUnitIndex = 0;	///< Property: 'UnitIndex' 1..6 if unit-scoped, else 0
+		nap::ResourcePtr<nap::ParameterFloat>	mBaseParameter;	///< Property: 'BaseParameter'
 	};
 
 
@@ -68,7 +69,6 @@ namespace lx
 		EChannelRole getRole() const		{ return mRole; }
 		int getUnitIndex() const			{ return mUnitIndex; }
 		const std::string& getChannelName() const	{ return mName; }
-		size_t getClaimCount() const		{ return mClaims.size(); }
 
 	private:
 		struct ChannelClaim

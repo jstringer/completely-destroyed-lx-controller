@@ -15,5 +15,5 @@ RTTI_END_ENUM
 RTTI_BEGIN_CLASS(lx::Trigger)
 	RTTI_PROPERTY("Name",		&lx::Trigger::mName,		nap::rtti::EPropertyMetaData::Required)
 	RTTI_PROPERTY("Kind",		&lx::Trigger::mKind,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Bindings",	&lx::Trigger::mBindings,	nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("Binding",	&lx::Trigger::mBinding,		nap::rtti::EPropertyMetaData::Default)
 RTTI_END_CLASS

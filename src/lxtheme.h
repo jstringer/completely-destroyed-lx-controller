@@ -257,34 +257,10 @@ namespace lxtheme
 		ImGui::SetNextItemWidth(w);
 		return ImGui::DragFloat((std::string("##") + label).c_str(), v, speed, lo, hi, fmt);
 	}
-	inline bool LabeledSlider(const char* label, float* v, float lo, float hi, float w = 90.0f)
-	{
-		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
-		ImGui::SetNextItemWidth(w);
-		return ImGui::SliderFloat((std::string("##") + label).c_str(), v, lo, hi);
-	}
-	inline bool LabeledInt(const char* label, int* v, float w = 84.0f)
-	{
-		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
-		ImGui::SetNextItemWidth(w);
-		return ImGui::InputInt((std::string("##") + label).c_str(), v);
-	}
 	inline bool LabeledCheck(const char* label, bool* v)
 	{
 		ImGui::AlignTextToFramePadding(); ImGui::TextUnformatted(label); ImGui::SameLine();
 		return ImGui::Checkbox((std::string("##") + label).c_str(), v);
-	}
-
-	/** Violet line plot for a modulator's value history (values expected 0..1). `size.x<=0` fills the
-	 *  available width (ImGui::PlotLines only auto-fills on x==0, not on -1). */
-	inline void ModPlot(const char* label, const float* values, int count, const ImVec2& size = ImVec2(480, 50))
-	{
-		ImVec2 sz = size;
-		if (sz.x <= 0.0f) sz.x = ImGui::GetContentRegionAvail().x;
-		if (sz.y <= 0.0f) sz.y = 40.0f;
-		ImGui::PushStyleColor(ImGuiCol_PlotLines, mod());
-		ImGui::PlotLines(label, values, count, 0, nullptr, 0.0f, 1.0f, sz);
-		ImGui::PopStyleColor();
 	}
 
 	/** The mockup's modulator preview: draws the STATIC shape `values` (0..1, one full cycle/envelope)
@@ -303,7 +279,7 @@ namespace lxtheme
 		{
 			const ImU32 line = ImGui::ColorConvertFloat4ToU32(mod());
 			const ImU32 fill = ImGui::ColorConvertFloat4ToU32(ImVec4(mod().x, mod().y, mod().z, 0.14f));
-			auto yat = [&](int i) { float v = values[i]; v = v < 0 ? 0 : (v > 1 ? 1 : v); return p.y + size.y * (1.0f - v); };
+			auto yat = [&](int i) { return p.y + size.y * (1.0f - std::clamp(values[i], 0.0f, 1.0f)); };
 			for (int i = 0; i < count - 1; ++i)
 			{
 				const float x0 = p.x + size.x * i / (count - 1), x1 = p.x + size.x * (i + 1) / (count - 1);
@@ -313,8 +289,7 @@ namespace lxtheme
 		}
 		if (phase01 >= 0.0f)
 		{
-			const float ph = phase01 > 1.0f ? 1.0f : phase01;
-			const float px = p.x + size.x * ph;
+			const float px = p.x + size.x * std::min(phase01, 1.0f);
 			dl->AddLine(ImVec2(px, p.y), ImVec2(px, p.y + size.y), ImGui::ColorConvertFloat4ToU32(mod2()), 1.5f);
 		}
 		ImGui::Dummy(size);
@@ -342,7 +317,7 @@ namespace lxtheme
 		const ImVec2 p = ImGui::GetCursorScreenPos();
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		const int cols = std::max(2, static_cast<int>(size.x));
-		auto sat = [](float v) { return v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v); };
+		auto sat = [](float v) { return std::clamp(v, 0.0f, 1.0f); };
 
 		for (int i = 0; i < cols; ++i)
 		{
@@ -515,7 +490,7 @@ namespace lxtheme
 	inline void Fader(const char* id, float value01, const ImVec2& size, const ImVec4& fill)
 	{
 		(void)id;
-		value01 = value01 < 0.0f ? 0.0f : (value01 > 1.0f ? 1.0f : value01);
+		value01 = std::clamp(value01, 0.0f, 1.0f);
 		const ImVec2 p = ImGui::GetCursorScreenPos();
 		ImDrawList* dl = ImGui::GetWindowDrawList();
 		const ImU32 bg = ImGui::ColorConvertFloat4ToU32(ImVec4(0.12f, 0.12f, 0.14f, 1.0f));

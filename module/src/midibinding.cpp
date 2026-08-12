@@ -3,8 +3,6 @@
 #include <algorithm>
 
 RTTI_BEGIN_CLASS(lx::MidiBinding)
-	RTTI_PROPERTY("Ports",			&lx::MidiBinding::mPorts,			nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Channels",		&lx::MidiBinding::mChannels,		nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("Numbers",		&lx::MidiBinding::mNumbers,			nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("NoteOn",			&lx::MidiBinding::mNoteOn,			nap::rtti::EPropertyMetaData::Default)
 	RTTI_PROPERTY("NoteOff",		&lx::MidiBinding::mNoteOff,			nap::rtti::EPropertyMetaData::Default)
@@ -35,12 +33,7 @@ namespace lx
 		if (!type_ok)
 			return false;
 
-		if (!mNumbers.empty() && std::find(mNumbers.begin(), mNumbers.end(), static_cast<int>(event.getNumber())) == mNumbers.end())
-			return false;
-		if (!mChannels.empty() && std::find(mChannels.begin(), mChannels.end(), static_cast<int>(event.getChannel())) == mChannels.end())
-			return false;
-		if (!mPorts.empty() && std::find(mPorts.begin(), mPorts.end(), event.getPort()) == mPorts.end())
-			return false;
-		return true;
+		return mNumbers.empty() ||
+			std::find(mNumbers.begin(), mNumbers.end(), static_cast<int>(event.getNumber())) != mNumbers.end();
 	}
 }

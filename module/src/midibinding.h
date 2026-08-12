@@ -13,8 +13,12 @@
 namespace lx
 {
 	/**
-	 * A MIDI message filter (mirrors MidiInputComponent's) plus the Control it drives. Many bindings
-	 * can point at one Control. Empty Ports/Channels/Numbers act as wildcards.
+	 * A MIDI message filter plus the Control it drives. Many bindings can point at one Control.
+	 *
+	 * Deliberately device-AGNOSTIC: message type + number only, never port or channel (see
+	 * lxcontrolService::createBinding). A pad learned on one controller then fires from any device
+	 * sending the same note, which is what a touring desk wants; filtering on port/channel would break
+	 * every learned binding the moment a device re-enumerates. An empty Numbers list is a wildcard.
 	 */
 	class NAPAPI MidiBinding : public nap::Resource
 	{
@@ -23,8 +27,6 @@ namespace lx
 		/** @return true if the event passes this filter. */
 		bool matches(const nap::MidiEvent& event) const;
 
-		std::vector<std::string>	mPorts;			///< Property: 'Ports'
-		std::vector<int>			mChannels;		///< Property: 'Channels'
 		std::vector<int>			mNumbers;		///< Property: 'Numbers'
 		bool	mNoteOn = false;			///< Property: 'NoteOn'
 		bool	mNoteOff = false;			///< Property: 'NoteOff'

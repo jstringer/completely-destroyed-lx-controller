@@ -2,14 +2,11 @@
     "Type": "nap::ModuleInfo", 
     "mID": "ModuleInfo", 
     "RequiredModules": [
-        "naprender",
         "napscene",
         "napparameter",
         "napartnet",
         "napmidi",
-        "napsequence",
-        "napsequencegui",
-        "napimgui"
+        "napsequence"
     ],
     "WindowsDllSearchPaths": []
 }

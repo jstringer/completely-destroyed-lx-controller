@@ -5,11 +5,8 @@
   "Version": "0.1.0",
   "RequiredModules": [
     "napapp",
-    "napcameracontrol",
-    "napartnet",
+    "napimgui",
     "napmidi",
-    "napparametergui",
-    "napsequencegui",
     "naplxcontrol"
   ],
   "Data": "data/objects.json",

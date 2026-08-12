@@ -671,7 +671,7 @@ namespace nap
 	}
 
 
-	lx::Modulator* lxcontrolService::addModulator(lx::Patch& patch, rtti::TypeInfo type)
+	lx::Modulator* lxcontrolService::addModulator(lx::Patch& patch, rtti::TypeInfo type, const std::string& name)
 	{
 		PatchEntry* patch_entry = findEntry(patch);
 		if (patch_entry == nullptr)
@@ -686,20 +686,7 @@ namespace nap
 		}
 
 		mod->mID = makeUniqueID(patch.mID + "_Mod");
-		// Short, readable default name: "lx::LfoModulator" -> "LFO". The raw RTTI name leaked into the
-		// blend-chain readout and the "driven by X" markers, where it was unreadable.
-		{
-			std::string n = std::string(type.get_name().data());
-			const size_t colons = n.rfind("::");
-			if (colons != std::string::npos)
-				n = n.substr(colons + 2);
-			const std::string suffix = "Modulator";
-			if (n.size() > suffix.size() && n.compare(n.size() - suffix.size(), suffix.size(), suffix) == 0)
-				n = n.substr(0, n.size() - suffix.size());
-			for (char& c : n)
-				c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-			mod->mName = n;
-		}
+		mod->mName = name;
 
 		utility::ErrorState err;
 		if (!mod->init(err))
@@ -753,8 +740,6 @@ namespace nap
 			auto& tv = m->mTargets;
 			tv.erase(std::remove_if(tv.begin(), tv.end(),
 				[param](const nap::ResourcePtr<lx::PatchParameter>& t) { return t.get() == param; }), tv.end());
-			if (m->mTarget.get() == param)
-				m->mTarget = nullptr;
 		}
 		PatchEntry* entry = findEntry(patch);
 		if (entry != nullptr)
@@ -830,14 +815,13 @@ namespace nap
 		for (auto& sm : src.mModulators)
 		{
 			// No seed target needed: copyObject brings mTargets across and they are remapped just below.
-			lx::Modulator* nm = addModulator(*dst, sm->get_type());
+			lx::Modulator* nm = addModulator(*dst, sm->get_type(), sm->mName);
 			if (nm == nullptr)
 				continue;
 			const std::string id = nm->mID;
 			rtti::copyObject(*sm, *nm);	// shape fields + Min/Max/Blend + mTargets (still point at src params) + mID
 			nm->mID = id;
 
-			nm->mTarget = nullptr;
 			std::vector<nap::ResourcePtr<lx::PatchParameter>> remapped;
 			for (auto& t : nm->mTargets)
 			{
@@ -896,9 +880,9 @@ namespace nap
 	}
 
 
-	void lxcontrolService::setTriggerBindings(lx::Trigger& trigger, const std::vector<lx::PatchFixtureBinding>& bindings)
+	void lxcontrolService::setTriggerBinding(lx::Trigger& trigger, const lx::PatchFixtureBinding& binding)
 	{
-		trigger.mBindings = bindings;
+		trigger.mBinding = binding;
 		markDirty();
 	}
 
@@ -934,66 +918,67 @@ namespace nap
 		activation.mTrigger = &trigger;
 		activation.mHeld = held;
 
-		for (auto& binding : trigger.mBindings)
+		lx::PatchFixtureBinding& binding = trigger.mBinding;
+		lx::Patch* patch = binding.mPatch.get();
+		if (patch == nullptr)
 		{
-			lx::Patch* patch = binding.mPatch.get();
-			if (patch == nullptr)
-				continue;
-			activation.mPatches.emplace_back(patch);
+			mActivations.emplace_back(activation);
+			return activation.mId;
+		}
+		activation.mPatches.emplace_back(patch);
 
-			// Spread each class over its own source list. A group of 3 six-unit fixtures yields 3 Fixture
-			// sources (Dimmer/Strobe/...) and 18 ColourUnit sources, so one Chase steps 3 times on a dimmer
-			// and 18 times across the colour units -- from the same authored shape, with nothing declared.
-			// Source ORDER follows the group's own member order, which is why reordering a group (or Rev)
-			// reverses the sweep.
-			for (lx::ESpreadClass cls : { lx::ESpreadClass::Fixture, lx::ESpreadClass::ColourUnit })
+		// Spread each class over its own source list. A group of 3 six-unit fixtures yields 3 Fixture
+		// sources (Dimmer/Strobe/...) and 18 ColourUnit sources, so one Chase steps 3 times on a dimmer
+		// and 18 times across the colour units -- from the same authored shape, with nothing declared.
+		// Source ORDER follows the group's own member order, which is why reordering a group (or Rev)
+		// reverses the sweep.
+		for (lx::ESpreadClass cls : { lx::ESpreadClass::Fixture, lx::ESpreadClass::ColourUnit })
+		{
+			// Per group (default): each group spans 0..1 on its own, so they run in parallel.
+			// End-to-end: concatenated into one run, so the effect crosses the whole set once.
+			std::vector<std::vector<lx::Source>> runs;
+			if (binding.mEndToEnd)
 			{
-				// Per group (default): each group spans 0..1 on its own, so they run in parallel.
-				// End-to-end: concatenated into one run, so the effect crosses the whole set once.
-				std::vector<std::vector<lx::Source>> runs;
-				if (binding.mEndToEnd)
-				{
-					std::vector<lx::Source> all;
-					for (auto& g : binding.mGroups)
-						if (g != nullptr)
-							for (auto& s : sourcesFor(*g.get(), cls))
-								all.emplace_back(s);
-					runs.emplace_back(std::move(all));
-				}
-				else
-				{
-					for (auto& g : binding.mGroups)
-						if (g != nullptr)
-							runs.emplace_back(sourcesFor(*g.get(), cls));
-				}
+				std::vector<lx::Source> all;
+				for (auto& g : binding.mGroups)
+					if (g != nullptr)
+						for (auto& s : sourcesFor(*g.get(), cls))
+							all.emplace_back(s);
+				runs.emplace_back(std::move(all));
+			}
+			else
+			{
+				for (auto& g : binding.mGroups)
+					if (g != nullptr)
+						runs.emplace_back(sourcesFor(*g.get(), cls));
+			}
 
-				for (auto& run : runs)
+			for (auto& run : runs)
+			{
+				const int source_count = static_cast<int>(run.size());
+				for (int idx = 0; idx < source_count; ++idx)
 				{
-					const int source_count = static_cast<int>(run.size());
-					for (int idx = 0; idx < source_count; ++idx)
+					lx::Source& src = run[idx];
+					for (auto* channel : src.mFixture->getChannels())
 					{
-						lx::Source& src = run[idx];
-						for (auto* channel : src.mFixture->getChannels())
-						{
-							if (lx::spreadClassOf(channel->getRole()) != cls)
-								continue;
-							// A ColourUnit source addresses exactly one unit of its fixture.
-							if (cls == lx::ESpreadClass::ColourUnit && channel->getUnitIndex() != src.mUnitIndex)
-								continue;
+						if (lx::spreadClassOf(channel->getRole()) != cls)
+							continue;
+						// A ColourUnit source addresses exactly one unit of its fixture.
+						if (cls == lx::ESpreadClass::ColourUnit && channel->getUnitIndex() != src.mUnitIndex)
+							continue;
 
-							for (auto& param : patch->mParameters)
-							{
-								const int comps = param->getComponentCount();
-								for (int c = 0; c < comps; ++c)
-									if (param->getComponentRole(c) == channel->getRole())
-										channel->pushClaim(activation.mId, patch, param.get(), c, idx, source_count, held);
-							}
+						for (auto& param : patch->mParameters)
+						{
+							const int comps = param->getComponentCount();
+							for (int c = 0; c < comps; ++c)
+								if (param->getComponentRole(c) == channel->getRole())
+									channel->pushClaim(activation.mId, patch, param.get(), c, idx, source_count, held);
 						}
 					}
 				}
 			}
-			patch->trigger();
 		}
+		patch->trigger();
 
 		mActivations.emplace_back(activation);
 		return activation.mId;
@@ -1233,51 +1218,13 @@ namespace nap
 	lx::ControlMapping* lxcontrolService::routeControl(lx::Program& program, lx::Control& control, lx::Patch* patch,
 		const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups)
 	{
-		// A routing owns its own Control-kind trigger with exactly one binding (the UI never shows it).
+		// A routing owns its own Control-kind trigger (the UI never shows it).
 		lx::Trigger* trig = createTrigger(lx::ETriggerKind::Control, control.mName);
 		if (trig == nullptr)
 			return nullptr;
-		lx::PatchFixtureBinding b;
-		b.mPatch = patch;
-		b.mGroups = groups;
-		trig->mBindings = { b };
+		trig->mBinding.mPatch = patch;
+		trig->mBinding.mGroups = groups;
 		return setControlMapping(program, control, trig);
-	}
-
-
-	void lxcontrolService::setRoutingPatch(lx::Trigger& trigger, lx::Patch* patch)
-	{
-		lx::PatchFixtureBinding b;
-		b.mPatch = patch;
-		if (!trigger.mBindings.empty())
-		{
-			b.mGroups = trigger.mBindings[0].mGroups;				// keep groups + spread
-			b.mEndToEnd = trigger.mBindings[0].mEndToEnd;
-		}
-		setTriggerBindings(trigger, { b });
-	}
-
-
-	void lxcontrolService::setRoutingSpread(lx::Trigger& trigger, bool endToEnd)
-	{
-		if (trigger.mBindings.empty())
-			return;
-		lx::PatchFixtureBinding b = trigger.mBindings[0];
-		b.mEndToEnd = endToEnd;
-		setTriggerBindings(trigger, { b });
-	}
-
-
-	void lxcontrolService::setRoutingGroups(lx::Trigger& trigger, const std::vector<nap::ResourcePtr<lx::FixtureGroup>>& groups)
-	{
-		lx::PatchFixtureBinding b;
-		if (!trigger.mBindings.empty())
-		{
-			b.mPatch = trigger.mBindings[0].mPatch;					// keep patch + spread
-			b.mEndToEnd = trigger.mBindings[0].mEndToEnd;
-		}
-		b.mGroups = groups;
-		setTriggerBindings(trigger, { b });
 	}
 
 
@@ -1334,20 +1281,18 @@ namespace nap
 		{
 			if (act.mTrigger == nullptr)
 				continue;
-			for (const auto& b : act.mTrigger->mBindings)
+			const lx::PatchFixtureBinding& b = act.mTrigger->mBinding;
+			bool drives = false;
+			for (const auto& g : b.mGroups)
 			{
-				bool drives = false;
-				for (const auto& g : b.mGroups)
-				{
-					if (g == nullptr)
-						continue;
-					if (std::find(g->mFixtureNames.begin(), g->mFixtureNames.end(), eid) != g->mFixtureNames.end())
-						{ drives = true; break; }
-				}
-				if (!drives)
+				if (g == nullptr)
 					continue;
-				claimants.push_back({ b.mPatch != nullptr ? b.mPatch->mName : std::string("(patch)"), act.mHeld, act.mId });
+				if (std::find(g->mFixtureNames.begin(), g->mFixtureNames.end(), eid) != g->mFixtureNames.end())
+					{ drives = true; break; }
 			}
+			if (!drives)
+				continue;
+			claimants.push_back({ b.mPatch != nullptr ? b.mPatch->mName : std::string("(patch)"), act.mHeld, act.mId });
 		}
 		// Held first, then newest first -- the same priority resolveValue() arbitrates per channel.
 		std::sort(claimants.begin(), claimants.end(), [](const C& a, const C& b)
@@ -1464,12 +1409,8 @@ namespace nap
 		while (mMidiLog.size() > sMaxMidiLogSize)
 			mMidiLog.pop_back();
 
-		mLastEventType = event.getType();
-		mLastEventNumber = event.getNumber();
-		mLastEventValue = event.getValue();
-		mLastEventChannel = event.getChannel();
-		mLastEventPort = event.getPort();
-		mHasLastEvent = true;
+		mLastEvent = std::make_unique<MidiEvent>(event.getType(), event.getNumber(), event.getValue(),
+			event.getChannel(), event.getPort());
 		mMidiEventCounter++;
 
 		// Dispatch to controls via matching bindings. Which Trigger a Control fires (if any) is

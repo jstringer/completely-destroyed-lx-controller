@@ -3,7 +3,6 @@
 
 // External Includes
 #include <RtMidi.h>
-#include <set>
 
 namespace nap
 {
@@ -53,11 +52,10 @@ namespace nap
 			return false;
 		mAccumTime = 0.0;
 
+		// Compared as a LIST, not a set: RtMidi hands ports back in stable index order, and a reordering
+		// is a device change too -- the port a MidiInputPort opened by index would have moved under it.
 		std::vector<std::string> polled = pollPortNames();
-
-		std::set<std::string> polled_set(polled.begin(), polled.end());
-		std::set<std::string> last_set(mLastPorts.begin(), mLastPorts.end());
-		if (polled_set == last_set)
+		if (polled == mLastPorts)
 			return false;
 
 		mLastPorts = polled;

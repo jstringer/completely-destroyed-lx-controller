@@ -7,7 +7,6 @@
 namespace lx
 {
 	enum class EControlMode : int { Momentary, Toggle, FireOnly };
-	enum class EControlKind : int { Pad, Knob };	///< presentational: pad (note/gate) vs knob (continuous)
 
 	/**
 	 * A pure, reusable "what MIDI input is this" identity: a named Control mapped to MIDI (via one or
@@ -21,7 +20,6 @@ namespace lx
 	public:
 		std::string					mName;						///< Property: 'Name'
 		EControlMode				mMode = EControlMode::Momentary;	///< Property: 'Mode'
-		EControlKind				mKind = EControlKind::Pad;	///< Property: 'Kind' pad vs knob; presentational (chip in the CONTROLS UI).
 		std::string					mGroup;						///< Property: 'Group' device label that groups Controls in the CONTROLS UI (empty = ungrouped). Presentational only; not a resource (findings §6).
 
 		// Runtime, non-serialized

@@ -5,10 +5,11 @@
 #include <algorithm>
 
 RTTI_BEGIN_CLASS(lx::FixtureChannelComponent)
-	RTTI_PROPERTY("Name",		&lx::FixtureChannelComponent::mName,		nap::rtti::EPropertyMetaData::Required)
-	RTTI_PROPERTY("Offset",		&lx::FixtureChannelComponent::mOffset,		nap::rtti::EPropertyMetaData::Required)
-	RTTI_PROPERTY("Width",		&lx::FixtureChannelComponent::mWidth,		nap::rtti::EPropertyMetaData::Default)
-	RTTI_PROPERTY("Mapping",	&lx::FixtureChannelComponent::mMapping,		nap::rtti::EPropertyMetaData::Required | nap::rtti::EPropertyMetaData::Embedded)
+	RTTI_PROPERTY("Name",			&lx::FixtureChannelComponent::mName,			nap::rtti::EPropertyMetaData::Required)
+	RTTI_PROPERTY("Offset",			&lx::FixtureChannelComponent::mOffset,			nap::rtti::EPropertyMetaData::Required)
+	RTTI_PROPERTY("Role",			&lx::FixtureChannelComponent::mRole,			nap::rtti::EPropertyMetaData::Required)
+	RTTI_PROPERTY("UnitIndex",		&lx::FixtureChannelComponent::mUnitIndex,		nap::rtti::EPropertyMetaData::Default)
+	RTTI_PROPERTY("BaseParameter",	&lx::FixtureChannelComponent::mBaseParameter,	nap::rtti::EPropertyMetaData::Required)
 RTTI_END_CLASS
 
 RTTI_BEGIN_CLASS_NO_DEFAULT_CONSTRUCTOR(lx::FixtureChannelComponentInstance)
@@ -22,14 +23,10 @@ namespace lx
 		auto* resource = getComponent<FixtureChannelComponent>();
 		mName = resource->mName;
 		mOffset = resource->mOffset;
-
-		if (!errorState.check(resource->mMapping != nullptr, "%s: missing Mapping", mID.c_str()))
-			return false;
-
-		mRole = resource->mMapping->mRole;
-		mUnitIndex = resource->mMapping->mUnitIndex;
-		mBaseParameter = resource->mMapping->mBaseParameter.get();
-		return errorState.check(mBaseParameter != nullptr, "%s: mapping missing BaseParameter", mID.c_str());
+		mRole = resource->mRole;
+		mUnitIndex = resource->mUnitIndex;
+		mBaseParameter = resource->mBaseParameter.get();
+		return errorState.check(mBaseParameter != nullptr, "%s: missing BaseParameter", mID.c_str());
 	}
 
 

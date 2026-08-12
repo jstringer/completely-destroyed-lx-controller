@@ -4,8 +4,6 @@
 #include <utility/fileutils.h>
 #include <nap/logger.h>
 #include <inputrouter.h>
-#include <rendergnomoncomponent.h>
-#include <perspcameracomponent.h>
 #include <midiinputcomponent.h>
 #include <parameternumeric.h>
 #include <imgui/imgui.h>
@@ -60,16 +58,6 @@ namespace nap
 		// Get the scene that contains our entities and components
 		mScene = mResourceManager->findObject<Scene>("Scene");
 		if (!error.check(mScene != nullptr, "unable to find scene with name: %s", "Scene"))
-			return false;
-
-		// Get the camera entity
-		mCameraEntity = mScene->findEntity("CameraEntity");
-		if (!error.check(mCameraEntity != nullptr, "unable to find entity with name: %s", "CameraEntity"))
-			return false;
-
-		// Get the Gnomon entity
-		mGnomonEntity = mScene->findEntity("GnomonEntity");
-		if (!error.check(mGnomonEntity != nullptr, "unable to find entity with name: %s", "GnomonEntity"))
 			return false;
 
 		// The three per-fixture base-value parameter groups, drawn in the Fixtures tab. The fixtures
@@ -173,7 +161,7 @@ namespace nap
 						RTTI_OF(lx::StepModulator), RTTI_OF(lx::ChaseModulator), RTTI_OF(lx::NoiseModulator),
 						RTTI_OF(lx::GradientModulator) };
 					for (int i = 0; i < 7; ++i)
-						if (arg == kTypes[i]) { mLxControlService->addModulator(target, kInfos[i]); lxagent::hit(); break; }
+						if (arg == kTypes[i]) { mLxControlService->addModulator(target, kInfos[i], kTypes[i]); lxagent::hit(); break; }
 				}
 				else
 				{
@@ -535,10 +523,10 @@ namespace nap
 			// Sublabel: patch -> the groups it drives. Names the groups, not a fixture count: what the
 			// operator needs on a pad is "which part of the rig", not "how many sources".
 			std::string fx;
-			if (bound && !trig->mBindings.empty() && trig->mBindings[0].mPatch != nullptr)
+			if (bound && trig->mBinding.mPatch != nullptr)
 			{
-				fx = trig->mBindings[0].mPatch->mName;
-				const auto& groups = trig->mBindings[0].mGroups;
+				fx = trig->mBinding.mPatch->mName;
+				const auto& groups = trig->mBinding.mGroups;
 				for (size_t g = 0; g < groups.size(); ++g)
 					if (groups[g] != nullptr)
 						fx += (g == 0 ? "  -> " : " + ") + groups[g]->mName;
@@ -859,7 +847,16 @@ namespace nap
 
 	// Human label for a source parameter (its role / kind), so combos + "drives X" read meaningfully
 	// instead of the default "Param". Float/Toggle -> role name; Color -> "Color".
+	// Index 8 == EChannelRole::Unset: a prompt, not a value. A role combo shows it until the user chooses,
+	// so this doubles as the role-combo item list -- ONE table, indexed by EChannelRole throughout.
 	static const char* kRoleLabels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic", "pick a role" };
+	static const int   kRoleLabelCount = 9;
+
+	/** @return kRoleLabels[role], range-guarded. */
+	static const char* roleLabel(lx::EChannelRole role)
+	{
+		return kRoleLabels[nap::math::clamp(static_cast<int>(role), 0, kRoleLabelCount - 1)];
+	}
 
 	/** One-line fold readout for a source parameter: the base, then every modulator that targets it in
 	 *  EVALUATION order, each prefixed by its blend op (=Set, *Scale, +Offset). Ops discarded by a later
@@ -931,17 +928,15 @@ namespace nap
 		{
 			if (fp->mRole == lx::EChannelRole::Generic && !fp->mName.empty())
 				return fp->mName;
-			return kRoleLabels[nap::math::clamp(static_cast<int>(fp->mRole), 0, 8)];
+			return roleLabel(fp->mRole);
 		}
 		if (rtti_cast<lx::ColorParameter>(p)) return "Color";
-		if (auto* tp = rtti_cast<lx::ToggleParameter>(p)) return std::string(kRoleLabels[nap::math::clamp(static_cast<int>(tp->mRole), 0, 8)]) + " (tgl)";
+		if (auto* tp = rtti_cast<lx::ToggleParameter>(p)) return std::string(roleLabel(tp->mRole)) + " (tgl)";
 		return p->mName;
 	}
 
 	void lxcontrolApp::drawPatchesTab()
 	{
-		// Index 8 == EChannelRole::Unset: a prompt, not a value. The combo shows it until the user chooses.
-		static const char* role_labels[] = { "Dimmer", "Strobe", "Red", "Green", "Blue", "ColorMacro", "SoundMode", "Generic", "pick a role" };
 		static const char* shape_labels[] = { "Sine", "Ramp", "Triangle", "Square", "Pulse", "Gaussian" };
 		static const char* blend_labels[]    = { "Set", "Scale", "Offset" };
 		static const char* lfo_mode_labels[] = { "Loop", "OneShot", "LoopRetrigger" };
@@ -970,8 +965,7 @@ namespace nap
 
 			int used_by = 0;
 			for (auto& trig : mLxControlService->getTriggers())
-				for (auto& b : trig->mBindings)
-					if (b.mPatch.get() == patch.get()) { used_by++; break; }
+				if (trig->mBinding.mPatch.get() == patch.get()) used_by++;
 
 			// Quiet, and separated from the name it destroys. Right-aligning it needs window-region
 			// arithmetic that ignores the scrollbar (which clipped Del three times already), so instead it is
@@ -1073,7 +1067,7 @@ namespace nap
 						int role = static_cast<int>(fp->mRole);
 						ImGui::SetNextItemWidth(148);	// must fit the "pick a role" prompt, not just the role names
 						const bool pr = lxtheme::PushPrompt(src_unset);
-						if (ImGui::Combo("##role", &role, role_labels, 9)) fp->mRole = static_cast<lx::EChannelRole>(role);
+						if (ImGui::Combo("##role", &role, kRoleLabels, kRoleLabelCount)) fp->mRole = static_cast<lx::EChannelRole>(role);
 						lxtheme::PopPrompt(pr);
 						if (src_unset) { ImGui::SameLine(); lxtheme::WarnChip("! no role"); }
 						ImGui::SameLine(); ImGui::SetNextItemWidth(-52.0f);
@@ -1092,7 +1086,7 @@ namespace nap
 					{
 						int role = static_cast<int>(tp->mRole);
 						ImGui::SetNextItemWidth(148);
-						if (ImGui::Combo("##trole", &role, role_labels, 9)) tp->mRole = static_cast<lx::EChannelRole>(role);
+						if (ImGui::Combo("##trole", &role, kRoleLabels, kRoleLabelCount)) tp->mRole = static_cast<lx::EChannelRole>(role);
 						ImGui::SameLine(); lxtheme::LabeledCheck("On", &tp->mValue);
 					}
 					// Small "x" like every other removal in the app (mod-matrix targets, group members), not a
@@ -1156,15 +1150,10 @@ namespace nap
 						{ ++mod_index; continue; }
 					ImGui::PushID(m.get());
 
-					// Card header: kind (violet) + target + Trigger/Stop.
-					const char* kind = "MOD";
-					if (rtti_cast<lx::AdsrModulator>(m.get())) kind = "ADSR";
-					else if (rtti_cast<lx::AdModulator>(m.get())) kind = "AD";
-					else if (rtti_cast<lx::LfoModulator>(m.get())) kind = "LFO";
-					else if (rtti_cast<lx::StepModulator>(m.get())) kind = "STEP";
-					else if (rtti_cast<lx::ChaseModulator>(m.get())) kind = "CHASE";
-					else if (rtti_cast<lx::NoiseModulator>(m.get())) kind = "NOISE";
-					else if (rtti_cast<lx::GradientModulator>(m.get())) kind = "GRADIENT";
+					// Card header: kind (violet) + target + Trigger/Stop. mName IS the kind -- it is set from
+					// the type list at creation and there is no rename, so a second rtti_cast ladder here only
+					// duplicated that list (and defaulted a new type to "MOD" until someone remembered it).
+					const char* kind = m->mName.c_str();
 					lxtheme::SlabBegin((mod_index & 1) ? lxtheme::slab2() : lxtheme::slab(), lxtheme::mod());
 					// Header geometry: DISCLOSURE first (one aligned column at every level), then the order
 					// group, then identity, then actions pushed hard right. The fold used to sit between Stop
@@ -1418,7 +1407,7 @@ namespace nap
 					int sel = 0;
 					ImGui::SetNextItemWidth(172);
 					if (ImGui::Combo("##addmod", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
-						mLxControlService->addModulator(*patch.get(), mod_types[sel - 1]);
+						mLxControlService->addModulator(*patch.get(), mod_types[sel - 1], mod_type_labels[sel - 1]);
 				}
 				}
 			}
@@ -1543,9 +1532,7 @@ namespace nap
 		// order matters, then "+ group". Not a stack of pickers -- the patch is one choice, the groups are
 		// a set, and the two should not look alike.
 		auto groupCell = [&](lx::Trigger* trig) {
-			if (trig->mBindings.empty())
-				return;
-			auto& binding = trig->mBindings[0];
+			auto& binding = mLxControlService->routingBinding(*trig);
 
 			int remove_g = -1;
 			for (size_t g = 0; g < binding.mGroups.size(); ++g)
@@ -1568,10 +1555,9 @@ namespace nap
 			}
 			if (remove_g >= 0)
 			{
-				auto next = binding.mGroups;
-				next.erase(next.begin() + remove_g);
-				mLxControlService->setRoutingGroups(*trig, next);
-				return;		// binding just got rewritten; don't touch it again this frame
+				binding.mGroups.erase(binding.mGroups.begin() + remove_g);
+				mLxControlService->markDirty();
+				return;		// the group list just changed; don't iterate it again this frame
 			}
 
 			// Groups not already bound here -> a "+ group" combo (same shape as the mod-matrix "+ add").
@@ -1593,9 +1579,8 @@ namespace nap
 					ImGui::SameLine(0.0f, 6.0f); ImGui::SetNextItemWidth(112.0f);
 					if (ImGui::Combo("##addgroup", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
 					{
-						auto next = binding.mGroups;
-						next.emplace_back(avail[sel - 1]);
-						mLxControlService->setRoutingGroups(*trig, next);
+						binding.mGroups.emplace_back(avail[sel - 1]);
+						mLxControlService->markDirty();
 						return;
 					}
 				}
@@ -1611,7 +1596,10 @@ namespace nap
 				ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::mod2());
 				ImGui::SetNextItemWidth(118.0f);
 				if (ImGui::Combo("##spread", &s, kSpread, 2))
-					mLxControlService->setRoutingSpread(*trig, s == 1);
+				{
+					binding.mEndToEnd = (s == 1);
+					mLxControlService->markDirty();
+				}
 				ImGui::PopStyleColor();
 			}
 			ImGui::SameLine();
@@ -1662,8 +1650,8 @@ namespace nap
 
 			ImGui::SameLine(215.0f); ImGui::TextColored(lxtheme::muted(), "->");
 
-			// [Patch v] (edits the routing's single binding).
-			lx::Patch* curp = trig->mBindings.empty() ? nullptr : trig->mBindings[0].mPatch.get();
+			// [Patch v] (edits the routing's binding in place; groups + spread are untouched).
+			lx::Patch* curp = trig->mBinding.mPatch.get();
 			std::vector<const char*> plabels; plabels.emplace_back("(no patch)"); int pidx = 0;
 			for (int i = 0; i < static_cast<int>(patches.size()); ++i)
 			{
@@ -1672,7 +1660,10 @@ namespace nap
 			}
 			ImGui::SameLine(240.0f); ImGui::SetNextItemWidth(120);
 			if (ImGui::Combo("##patch", &pidx, plabels.data(), static_cast<int>(plabels.size())))
-				mLxControlService->setRoutingPatch(*trig, pidx == 0 ? nullptr : patches[pidx - 1].get());
+			{
+				mLxControlService->routingBinding(*trig).mPatch = pidx == 0 ? nullptr : patches[pidx - 1].get();
+				mLxControlService->markDirty();
+			}
 
 			// Fixture chips + test + remove.
 			ImGui::SameLine(375.0f);
@@ -1715,7 +1706,7 @@ namespace nap
 			lxtheme::Chip(label);
 			ImGui::SameLine(); ImGui::TextColored(lxtheme::muted(), "->");
 			lx::Trigger* t = mLxControlService->getLifecycleTrigger(*prog, kind);
-			lx::Patch* cur = (t != nullptr && !t->mBindings.empty()) ? t->mBindings[0].mPatch.get() : nullptr;
+			lx::Patch* cur = t != nullptr ? t->mBinding.mPatch.get() : nullptr;
 			std::vector<const char*> items; items.emplace_back("no action"); int sel = 0;
 			for (int i = 0; i < static_cast<int>(patches.size()); ++i)
 			{
@@ -1729,19 +1720,17 @@ namespace nap
 					mLxControlService->clearLifecycle(*prog, kind);
 				else if (lx::Trigger* nt = mLxControlService->ensureLifecycleTrigger(*prog, kind))
 				{
-					const bool wasEmpty = nt->mBindings.empty() || nt->mBindings[0].mGroups.empty();
-					mLxControlService->setRoutingPatch(*nt, patches[sel - 1].get());
-					if (wasEmpty)	// default: the All Fixtures group
-					{
-						std::vector<nap::ResourcePtr<lx::FixtureGroup>> deflt;
+					auto& binding = mLxControlService->routingBinding(*nt);
+					binding.mPatch = patches[sel - 1].get();
+					// A routing with no group is silent, which reads as broken: default to All Fixtures.
+					if (binding.mGroups.empty())
 						if (lx::FixtureGroup* all = mLxControlService->ensureDefaultGroup())
-							deflt.emplace_back(all);
-						mLxControlService->setRoutingGroups(*nt, deflt);
-					}
+							binding.mGroups.emplace_back(all);
+					mLxControlService->markDirty();
 				}
 			}
 			t = mLxControlService->getLifecycleTrigger(*prog, kind);	// re-fetch (may have just been created/cleared)
-			if (t != nullptr && !t->mBindings.empty() && t->mBindings[0].mPatch != nullptr)
+			if (t != nullptr && t->mBinding.mPatch != nullptr)
 			{
 				ImGui::SameLine();
 				groupCell(t);
@@ -1783,10 +1772,9 @@ namespace nap
 		"Latch (Toggle): each press toggles the trigger on / off.",
 		"Trig (FireOnly): each press re-fires; never holds."
 	};
-	static const char* kKindLabels[] = { "Pad", "Knob" };
 
-	// "Note 36 . ch1" style readout: message type + number(s) (+ channel(s) if the binding filters on
-	// them; learned bindings are channel-agnostic so ch is usually omitted). Uses the Latin-1 middot.
+	// "Note 36" style readout: message type + number(s). Bindings are device-agnostic by construction
+	// (no port/channel filter), so there is nothing else to state.
 	static std::string bindingLabel(const lx::MidiBinding& b)
 	{
 		const char* type = "MIDI";
@@ -1799,11 +1787,6 @@ namespace nap
 		std::string s = type;
 		if (b.mNumbers.empty()) s += " (any)";
 		else { s += " "; for (size_t i = 0; i < b.mNumbers.size(); ++i) { if (i) s += ","; s += std::to_string(b.mNumbers[i]); } }
-		if (!b.mChannels.empty())
-		{
-			s += " \xC2\xB7 ch";
-			for (size_t i = 0; i < b.mChannels.size(); ++i) { if (i) s += ","; s += std::to_string(b.mChannels[i]); }
-		}
 		return s;
 	}
 
@@ -1813,11 +1796,6 @@ namespace nap
 
 		ImGui::AlignTextToFramePadding();
 		ImGui::TextUnformatted(c->mName.c_str());
-
-		// Kind chip: Pad (teal) vs Knob (violet). Presentational; picked at creation.
-		ImGui::SameLine();
-		lxtheme::Chip(kKindLabels[static_cast<int>(c->mKind)],
-			c->mKind == lx::EControlKind::Knob ? lxtheme::mod2() : lxtheme::accent());
 
 		// Mode: Hold / Latch / Trig, with an explanatory tooltip. Fixed column offsets so the rows
 		// line up as a table (name | mode | binding | Learn) rather than a ragged SameLine flow.
@@ -1859,8 +1837,8 @@ namespace nap
 				mLearningControl = nullptr;
 			else if (mLxControlService->getMidiEventCounter() > mLearnStartCounter)
 			{
-				MidiEvent ev = mLxControlService->getLastMidiEvent();
-				mLxControlService->createBinding(ev, *c);
+				if (const MidiEvent* ev = mLxControlService->getLastMidiEvent())
+					mLxControlService->createBinding(*ev, *c);
 				mLearningControl = nullptr;
 			}
 		}
@@ -1920,8 +1898,6 @@ namespace nap
 		// New control form.
 		ImGui::SetNextItemWidth(140);
 		ImGui::InputText("Name##ctrl", mNewControlName, sizeof(mNewControlName));
-		ImGui::SameLine(); ImGui::SetNextItemWidth(80);
-		ImGui::Combo("Kind##ctrl", &mNewControlKind, kKindLabels, 2);
 		ImGui::SameLine(); ImGui::SetNextItemWidth(90);
 		ImGui::Combo("Mode##ctrl", &mNewControlMode, kModeLabels, 3);
 		ImGui::SameLine(); ImGui::SetNextItemWidth(120);
@@ -1930,7 +1906,7 @@ namespace nap
 		if (lxagent::Button("+ Add control") && std::strlen(mNewControlName) > 0)
 		{
 			lx::Control* nc = mLxControlService->createControl(mNewControlName, static_cast<lx::EControlMode>(mNewControlMode));
-			if (nc != nullptr) { nc->mKind = static_cast<lx::EControlKind>(mNewControlKind); nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }
+			if (nc != nullptr) { nc->mGroup = mNewControlGroup; mLxControlService->markDirty(); }
 			mNewControlName[0] = '\0';
 		}
 
@@ -2002,22 +1978,14 @@ namespace nap
 	}
 
 
+	// The whole surface is ImGui: there is no 3D scene, no camera, and nothing renderable to draw.
 	void lxcontrolApp::render()
 	{
 		mRenderService->beginFrame();
 		if (mRenderService->beginRecording(*mRenderWindow))
 		{
 			mRenderWindow->beginRendering();
-
-			auto& perp_cam = mCameraEntity->getComponent<PerspCameraComponentInstance>();
-			std::vector<nap::RenderableComponentInstance*> components_to_render
-			{
-				&mGnomonEntity->getComponent<RenderGnomonComponentInstance>()
-			};
-			mRenderService->renderObjects(*mRenderWindow, perp_cam, components_to_render);
-
 			mGuiService->draw();
-
 			mRenderWindow->endRendering();
 			mRenderService->endRecording();
 		}
