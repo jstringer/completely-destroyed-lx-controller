@@ -1024,11 +1024,16 @@ namespace nap
 					if (lxtheme::FoldToggle(&patch->mCurrentCollapsed, "cur")) mLxControlService->markDirty();
 					ImGui::SameLine();
 					lxtheme::Plate("Current", lxtheme::muted());
+					if (patch->mCurrentCollapsed)
+					{
+						ImGui::SameLine();
+						lxtheme::Chip((std::to_string(patch->mParameters.size()) + " folded").c_str(), lxtheme::muted());
+					}
+					else
+					{
 					lxtheme::SlabBegin(lxtheme::slab(), lxtheme::muted());
 					for (auto& p : patch->mParameters)
 					{
-						if (patch->mCurrentCollapsed)
-							continue;
 						ImGui::PushID(p.get());
 						ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::muted());
 						ImGui::TextUnformatted(patchParamLabel(p.get()).c_str());
@@ -1042,18 +1047,24 @@ namespace nap
 						ImGui::PopID();
 					}
 					lxtheme::SlabEnd();
+					}
 				}
 
 				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
 				if (lxtheme::FoldToggle(&patch->mSourceCollapsed, "src")) mLxControlService->markDirty();
 				ImGui::SameLine();
 				lxtheme::Plate("Source", lxtheme::accent());
-				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
+				if (patch->mSourceCollapsed)
+				{
+					ImGui::SameLine();
+					lxtheme::Chip((std::to_string(patch->mParameters.size()) + " folded").c_str(), lxtheme::accent2());
+				}
 				bool src_removed = false;
+				if (!patch->mSourceCollapsed)
+				{
+				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
 				for (auto& p : patch->mParameters)
 				{
-					if (patch->mSourceCollapsed)
-						continue;
 					ImGui::PushID(p.get());
 					// An unset role claims nothing. Say so, rather than letting the row look finished.
 					const bool src_unset = (p->getComponentRole(0) == lx::EChannelRole::Unset);
@@ -1095,12 +1106,6 @@ namespace nap
 					ImGui::PopID();
 					if (src_removed) break;	// mParameters mutated
 				}
-				if (patch->mSourceCollapsed)
-				{
-					ImGui::TextDisabled("%d source%s folded", static_cast<int>(patch->mParameters.size()),
-						patch->mParameters.size() == 1 ? "" : "s");
-				}
-				else
 				{
 					// One role list instead of three type buttons: the ROLE decides the type (Colour -> a
 					// colour parameter, Sound -> a toggle, everything else a float). You add "a dimmer", not
@@ -1126,6 +1131,7 @@ namespace nap
 					}
 				}
 				lxtheme::SlabEnd();		// close SOURCE slab
+				}
 
 				// --- MODULATION zone ---
 				if (lxtheme::FoldToggle(&patch->mModulationCollapsed, "mod")) mLxControlService->markDirty();
@@ -1399,6 +1405,9 @@ namespace nap
 					mLxControlService->markDirty();
 				}
 
+				// Hidden when folded, like the source add: folding means "out of my way".
+				if (!patch->mModulationCollapsed)
+				{
 				// Creation on selection: picking the type IS the add. No pre-selected kind to undo, and no
 				// second click. Index 0 is the prompt, so the combo never holds a value.
 				// ponytail: sentinel-first combo, the same shape the mod-matrix "+ add" already uses.
@@ -1410,6 +1419,7 @@ namespace nap
 					ImGui::SetNextItemWidth(172);
 					if (ImGui::Combo("##addmod", &sel, items.data(), static_cast<int>(items.size())) && sel > 0)
 						mLxControlService->addModulator(*patch.get(), mod_types[sel - 1]);
+				}
 				}
 			}
 			ImGui::PopID();
