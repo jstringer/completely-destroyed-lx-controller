@@ -60,8 +60,6 @@ def main():
     ap.add_argument("--version", help="override app.json Version")
     ap.add_argument("--notes", default="", help="release notes body")
     ap.add_argument("--publish", action="store_true", help="publish instead of leaving a draft")
-    ap.add_argument("--skip-regenerate", action="store_true",
-                    help="skip regenerate (only safe if no source files were added/removed)")
     ap.add_argument("--allow-dirty", action="store_true", help="package an uncommitted tree anyway")
     args = ap.parse_args()
 
@@ -95,9 +93,9 @@ def main():
                 moved.append((os.path.join(stash, os.path.basename(rel)), path))
                 print("scrubbed %s (build-machine content, not shipped)" % rel)
 
-        if not args.skip_regenerate:
-            sdk_python("regenerate_app_by_dir.py")
-        sdk_python("build_app_by_dir.py")
+        # Packaging is self-sufficient: package_app_by_name.py runs its own cmake configure and
+        # `cmake --build . --target install --config Release`. Calling regenerate + build first just
+        # built everything twice -- it configures fresh, so new source files are picked up regardless.
         sdk_python("package_app_by_dir.py", "-ns", "-nn", "-np")
     finally:
         for src, dst in moved:
@@ -132,6 +130,8 @@ def main():
     if exists:
         print("release %s exists -- replacing its asset" % tag)
         run(["gh", "release", "upload", tag, asset, "--clobber"], cwd=APP_DIR)
+        if args.publish:
+            run(["gh", "release", "edit", tag, "--draft=false"], cwd=APP_DIR)
     else:
         # Target the commit, not the branch name: in CI the checkout is detached, so --abbrev-ref would
         # hand gh the literal string "HEAD".
