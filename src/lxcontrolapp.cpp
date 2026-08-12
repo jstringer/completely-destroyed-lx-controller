@@ -1021,7 +1021,7 @@ namespace nap
 				// The strip CALLS evaluateAt() rather than reading a buffer, so it is correct while idle too.
 				if (!patch->mParameters.empty())
 				{
-					if (lxtheme::FoldToggle(&patch->mCurrentCollapsed)) mLxControlService->markDirty();
+					if (lxtheme::FoldToggle(&patch->mCurrentCollapsed, "cur")) mLxControlService->markDirty();
 					ImGui::SameLine();
 					lxtheme::Plate("Current", lxtheme::muted());
 					lxtheme::SlabBegin(lxtheme::slab(), lxtheme::muted());
@@ -1045,7 +1045,7 @@ namespace nap
 				}
 
 				// --- SOURCE zone: editable parameters, one per row (role + base + Del) ---
-				if (lxtheme::FoldToggle(&patch->mSourceCollapsed)) mLxControlService->markDirty();
+				if (lxtheme::FoldToggle(&patch->mSourceCollapsed, "src")) mLxControlService->markDirty();
 				ImGui::SameLine();
 				lxtheme::Plate("Source", lxtheme::accent());
 				lxtheme::SlabBegin(lxtheme::slab(), lxtheme::accent());
@@ -1128,7 +1128,7 @@ namespace nap
 				lxtheme::SlabEnd();		// close SOURCE slab
 
 				// --- MODULATION zone ---
-				if (lxtheme::FoldToggle(&patch->mModulationCollapsed)) mLxControlService->markDirty();
+				if (lxtheme::FoldToggle(&patch->mModulationCollapsed, "mod")) mLxControlService->markDirty();
 				ImGui::SameLine();
 				lxtheme::Plate("Modulation", lxtheme::mod());
 				if (patch->mModulationCollapsed)
@@ -1163,7 +1163,7 @@ namespace nap
 					// Header geometry: DISCLOSURE first (one aligned column at every level), then the order
 					// group, then identity, then actions pushed hard right. The fold used to sit between Stop
 					// and Del, where it read as an action.
-					if (lxtheme::FoldToggle(&m->mCollapsed)) mLxControlService->markDirty();
+					if (lxtheme::FoldToggle(&m->mCollapsed, "card")) mLxControlService->markDirty();
 					ImGui::SameLine();
 					// Evaluation-order index. Order IS semantics here (a Set discards what precedes it), so it
 					// is numbered and reorderable rather than being an invisible consequence of creation order.
@@ -1208,7 +1208,10 @@ namespace nap
 					if (lxagent::SmallButton("Trigger")) m->onTrigger();
 					ImGui::SameLine(); if (lxagent::SmallButton("Stop")) m->onStop();
 					ImGui::SameLine();
-					if (lxtheme::DangerButton("Del")) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::SlabEnd(); ImGui::PopID(); break; }
+					ImGui::PushStyleColor(ImGuiCol_Text, lxtheme::danger());
+					const bool del_mod = lxagent::SmallButton("Del");
+					ImGui::PopStyleColor();
+					if (del_mod) { mLxControlService->removeModulator(*patch.get(), m.get()); lxtheme::SlabEnd(); ImGui::PopID(); break; }
 
 					// The family is told apart by its PREVIEW, not by a fourth hue: a spatial (Field) modulator
 					// draws a strip across position; a temporal (Curve) one draws its shape with a playhead.

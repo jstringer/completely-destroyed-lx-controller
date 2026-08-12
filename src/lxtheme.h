@@ -438,10 +438,16 @@ namespace lxtheme
 
 	/** Fold toggle: `-` when open (click to fold), `+` when folded. ASCII on purpose -- lxagent::fold drops
 	 *  non-ASCII, so a glyph chevron would be unaddressable from the agent bridge. Flips `*collapsed` and
-	 *  returns true when it changed, so the caller can mark content dirty. */
-	inline bool FoldToggle(bool* collapsed)
+	 *  returns true when it changed, so the caller can mark content dirty.
+	 *
+	 *  `id` is REQUIRED and must be unique within the enclosing ImGui ID scope: the label is the widget's
+	 *  ID, so three toggles all labelled "-" at the same level are the SAME widget and only the first drawn
+	 *  responds. That is exactly how the CURRENT / SOURCE / MODULATION folds silently stopped working.
+	 *  The "##" suffix is invisible and lxagent::fold strips it, so the agent key stays "-" / "+". */
+	inline bool FoldToggle(bool* collapsed, const char* id)
 	{
-		if (lxagent::SmallButton(*collapsed ? "+" : "-"))
+		const std::string label = std::string(*collapsed ? "+" : "-") + "##fold" + id;
+		if (lxagent::SmallButton(label.c_str()))
 		{
 			*collapsed = !*collapsed;
 			return true;
